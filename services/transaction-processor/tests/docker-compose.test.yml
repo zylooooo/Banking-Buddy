@@ -1,0 +1,63 @@
+services:
+  # SFTP server for testing
+  sftp-server:
+    build:
+      context: ../../../sftp-server
+      dockerfile: Dockerfile
+    container_name: sftp-server-test
+    ports:
+      - "2222:22"
+    volumes:
+      - ../../../sftp-server/data:/home/sftpuser/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "22"]
+      interval: 3s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # MySQL database for testing
+  mysql-db:
+    image: mysql:8.0
+    container_name: mysql-db-test
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: scrooge_crm
+      MYSQL_USER: crm_user
+      MYSQL_PASSWORD: password2025
+    volumes:
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "crm_user", "-ppassword2025"]
+      interval: 3s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  
+  # Pytest for transaction processor
+  transaction-processor-pytest:
+    build:
+      context: ../
+      dockerfile: tests/Dockerfile.test
+    depends_on:
+      sftp-server:
+        condition: service_healthy
+      mysql-db:
+        condition: service_healthy
+    environment:
+      # SFTP server configuration
+      - SFTP_HOST=sftp-server
+      - SFTP_PORT=22
+      - SFTP_USERNAME=sftpuser
+      - SFTP_PASSWORD=password123
+      - SFTP_REMOTE_FILE=/data/transactions.csv
+      - SFTP_LOCAL_FILE=/tmp/transactions.csv
+      # Database configuration
+      - DB_HOST=mysql-db
+      - DB_PORT=3306
+      - DB_USERNAME=crm_user
+      - DB_PASSWORD=password2025
+      - DB_NAME=scrooge_crm

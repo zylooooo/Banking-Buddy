@@ -1,0 +1,13 @@
+services:
+  sftp-server:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: sftp-server
+    ports:
+      # For local development, local port 2222 is mapped to container port 22
+      - "2222:22"
+    volumes:
+      # Mounts local ./data directory to container's /home/sftpuser/data directory
+      - ./data:/home/sftpuser/data
+    restart: unless-stopped

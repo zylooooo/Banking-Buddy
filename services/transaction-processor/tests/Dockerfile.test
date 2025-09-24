@@ -1,0 +1,29 @@
+FROM python:3.13-slim
+
+# Install system dependencies needed for testing
+RUN apt-get update && \
+    apt-get install -y netcat-openbsd && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Install dependencies
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY tests/requirements.test.txt ./ 
+RUN pip install --no-cache-dir -r requirements.test.txt
+
+# Copy source code
+COPY src/* ./src/
+COPY tests/*.py ./tests/
+
+# Create tmp directory for file operations
+RUN mkdir -p /tmp
+
+# Set python path
+ENV PYTHONPATH=/app
+
+# Run tests
+CMD ["python", "-m", "pytest", "-v", "--tb=short", "tests/"]
