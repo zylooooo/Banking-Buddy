@@ -4,6 +4,31 @@ from .config import load_config
 from .sftp_client import TransactionSFTPClient
 from .database_client import DatabaseClient
 
+def create_transactions_table(db_client):
+    """Create transactions table if it doesn't exist"""
+    try:
+        # Table creation SQL
+        create_table_sql = """
+        CREATE TABLE IF NOT EXISTS transactions (
+            id VARCHAR(255) PRIMARY KEY,
+            client_id VARCHAR(255) NOT NULL,
+            transaction VARCHAR(255) NOT NULL,
+            amount DECIMAL(10,2) NOT NULL,
+            date DATETIME NOT NULL,
+            status VARCHAR(50) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        """
+        
+        db_client.cursor.execute(create_table_sql)
+        db_client.connection.commit()
+        print("Transactions table created/verified successfully")
+        return True
+    except Exception as e:
+        print(f"Error creating transactions table: {e}")
+        return False
+
 def lambda_handler(event, context):
     """
     AWS Lambda handler function
@@ -28,7 +53,17 @@ def lambda_handler(event, context):
             return {
                 'statusCode': 500,
                 'body': json.dumps({
-                    'error': 'Failed to connect to databsae',
+                    'error': 'Failed to connect to database',
+                    'timestamp': datetime.now().isoformat()
+                })
+            }
+        
+        # Create transactions table if it doesn't exist
+        if not create_transactions_table(db_client):
+            return {
+                'statusCode': 500,
+                'body': json.dumps({
+                    'error': 'Failed to create transactions table',
                     'timestamp': datetime.now().isoformat()
                 })
             }
