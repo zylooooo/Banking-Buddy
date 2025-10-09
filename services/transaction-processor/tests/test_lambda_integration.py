@@ -286,7 +286,7 @@ TEST_VALID_001,CUS011111,Deposit,500.00,2024-01-17,Completed"""
             result = lambda_handler({}, lambda_context)
             assert result['statusCode'] == 500
             body = json.loads(result['body'])
-            assert 'Failed to connect to databsae' in body['error']  # Matches your typo
+            assert 'Failed to connect to database' in body['error']  # Matches your typo
         finally:
             if original_host:
                 os.environ['DB_HOST'] = original_host
