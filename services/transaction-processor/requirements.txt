@@ -1,6 +1,7 @@
 bcrypt==4.3.0
 boto==2.49.0
 cffi==2.0.0
+cryptography==46.0.1
 invoke==2.2.0
 paramiko==4.0.0
 pycparser==2.23
