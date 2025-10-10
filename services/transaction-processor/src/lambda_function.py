@@ -1,8 +1,8 @@
 import json
 from datetime import datetime
-from .config import load_config
-from .sftp_client import TransactionSFTPClient
-from .database_client import DatabaseClient
+from config import load_config
+from sftp_client import TransactionSFTPClient
+from database_client import DatabaseClient
 
 def create_transactions_table(db_client):
     """Create transactions table if it doesn't exist"""

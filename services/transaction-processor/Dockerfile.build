@@ -1,0 +1,16 @@
+FROM public.ecr.aws/lambda/python:3.9
+
+# Install system dependencies
+RUN yum install -y zip
+
+WORKDIR /build
+
+# Copy requirements and source code
+COPY requirements.txt ./
+COPY src/ .
+
+# Install dependencies to current directory
+RUN pip install -r requirements.txt -t .
+
+# Create deployment package
+RUN zip -r lambda-deployment-package.zip . -x "*.pyc" -x "__pycache__/*"

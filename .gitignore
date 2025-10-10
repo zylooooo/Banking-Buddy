@@ -204,12 +204,42 @@ deployment-package/
 .aws-sam/
 samconfig.toml
 
-# Terraform
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
 *.tfstate
 *.tfstate.*
-.terraform/
-.terraform.lock.hcl
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Exclude all .tfvars files (potentially sensitive)
+*.tfvars
+*.tfvars.json
+
+# Ignore override files (local customizations)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Plan output
+*.tfplan
+
+# CLI configuration files
+.terraformrc
+terraform.rc
+
 
 # Local configuration overrides
 local_config.py
 dev_config.py
+
+# Terraform variable files with secrets
+*.tfvars
+!environments/*.tfvars.example
+
+# Backup files
+*.backup

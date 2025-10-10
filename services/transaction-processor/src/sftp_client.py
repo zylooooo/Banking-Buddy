@@ -1,7 +1,7 @@
 import paramiko
 import csv
 from typing import List, Dict, Any
-from .transaction_validator import validate_transaction_record
+from transaction_validator import validate_transaction_record
 
 class TransactionSFTPClient:
     def __init__(self, host: str, port: int, username: str, password: str):

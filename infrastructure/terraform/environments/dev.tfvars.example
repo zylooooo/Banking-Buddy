@@ -1,0 +1,20 @@
+aws_region         = your_AWS_region
+project_name       = "banking-buddy"
+environment        = environment
+team_name          = "cs301-g2t1"
+vpc_cidr           = "10.0.0.0/16"
+availability_zones = regions_of_availability_zones
+
+db_instance_class     = db_instance
+db_allocated_storage  = db_allocated_storage
+lambda_memory_size    = lambda_allocated_memory_size
+lambda_timeout        = lambda_execution_timeout
+
+developer_ips = ["YOUR_IP_HERE/32"]
+
+# Secrets - DO NOT commit actual values
+rds_username      = "CHANGE_ME"
+rds_password      = "CHANGE_ME"
+rds_database_name = "transactions"
+sftp_username     = "CHANGE_ME"
+sftp_password     = "CHANGE_ME"

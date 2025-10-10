@@ -1,4 +1,6 @@
 import os
+import json
+import boto3
 from dataclasses import dataclass
 
 @dataclass
@@ -18,17 +20,42 @@ class Config:
     DB_PASSWORD: str
     DB_NAME: str
 
+def get_secret(secret_name: str) -> dict:
+    """Retrieve secret from AWS Secrets Manager"""
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager'
+    )
+    
+    try:
+        get_secret_value_response = client.get_secret_value(
+            SecretId=secret_name
+        )
+        secret = json.loads(get_secret_value_response['SecretString'])
+        return secret
+    except Exception as e:
+        print(f"Error retrieving secret {secret_name}: {e}")
+        raise e
+
 def load_config() -> Config:
+    # Get secret names from environment
+    rds_secret_name = os.getenv('RDS_SECRET_NAME')
+    sftp_secret_name = os.getenv('SFTP_SECRET_NAME')
+    
+    # Retrieve secrets
+    rds_secrets = get_secret(rds_secret_name)
+    sftp_secrets = get_secret(sftp_secret_name)
+    
     return Config(
         SFTP_HOST=os.getenv('SFTP_HOST'),
         SFTP_PORT=int(os.getenv('SFTP_PORT')),
-        SFTP_USERNAME=os.getenv('SFTP_USERNAME'),
-        SFTP_PASSWORD=os.getenv('SFTP_PASSWORD'),
+        SFTP_USERNAME=sftp_secrets['username'],
+        SFTP_PASSWORD=sftp_secrets['password'],
         SFTP_REMOTE_FILE=os.getenv('SFTP_REMOTE_FILE'),
         SFTP_LOCAL_FILE=os.getenv('SFTP_LOCAL_FILE'),
         DB_HOST=os.getenv('DB_HOST'),
         DB_PORT=int(os.getenv('DB_PORT')),
-        DB_USERNAME=os.getenv('DB_USERNAME'),
-        DB_PASSWORD=os.getenv('DB_PASSWORD'),
-        DB_NAME=os.getenv('DB_NAME')
+        DB_USERNAME=rds_secrets['username'],
+        DB_PASSWORD=rds_secrets['password'],
+        DB_NAME=rds_secrets['dbname']
     )
