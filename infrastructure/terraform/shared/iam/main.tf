@@ -1,13 +1,3 @@
-variable "rds_secret_arn" {
-  description = "ARN of RDS credentials secret"
-  type = string
-}
-
-variable "sftp_secret_arn" {
-  description = "ARN of SFTP credentials secret"
-  type = string
-}
-
 # Lambda Execution Role
 resource "aws_iam_role" "lambda_execution" {
   name = "${var.name_prefix}-lambda-execution-role"
@@ -117,7 +107,7 @@ resource "aws_iam_role_policy" "sftp_s3_access" {
 resource "aws_iam_role_policy" "sftp_secrets_access" {
   name = "${var.name_prefix}-sftp-secrets-access"
   role = aws_iam_role.sftp_server.id
-  
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -141,3 +131,137 @@ resource "aws_iam_instance_profile" "sftp_server" {
   tags = var.common_tags
 }
 
+# IAM Role for Cognito to send emails via SES
+resource "aws_iam_role" "cognito_ses" {
+  name = "${var.name_prefix}-cognito-ses-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "cognito-idp.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = var.common_tags
+}
+
+#Policy for Cognito to send emails via SES
+resource "aws_iam_role_policy" "cognito_ses" {
+  name = "${var.name_prefix}-cognito-ses-policy"
+  role = aws_iam_role.cognito_ses.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ses:SendEmail",
+          "ses:SendRawEmail"
+        ]
+        Resource = var.ses_email_arn
+      }
+    ]
+  })
+}
+
+# Elastic Beanstalk IAM Role
+resource "aws_iam_role" "elastic_beanstalk" {
+  name = "${var.name_prefix}-elastic-beanstalk-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = var.common_tags
+}
+
+# Elastic Beanstalk Instance Profile
+resource "aws_iam_instance_profile" "elastic_beanstalk" {
+  name = "${var.name_prefix}-elastic-beanstalk-profile"
+  role = aws_iam_role.elastic_beanstalk.name
+
+  tags = var.common_tags
+}
+
+# Elastic Beanstalk Policy for CRM Database Access
+resource "aws_iam_role_policy" "elastic_beanstalk_crm_db" {
+  name = "${var.name_prefix}-elastic-beanstalk-crm-db"
+  role = aws_iam_role.elastic_beanstalk.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
+        ]
+        Resource = var.crm_db_secret_arn
+      }
+    ]
+  })
+}
+
+# Elastic Beanstalk Policy for Cognito Access
+resource "aws_iam_role_policy" "elastic_beanstalk_cognito" {
+  name = "${var.name_prefix}-elastic-beanstalk-cognito"
+  role = aws_iam_role.elastic_beanstalk.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "cognito-idp:AdminCreateUser",
+          "cognito-idp:AdminDisableUser",
+          "cognito-idp:AdminUpdateUserAttributes",
+          "cognito-idp:AdminUserGlobalSignOut",
+          "cognito-idp:AdminInitiateAuth",
+          "cognito-idp:ForgotPassword",
+          "cognito-idp:ConfirmForgotPassword"
+        ]
+        Resource = var.cognito_user_pool_arn
+      }
+    ]
+  })
+}
+
+# Elastic Beanstalk Policy for CloudWatch Logs
+resource "aws_iam_role_policy" "elastic_beanstalk_logs" {
+  name = "${var.name_prefix}-elastic-beanstalk-logs"
+  role = aws_iam_role.elastic_beanstalk.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogStreams"
+        ]
+        Resource = "arn:aws:logs:*:*:*"
+      }
+    ]
+  })
+}

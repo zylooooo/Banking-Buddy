@@ -25,7 +25,7 @@ variable "name_prefix" {
 
 variable "ec2_key_pair_name" {
   description = "Name of the EC2 key pair for SFTP server access"
-  type = string
+  type        = string
 }
 
 variable "lambda_memory_size" {
@@ -75,20 +75,20 @@ variable "s3_bucket_name" {
 
 variable "rds_secret_arn" {
   description = "ARN of RDS credentials secret"
-  type = string
+  type        = string
 }
 
 variable "sftp_secret_arn" {
   description = "ARN of SFTP credentials secret"
-  type = string
+  type        = string
 }
 
 variable "rds_secret_name" {
   description = "Name of RDS credentials secret"
-  type = string
+  type        = string
 }
 
 variable "sftp_secret_name" {
   description = "Name of SFTP credentials secret"
-  type = string
+  type        = string
 }

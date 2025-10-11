@@ -93,7 +93,7 @@ resource "aws_lambda_function" "transaction_processor" {
       DB_HOST          = split(":", var.rds_endpoint)[0]
       DB_PORT          = "3306"
       # Secret ARNs for runtime retrieval
-      RDS_SECRET_NAME = var.rds_secret_name
+      RDS_SECRET_NAME  = var.rds_secret_name
       SFTP_SECRET_NAME = var.sftp_secret_name
     }
   }

@@ -12,3 +12,28 @@ variable "s3_bucket_name" {
   description = "Name of the s3 bucket"
   type        = string
 }
+
+variable "rds_secret_arn" {
+  description = "ARN of RDS credentials secret"
+  type        = string
+}
+
+variable "sftp_secret_arn" {
+  description = "ARN of SFTP credentials secret"
+  type        = string
+}
+
+variable "ses_email_arn" {
+  description = "ARN of the SES email identity"
+  type        = string
+}
+
+variable "crm_db_secret_arn" {
+  description = "ARN of the CRM database credentials secret"
+  type        = string
+}
+
+variable "cognito_user_pool_arn" {
+  description = "ARN of the Cognito User Pool"
+  type        = string
+}

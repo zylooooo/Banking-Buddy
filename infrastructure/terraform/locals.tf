@@ -7,7 +7,7 @@ locals {
     Owner       = var.team_name
   }
 
-  # Naming convention
+  # Stable naming for most resources (no timestamps)
   name_prefix = "${var.project_name}-${var.environment}"
 
   # Resource naming

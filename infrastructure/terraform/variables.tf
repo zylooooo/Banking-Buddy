@@ -36,8 +36,8 @@ variable "availability_zones" {
 
 variable "ec2_key_pair_name" {
   description = "Name of the EC2 key pair for SFTP server access"
-  type = string
-  default = "banking-buddy-dev"
+  type        = string
+  default     = "banking-buddy-dev"
 }
 
 # Database configuration
@@ -68,33 +68,33 @@ variable "lambda_timeout" {
 
 variable "rds_username" {
   description = "RDS database username"
-  type = string
-  sensitive = true
+  type        = string
+  sensitive   = true
 }
 
 variable "rds_password" {
   description = "RDS database password"
-  type = string
-  sensitive = true
+  type        = string
+  sensitive   = true
 }
 
 variable "rds_database_name" {
   description = "RDS database name"
-  type = string
-  default = "transactions"
+  type        = string
+  default     = "transactions"
 }
 
 variable "sftp_username" {
   description = "SFTP username"
-  type = string
-  default = "sftpuser"
-  sensitive = true
+  type        = string
+  default     = "sftpuser"
+  sensitive   = true
 }
-  
+
 variable "sftp_password" {
   description = "SFTP password"
-  type = string
-  sensitive = true
+  type        = string
+  sensitive   = true
 }
 
 # Developer IPs for SSH access
@@ -102,4 +102,24 @@ variable "developer_ips" {
   description = "List of public IPs for developer access"
   type        = list(string)
   default     = []
+}
+
+# SES Configuration
+variable "ses_sender_email" {
+  description = "Email address for sending Cognito notifications"
+  type        = string
+}
+
+# CRM Database Configuration
+variable "crm_db_username" {
+  description = "CRM database username"
+  type        = string
+  default     = "crm_user"
+  sensitive   = true
+}
+
+variable "crm_db_password" {
+  description = "CRM database password"
+  type        = string
+  sensitive   = true
 }

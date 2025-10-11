@@ -18,3 +18,10 @@ rds_password      = "CHANGE_ME"
 rds_database_name = "transactions"
 sftp_username     = "CHANGE_ME"
 sftp_password     = "CHANGE_ME"
+
+# SES Configuration
+ses_sender_email = "noreply@example.com"
+
+# CRM Database Configuration
+crm_db_username = "CHANGE_ME"
+crm_db_password = "CHANGE_ME"

@@ -8,6 +8,11 @@ variable "common_tags" {
   type        = map(string)
 }
 
+variable "environment" {
+  description = "Environment name"
+  type        = string
+}
+
 variable "name_prefix" {
   description = "Name prefix for resources"
   type        = string
@@ -30,17 +35,17 @@ variable "rds_security_group_id" {
 
 variable "db_name" {
   description = "Name of the database"
-  type = string
+  type        = string
 }
 
 variable "db_username" {
   description = "Database master username"
-  type = string
-  sensitive = true
+  type        = string
+  sensitive   = true
 }
 
 variable "db_password" {
   description = "Database master password"
-  type = string
-  sensitive = true
+  type        = string
+  sensitive   = true
 }
