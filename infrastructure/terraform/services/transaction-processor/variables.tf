@@ -92,3 +92,9 @@ variable "sftp_secret_name" {
   description = "Name of SFTP credentials secret"
   type        = string
 }
+
+variable "audit_dynamodb_table_name" {
+  description = "Name of the audit logs DynamoDB table"
+  type        = string
+  default     = ""
+}

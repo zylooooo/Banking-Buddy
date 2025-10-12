@@ -60,3 +60,14 @@ output "user_service_alb_dns" {
   description = "DNS name of the User Service ALB"
   value       = module.user-service.alb_dns_name
 }
+
+# Audit logging outputs
+output "audit_logs_dynamodb_table_name" {
+  description = "Name of the audit logs DynamoDB table"
+  value       = module.audit_logging.dynamodb_table_name
+}
+
+output "audit_dynamodb_write_policy_arn" {
+  description = "ARN of the IAM policy for writing audit logs to DynamoDB"
+  value       = module.audit_logging.audit_dynamodb_write_policy_arn
+}

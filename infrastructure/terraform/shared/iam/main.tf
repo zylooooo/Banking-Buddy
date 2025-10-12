@@ -131,6 +131,25 @@ resource "aws_iam_instance_profile" "sftp_server" {
   tags = var.common_tags
 }
 
+# Elastic Beanstalk Policy for Audit DynamoDB Access (Mission-Critical)
+resource "aws_iam_role_policy" "elastic_beanstalk_audit_dynamodb" {
+  name = "${var.name_prefix}-elastic-beanstalk-audit-dynamodb"
+  role = aws_iam_role.elastic_beanstalk.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:PutItem"
+        ]
+        Resource = var.audit_dynamodb_table_arn
+      }
+    ]
+  })
+}
+
 # IAM Role for Cognito to send emails via SES
 resource "aws_iam_role" "cognito_ses" {
   name = "${var.name_prefix}-cognito-ses-role"

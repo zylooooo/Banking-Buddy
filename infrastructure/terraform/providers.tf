@@ -16,6 +16,10 @@ terraform {
 provider "aws" {
   region = var.aws_region
 
+  # Retry configuration for handling transient API errors
+  retry_mode      = "adaptive"
+  max_retries     = 5
+
   default_tags {
     tags = {
       Project     = var.project_name

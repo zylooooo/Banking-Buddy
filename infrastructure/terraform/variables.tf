@@ -123,3 +123,23 @@ variable "crm_db_password" {
   type        = string
   sensitive   = true
 }
+
+
+# Audit logging configuration
+variable "audit_dynamodb_read_capacity" {
+  description = "DynamoDB read capacity units for audit logs table"
+  type        = number
+  default     = 5
+}
+
+variable "audit_dynamodb_write_capacity" {
+  description = "DynamoDB write capacity units for audit logs table"
+  type        = number
+  default     = 5
+}
+
+variable "audit_log_retention_days" {
+  description = "Number of days to retain audit logs"
+  type        = number
+  default     = 2555 # ~7 years for compliance
+}

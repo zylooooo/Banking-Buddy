@@ -37,3 +37,8 @@ variable "cognito_user_pool_arn" {
   description = "ARN of the Cognito User Pool"
   type        = string
 }
+
+variable "audit_dynamodb_table_arn" {
+  description = "ARN of the audit DynamoDB table"
+  type        = string
+}

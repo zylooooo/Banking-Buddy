@@ -30,11 +30,13 @@ module "iam" {
   s3_bucket_name        = module.s3.bucket_name
   rds_secret_arn        = module.secrets-manager.rds_secret_arn
   sftp_secret_arn       = module.secrets-manager.sftp_secret_arn
-  crm_db_secret_arn     = module.secrets-manager.crm_db_secret_arn
+  crm_db_secret_arn        = module.secrets-manager.crm_db_secret_arn
+  audit_dynamodb_table_arn = module.audit_logging.dynamodb_table_arn
+
   cognito_user_pool_arn = module.cognito.user_pool_arn
   ses_email_arn         = module.ses.sender_email_arn
 
-  depends_on = [module.secrets-manager, module.cognito, module.ses]
+  depends_on = [module.secrets-manager, module.cognito, module.ses, module.audit_logging]
 }
 
 # Call the RDS module
@@ -79,6 +81,20 @@ module "secrets-manager" {
   depends_on = [module.rds]
 }
 
+# Call the audit logging module
+module "audit_logging" {
+  source = "./shared/audit-logging"
+
+  vpc_id             = module.vpc.vpc_id
+  private_subnet_ids = module.vpc.private_subnet_ids
+  common_tags        = local.common_tags
+  name_prefix        = local.name_prefix
+  
+  dynamodb_read_capacity  = var.audit_dynamodb_read_capacity
+  dynamodb_write_capacity = var.audit_dynamodb_write_capacity
+  log_retention_days      = var.audit_log_retention_days
+}
+
 # Call the transaction processor module
 module "transaction-processor" {
   source = "./services/transaction-processor"
@@ -102,6 +118,7 @@ module "transaction-processor" {
   rds_secret_name            = module.secrets-manager.rds_secret_name
   sftp_secret_name           = module.secrets-manager.sftp_secret_name
   ec2_key_pair_name          = var.ec2_key_pair_name
+  audit_dynamodb_table_name = module.audit_logging.dynamodb_table_name
 }
 
 # Call the SES module

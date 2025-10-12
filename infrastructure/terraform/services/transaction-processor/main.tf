@@ -95,6 +95,8 @@ resource "aws_lambda_function" "transaction_processor" {
       # Secret ARNs for runtime retrieval
       RDS_SECRET_NAME  = var.rds_secret_name
       SFTP_SECRET_NAME = var.sftp_secret_name
+      # Audit logging
+      AUDIT_DYNAMODB_TABLE_NAME = var.audit_dynamodb_table_name
     }
   }
   depends_on = [
