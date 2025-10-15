@@ -6,6 +6,20 @@ resource "aws_cognito_user_pool" "main" {
   username_attributes      = ["email"]
   auto_verified_attributes = ["email"]
 
+  schema {
+    name = "given_name"
+    attribute_data_type = "String"
+    required = true
+    mutable = true
+  }
+
+  schema {
+    name = "family_name"
+    attribute_data_type = "String"
+    required = true
+    mutable = true
+  }
+
   # Custom attribute for role (admin/agent)
   schema {
     name                     = "role"
@@ -99,11 +113,15 @@ resource "aws_cognito_user_pool_client" "main" {
   read_attributes = [
     "email",
     "email_verified",
+    "given_name",
+    "family_name",
     "custom:role"
   ]
 
   write_attributes = [
-    "email"
+    "email",
+    "given_name",
+    "family_name",
     # Note: custom:role is NOT in write_attributes
   ]
 
