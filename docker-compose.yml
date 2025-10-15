@@ -1,0 +1,49 @@
+services:
+  # MySQL database
+  mysql-db:
+    image: 'mysql:8.0'
+    container_name: banking-buddy-mysql
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - '3306:3306'
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - banking-buddy-network
+  
+  # User service
+  user-service:
+    build:
+      context: ./services/user-service
+      dockerfile: Dockerfile
+    container_name: banking-buddy-user-service
+    restart: unless-stopped
+    ports:
+      - '8080:8080'
+    env_file:
+      - ./services/user-service/.env.user-service
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    networks:
+      - banking-buddy-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 3s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  mysql_data:
+
+networks:
+  banking-buddy-network:
+    driver: bridge
