@@ -1,0 +1,47 @@
+{"properties": [
+  {
+    "name": "app.security.enabled",
+    "type": "java.lang.String",
+    "description": "A description for 'app.security.enabled'"
+  },
+  {
+    "name": "aws.region",
+    "type": "java.lang.String",
+    "description": "A description for 'aws.region'"
+  },
+  {
+    "name": "aws.cognito.user-pool-id",
+    "type": "java.lang.String",
+    "description": "A description for 'aws.cognito.user-pool-id'"
+  },
+  {
+    "name": "app.root-admin.email",
+    "type": "java.lang.String",
+    "description": "A description for 'app.root-admin.email'"
+  },
+  {
+    "name": "aws.cognito.client-id",
+    "type": "java.lang.String",
+    "description": "A description for 'aws.cognito.client-id'"
+  },
+  {
+    "name": "aws.secrets.crm-db-secret-name",
+    "type": "java.lang.String",
+    "description": "A description for 'aws.secrets.crm-db-secret-name'"
+  },
+  {
+    "name": "aws.access.key-id",
+    "type": "java.lang.String",
+    "description": "A description for 'aws.access.key-id'"
+  },
+  {
+    "name": "aws.secret-access-key",
+    "type": "java.lang.String",
+    "description": "A description for 'aws.secret-access-key'"
+  },
+  {
+    "name": "app.cors.allowed-origins",
+    "type": "java.lang.String",
+    "description": "A description for 'app.cors.allowed-origins'"
+  }
+]}

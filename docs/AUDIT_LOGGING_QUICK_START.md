@@ -3,6 +3,7 @@
 ## 📋 **What You Get**
 
 A **production-ready** audit logging system that meets all 7 banking compliance requirements:
+
 1. ✅ **CRUD Operations** - Create, Read, Update, Delete tracking
 2. ✅ **Attribute Names** - What data was changed
 3. ✅ **Before/After Values** - Full change history
@@ -14,6 +15,7 @@ A **production-ready** audit logging system that meets all 7 banking compliance 
 ## 🎯 **Integration in 4 Steps**
 
 ### **Step 1: Add Dependencies (1 minute)**
+
 ```xml
 <!-- Add to your pom.xml -->
 <dependency>
@@ -29,6 +31,7 @@ A **production-ready** audit logging system that meets all 7 banking compliance 
 ```
 
 ### **Step 2: Initialize Logger**
+
 ```java
 import com.bankingbuddy.audit.AuditLogger;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
@@ -44,6 +47,7 @@ AuditLogger auditLogger = new AuditLogger(
 ```
 
 ### **Step 3: Set Environment Variable**
+
 ```bash
 # For Lambda functions
 AUDIT_TABLE_NAME=banking-buddy-dev-audit-logs
@@ -53,6 +57,7 @@ export AUDIT_TABLE_NAME=banking-buddy-dev-audit-logs
 ```
 
 ### **Step 4: Start Logging**
+
 ```java
 // User profile update
 auditLogger.logUpdate(
@@ -80,6 +85,7 @@ auditLogger.logDelete(accountId, adminId, "Account closed per customer request")
 ## 🏗️ **Service Examples**
 
 ### **EXAMPLE: User Service Integration**
+
 ```java
 @Service
 public class UserProfileService {
@@ -118,6 +124,7 @@ public class UserProfileService {
 ```
 
 ### **EXAMPLE: Transaction Processor Integration**
+
 ```java
 @Component
 public class TransactionService {
@@ -163,6 +170,7 @@ public class TransactionService {
 ## 🔒 **Security Model**
 
 ### **✅ Least-Privilege IAM Policy**
+
 ```json
 {
   "Version": "2012-10-17",
@@ -180,6 +188,7 @@ public class TransactionService {
 ```
 
 **Security Benefits:**
+
 - 🔐 **Write-Only Access** - Services can only add audit logs, never read or modify existing ones
 - 🎯 **Table-Specific** - Access limited to audit table only
 - 🚫 **No Admin Rights** - Cannot delete or modify table structure
@@ -188,6 +197,7 @@ public class TransactionService {
 ### **🔍 Access Patterns for Compliance**
 
 **Query by Agent (Who did what?):**
+
 ```java
 // Use AgentIndex GSI
 aws dynamodb query \
@@ -198,6 +208,7 @@ aws dynamodb query \
 ```
 
 **Query by Operation (What type of changes?):**
+
 ```java
 // Use OperationIndex GSI  
 aws dynamodb query \
@@ -210,12 +221,14 @@ aws dynamodb query \
 ## 🚀 **Production Deployment Checklist**
 
 ### **Infrastructure Requirements**
+
 - ✅ **DynamoDB Table**: `banking-buddy-dev-audit-logs` deployed with GSIs
 - ✅ **IAM Policy**: `banking-buddy-dev-audit-dynamodb-write-policy` attached to service roles
 - ✅ **Environment Variables**: `AUDIT_TABLE_NAME` set in all services
 - ✅ **AWS SDK**: Version 2.20.56+ configured
 
 ### **Service Integration Checklist**
+
 - ✅ **Dependencies Added**: Maven/Gradle dependencies included
 - ✅ **Logger Initialized**: One-time setup in service constructor
 - ✅ **Audit Calls Added**: logCreate(), logRead(), logUpdate(), logDelete() in business logic
@@ -223,6 +236,7 @@ aws dynamodb query \
 - ✅ **Testing**: Integration tests validate audit entries are written
 
 ### **Monitoring & Alerting**
+
 ```java
 // AuditLogger provides built-in logging
 2025-10-12 15:55:42 [INFO] AuditLogger - Audit log written successfully: READ for client user123
@@ -230,6 +244,7 @@ aws dynamodb query \
 ```
 
 **CloudWatch Metrics to Monitor:**
+
 - `DynamoDB.ConsumedWriteCapacityUnits` for the audit table
 - Application logs for "Audit log written successfully"
 - Error logs for "Mission-critical audit logging failed"
@@ -237,18 +252,21 @@ aws dynamodb query \
 ## 🎯 **Why This Solution is Production-Ready**
 
 ### **✅ Battle-Tested Architecture**
+
 - **AWS DynamoDB** - Handles millions of operations per second
 - **Global Secondary Indexes** - Fast compliance queries
 - **TTL Automatic Cleanup** - Cost-effective 7-year retention
 - **Multi-AZ Durability** - 99.999999999% (11 9's) data durability
 
 ### **✅ Developer-Friendly Design**
+
 - **Zero Configuration** - Works out of the box with environment variables
 - **Standard AWS Patterns** - Familiar AWS SDK usage
 - **Comprehensive Validation** - Built-in input validation and error handling
 - **Mission-Critical Reliability** - Audit failures fail the entire operation
 
 ### **✅ Banking Compliance Ready**
+
 - **All 7 Requirements Met** - Complete audit trail coverage
 - **ISO 8601 Timestamps** - Precise, sortable, timezone-aware
 - **Tamper-Proof Storage** - Write-only access pattern
@@ -259,6 +277,7 @@ aws dynamodb query \
 **This audit logging system is ready for production use across all Banking Buddy services.**
 
 For questions or support:
+
 - 📚 **Documentation**: This guide covers 99% of use cases
 - 🔧 **Integration Issues**: Check IAM policies and environment variables
 - 📊 **Monitoring**: Use CloudWatch metrics and application logs
