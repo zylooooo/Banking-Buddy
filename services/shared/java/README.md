@@ -28,9 +28,9 @@ mvn package
 ### Version Compatibility
 
 - **Java**: 21 (LTS)
-- **Spring Boot**: 3.2.0
-- **AWS SDK**: 2.21.0
-- **JUnit**: 5.10.1
+- **Spring Boot**: 3.3.5
+- **AWS SDK**: 2.28.25
+- **JUnit**: 5.11.3
 
 ### AWS Lambda Deployment
 
