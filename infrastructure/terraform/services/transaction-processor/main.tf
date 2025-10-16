@@ -14,9 +14,21 @@ data "aws_ami" "amazon_linux" {
   }
 }
 
+data "aws_region" "current" {}
+
 # Reference existing key pair
 data "aws_key_pair" "sftp_server" {
   key_name = var.ec2_key_pair_name
+}
+
+# Data source for secret name
+data "aws_secretsmanager_secret" "sftp_credentials" {
+  name = var.sftp_secret_name
+}
+
+# Null resource to ensure secret is ready
+data "aws_secretsmanager_secret_version" "sftp_credentials" {
+  secret_id = data.aws_secretsmanager_secret.sftp_credentials.id
 }
 
 # Transaction data file
@@ -40,10 +52,14 @@ resource "aws_instance" "sftp_server" {
 
   user_data = base64encode(templatefile("${path.module}/sftp-setup.sh", {
     s3_bucket_name   = var.s3_bucket_name
-    sftp_secret_name = var.sftp_secret_name
+    sftp_secret_name = data.aws_secretsmanager_secret.sftp_credentials.name
+    aws_region       = data.aws_region.current.name
   }))
 
-  depends_on = [aws_s3_object.transactions_data]
+  depends_on = [
+    aws_s3_object.transactions_data,
+    data.aws_secretsmanager_secret_version.sftp_credentials
+  ]
 
   iam_instance_profile = var.sftp_instance_profile_name
 
@@ -117,8 +133,8 @@ resource "aws_cloudwatch_log_group" "lambda" {
 # CloudWatch Event Rule (Daily Schedule)
 resource "aws_cloudwatch_event_rule" "daily_schedule" {
   name                = "${var.name_prefix}-daily-schedule"
-  description         = "Trigger Lambda daily at midnight UTC"
-  schedule_expression = "cron(0 0 * * ? *)"
+  description         = "Trigger Lambda daily at midnight Singapore time"
+  schedule_expression = "cron(0 16 * * ? *)"
   tags                = var.common_tags
 }
 

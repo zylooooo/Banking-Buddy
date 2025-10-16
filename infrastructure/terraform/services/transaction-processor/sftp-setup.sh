@@ -7,6 +7,9 @@ log() {
 }
 
 log "Starting SFTP setup..."
+log "Region: ${aws_region}"
+log "S3 Bucket: ${s3_bucket_name}"
+log "Secret Name: ${sftp_secret_name}"
 
 # Install required packages
 log "Installing packages..."
@@ -17,21 +20,31 @@ yum install -y vsftpd awscli jq
 log "Retrieving SFTP credentials from Secrets Manager..."
 SFTP_SECRET=$(aws secretsmanager get-secret-value \
     --secret-id ${sftp_secret_name} \
+    --region ${aws_region} \
     --query SecretString \
     --output text)
 
+# Validate secret was retrieved
+if [ -z "$SFTP_SECRET" ] || [ "$SFTP_SECRET" == "null" ]; then
+    log "ERROR: Failed to retrieve SFTP credentials from Secrets Manager"
+    exit 1
+fi
+
 SFTP_USERNAME=$(echo $SFTP_SECRET | jq -r '.username')
 SFTP_PASSWORD=$(echo $SFTP_SECRET | jq -r '.password')
+
+# Validate credentials were extracted
+if [ -z "$SFTP_USERNAME" ] || [ -z "$SFTP_PASSWORD" ]; then
+    log "ERROR: Failed to parse SFTP credentials (username or password is empty)"
+    exit 1
+fi
+
+log "Successfully retrieved SFTP credentials for user: $SFTP_USERNAME"
 
 # Create SFTP user with proper shell for chrooted SFTP
 log "Creating SFTP user..."
 useradd -m -s /bin/false $SFTP_USERNAME
 echo "$SFTP_USERNAME:$SFTP_PASSWORD" | chpasswd
-
-# Enable password authentication for SFTP
-log "Configuring SSH authentication..."
-sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
-sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
 
 # Create data directory with proper permissions for chrooted SFTP
 log "Setting up directories..."
@@ -46,7 +59,7 @@ log "Configuring AWS CLI..."
 mkdir -p /home/$SFTP_USERNAME/.aws
 cat > /home/$SFTP_USERNAME/.aws/config << EOF
 [default]
-region = ap-southeast-1
+region = ${aws_region}
 output = json
 EOF
 chown -R $SFTP_USERNAME:$SFTP_USERNAME /home/$SFTP_USERNAME/.aws
@@ -57,7 +70,7 @@ cat > /home/$SFTP_USERNAME/sync_from_s3.sh << EOF
 #!/bin/bash
 set -e
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting S3 sync..." >> /var/log/sftp-setup.log
-aws s3 cp s3://${s3_bucket_name}/transaction-processor/transactions.csv /home/$SFTP_USERNAME/data/transactions.csv
+aws s3 cp s3://${s3_bucket_name}/transaction-processor/transactions.csv /home/$SFTP_USERNAME/data/transactions.csv --region ${aws_region}
 chown $SFTP_USERNAME:$SFTP_USERNAME /home/$SFTP_USERNAME/data/transactions.csv
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] S3 sync completed" >> /var/log/sftp-setup.log
 EOF
@@ -67,11 +80,22 @@ chown $SFTP_USERNAME:$SFTP_USERNAME /home/$SFTP_USERNAME/sync_from_s3.sh
 
 # Configure SFTP - Remove existing entries first to prevent duplicates
 log "Configuring SFTP..."
-sed -i '/Subsystem sftp/d' /etc/ssh/sshd_config
-sed -i "/Match User $SFTP_USERNAME/,+3d" /etc/ssh/sshd_config
+# Backup original config
+cp /etc/ssh/sshd_config /etc/ssh/sshd_config.backup
 
-# Add clean SFTP configuration
+# Remove any existing Subsystem sftp and Match User entries
+sed -i '/Subsystem sftp/d' /etc/ssh/sshd_config
+sed -i "/Match User $SFTP_USERNAME/,+4d" /etc/ssh/sshd_config
+
+# Remove all PasswordAuthentication directives
+sed -i '/^PasswordAuthentication/d' /etc/ssh/sshd_config
+sed -i '/^#PasswordAuthentication/d' /etc/ssh/sshd_config
+
+# Add clean SFTP configuration with password authentication enabled
 cat >> /etc/ssh/sshd_config << EOF
+
+# Enable password authentication globally
+PasswordAuthentication yes
 
 # SFTP Configuration
 Subsystem sftp internal-sftp
@@ -79,12 +103,15 @@ Match User $SFTP_USERNAME
     ChrootDirectory /home/$SFTP_USERNAME
     ForceCommand internal-sftp
     PasswordAuthentication yes
+    PubkeyAuthentication no
 EOF
 
 # Test SSH configuration before restarting
 log "Testing SSH configuration..."
 if ! sshd -t; then
     log "ERROR: SSH configuration test failed"
+    log "Restoring backup configuration..."
+    cp /etc/ssh/sshd_config.backup /etc/ssh/sshd_config
     exit 1
 fi
 
@@ -107,7 +134,7 @@ log "SSH service restarted successfully"
 # Wait for S3 to be ready (with retry logic)
 log "Waiting for S3 to be ready..."
 for i in {1..30}; do
-    if aws s3 ls s3://${s3_bucket_name}/transaction-processor/transactions.csv >/dev/null 2>&1; then
+    if aws s3 ls s3://${s3_bucket_name}/transaction-processor/transactions.csv --region ${aws_region} >/dev/null 2>&1; then
         log "S3 file found, proceeding with sync..."
         break
     fi
@@ -123,6 +150,8 @@ done
 
 # Initial sync from S3
 log "Starting initial S3 sync..."
-/home/$SFTP_USERNAME/sync_from_s3.sh
+/home/$SFTP_USERNAME/sync_from_s3.sh || {
+    log "WARNING: Initial S3 sync failed, but continuing..."
+}
 
 log "SFTP setup completed successfully"
