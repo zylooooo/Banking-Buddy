@@ -190,6 +190,7 @@ local_sftp_files/
 # Database dumps (but keep test SQL files)
 *.sql
 !*/*/tests/sql/*.sql
+!**/db/migration/*.sql
 
 # Lambda deployment packages
 lambda-deployment-package.zip
