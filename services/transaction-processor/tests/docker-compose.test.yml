@@ -17,27 +17,11 @@ services:
       retries: 10
       start_period: 30s
 
-  # MySQL database for testing
-  mysql-db:
-    image: mysql:8.0
-    container_name: mysql-db-test
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: scrooge_crm
-      MYSQL_USER: crm_user
-      MYSQL_PASSWORD: password2025
-    volumes:
-      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "crm_user", "-ppassword2025"]
-      interval: 3s
-      timeout: 10s
-      retries: 10
-      start_period: 30s
+  # MySQL database for testing replaced with Testcontainers
+  # This service is no longer needed - tests now use Testcontainers MySQL
+  # which eliminates RDS/Aurora costs
 
-  
-  # Pytest for transaction processor
+  # Pytest for transaction processor with Testcontainers
   transaction-processor-pytest:
     build:
       context: ../
@@ -45,8 +29,7 @@ services:
     depends_on:
       sftp-server:
         condition: service_healthy
-      mysql-db:
-        condition: service_healthy
+      # Removed mysql-db dependency - using Testcontainers instead
     environment:
       # SFTP server configuration
       - SFTP_HOST=sftp-server
@@ -55,9 +38,5 @@ services:
       - SFTP_PASSWORD=password123
       - SFTP_REMOTE_FILE=/data/transactions.csv
       - SFTP_LOCAL_FILE=/tmp/transactions.csv
-      # Database configuration
-      - DB_HOST=mysql-db
-      - DB_PORT=3306
-      - DB_USERNAME=crm_user
-      - DB_PASSWORD=password2025
-      - DB_NAME=scrooge_crm
+      # Database configuration now handled by Testcontainers
+      # No more static database connection - containers created per test
