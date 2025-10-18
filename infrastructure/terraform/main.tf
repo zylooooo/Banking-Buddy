@@ -119,6 +119,11 @@ module "transaction-processor" {
   sftp_secret_name           = module.secrets-manager.sftp_secret_name
   ec2_key_pair_name          = var.ec2_key_pair_name
   audit_dynamodb_table_name = module.audit_logging.dynamodb_table_name
+
+  depends_on = [
+    module.secrets-manager,
+    module.audit_logging
+  ]
 }
 
 # Call the SES module
@@ -136,8 +141,8 @@ module "cognito" {
   name_prefix      = local.name_prefix
   ses_email_arn    = module.ses.sender_email_arn
   ses_sender_email = module.ses.sender_email
-  callback_urls    = ["http://localhost:8080"] # Will be updated after ALB is created
-  logout_urls      = ["http://localhost:8080"] # Will be updated after ALB is created
+  callback_urls    = ["http://localhost:3000/callback"] # Will be updated after ALB is created
+  logout_urls      = ["http://localhost:3000"] # Will be updated after ALB is created
   common_tags      = local.common_tags
   environment      = var.environment
 

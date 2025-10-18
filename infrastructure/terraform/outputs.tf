@@ -71,3 +71,14 @@ output "audit_dynamodb_write_policy_arn" {
   description = "ARN of the IAM policy for writing audit logs to DynamoDB"
   value       = module.audit_logging.audit_dynamodb_write_policy_arn
 }
+
+# Cognito Outputs
+output "cognito_hosted_ui_url" {
+  description = "Cognito Hosted UI URL"
+  value       = module.cognito.hosted_ui_url
+}
+
+output "cognito_domain" {
+  description = "Cognito domain name"
+  value       = module.cognito.user_pool_domain
+}

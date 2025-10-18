@@ -6,6 +6,11 @@ resource "aws_cognito_user_pool" "main" {
   username_attributes      = ["email"]
   auto_verified_attributes = ["email"]
 
+  # Only admins can create users
+  admin_create_user_config {
+    allow_admin_create_user_only = true
+  }
+
   schema {
     name = "given_name"
     attribute_data_type = "String"
@@ -88,8 +93,8 @@ resource "aws_cognito_user_pool_client" "main" {
   name         = "${var.name_prefix}-app-client"
   user_pool_id = aws_cognito_user_pool.main.id
 
-  # Generate client secret
-  generate_secret = true
+  # Don't generate client secret for frontend
+  generate_secret = false
 
   # Token validity
   id_token_validity      = 60 # 1 hour
@@ -104,6 +109,7 @@ resource "aws_cognito_user_pool_client" "main" {
 
   # OAuth flows
   explicit_auth_flows = [
+    "ALLOW_USER_PASSWORD_AUTH",
     "ALLOW_ADMIN_USER_PASSWORD_AUTH",
     "ALLOW_REFRESH_TOKEN_AUTH",
     "ALLOW_USER_SRP_AUTH"
@@ -128,11 +134,27 @@ resource "aws_cognito_user_pool_client" "main" {
   # OAuth scopes for ALB integration
   allowed_oauth_flows                  = ["code"]
   allowed_oauth_flows_user_pool_client = true
-  allowed_oauth_scopes                 = ["openid", "email", "profile"]
+  allowed_oauth_scopes                 = [
+    "openid",
+    "email",
+    "profile",
+    "aws.cognito.signin.user.admin"
+  ]
+
+  supported_identity_providers = ["COGNITO"]
 
   callback_urls = var.callback_urls
   logout_urls   = var.logout_urls
 
   # Prevent errors when user doesn't exist
   prevent_user_existence_errors = "ENABLED"
+}
+
+resource "aws_cognito_user_pool_ui_customization" "main" {
+  user_pool_id = aws_cognito_user_pool.main.id
+  client_id = aws_cognito_user_pool_client.main.id
+
+  css = file("${path.module}/hosted-ui.css")
+
+  depends_on = [aws_cognito_user_pool_domain.main]
 }

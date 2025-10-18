@@ -34,4 +34,9 @@ output "user_pool_domain_full" {
   value       = "https://${aws_cognito_user_pool_domain.main.domain}.auth.${data.aws_region.current.name}.amazoncognito.com"
 }
 
+output "hosted_ui_url" {
+  description = "Cognito Hosted UI URL"
+  value       = "https://${aws_cognito_user_pool_domain.main.domain}.auth.${data.aws_region.current.name}.amazoncognito.com"
+}
+
 data "aws_region" "current" {}

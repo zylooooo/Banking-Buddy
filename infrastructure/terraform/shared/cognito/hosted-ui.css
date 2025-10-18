@@ -1,0 +1,46 @@
+.background-customizable {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%) !important;
+    min-height: 100vh !important;
+}
+
+.banner-customizable {
+    padding: 20px 0px !important;
+    background-color: transparent !important;
+}
+
+.label-customizable {
+    color: #cbd5e1 !important;
+    font-weight: 500 !important;
+}
+
+.textDescription-customizable {
+    color: #94a3b8 !important;
+}
+
+.inputField-customizable {
+    color: #e2e8f0 !important;
+    background-color: #334155 !important;
+    border: 1px solid #475569 !important;
+    border-radius: 0.5rem !important;
+    padding: 0.75rem !important;
+}
+
+.submitButton-customizable {
+    background-color: #2563eb !important;
+    color: white !important;
+    border-radius: 0.5rem !important;
+    padding: 0.75rem 1rem !important;
+    font-weight: 500 !important;
+}
+
+.errorMessage-customizable {
+    background-color: rgba(127, 29, 29, 0.3) !important;
+    border: 1px solid #dc2626 !important;
+    color: #fca5a5 !important;
+    border-radius: 0.5rem !important;
+    padding: 1rem !important;
+}
+
+.redirect-customizable {
+    color: #60a5fa !important;
+}
