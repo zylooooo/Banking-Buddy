@@ -3,7 +3,6 @@ package com.bankingbuddy.audit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 
 import static org.junit.jupiter.api.Assertions.*;
