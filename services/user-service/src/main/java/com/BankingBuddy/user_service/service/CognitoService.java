@@ -32,7 +32,7 @@ public class CognitoService {
                 .username(email)
                 .userAttributes(
                     AttributeType.builder().name("email").value(email).build(),
-                    AttributeType.builder().name("email_verified").value("false").build(),
+                    AttributeType.builder().name("email_verified").value("true").build(),
                     AttributeType.builder().name("given_name").value(firstName).build(),
                     AttributeType.builder().name("family_name").value(lastName).build(),
                     AttributeType.builder().name("custom:role").value(role.name().toLowerCase()).build()

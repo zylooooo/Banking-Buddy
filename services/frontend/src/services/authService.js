@@ -1,4 +1,9 @@
-import { signInWithRedirect, signOut, fetchAuthSession, fetchUserAttributes } from 'aws-amplify/auth';
+import {
+    signInWithRedirect,
+    signOut,
+    fetchAuthSession,
+    fetchUserAttributes
+} from 'aws-amplify/auth';
 
 export const handleLogin = async () => {
     try {
@@ -59,5 +64,27 @@ export const logout = async () => {
         await signOut();
     } catch (error) {
         console.error('Logout failed:', error);
+    }
+};
+
+// REMOVE the custom resetPassword functions and use Hosted UI
+export const handleForgotPassword = async () => {
+    try {
+        const config = {
+            userPoolId: import.meta.env.VITE_COGNITO_USER_POOL_ID,
+            clientId: import.meta.env.VITE_COGNITO_CLIENT_ID,
+        };
+
+        const cognitoDomain = import.meta.env.VITE_COGNITO_DOMAIN;
+        const region = import.meta.env.VITE_AWS_REGION;
+        const redirectUri = import.meta.env.VITE_REDIRECT_URI;
+
+        // Use Cognito Hosted UI for password reset
+        const forgotPasswordUrl = `https://${cognitoDomain}.auth.${region}.amazoncognito.com/forgotPassword?client_id=${config.clientId}&response_type=code&scope=email+openid+profile&redirect_uri=${encodeURIComponent(redirectUri)}`;
+
+        window.location.href = forgotPasswordUrl;
+    } catch (error) {
+        console.error('Forgot password failed:', error);
+        throw error;
     }
 };

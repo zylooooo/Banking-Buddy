@@ -1,5 +1,5 @@
 import React from 'react';
-import { handleLogin } from '../services/authService';
+import { handleLogin, handleForgotPassword } from '../services/authService';
 
 export default function LoginPage() {
     const handleSignIn = async () => {
@@ -7,6 +7,14 @@ export default function LoginPage() {
             await handleLogin();
         } catch (error) {
             console.error('Login redirect failed:', error);
+        }
+    };
+
+    const handleForgotPasswordClick = async () => {
+        try {
+            await handleForgotPassword();
+        } catch (error) {
+            console.error('Forgot password failed:', error);
         }
     };
 
@@ -29,6 +37,15 @@ export default function LoginPage() {
                             className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm sm:text-base md:text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-slate-800 transition"
                         >
                             Sign In with Cognito
+                        </button>
+                    </div>
+
+                    <div className="text-center">
+                        <button
+                            onClick={handleForgotPasswordClick}
+                            className="text-sm text-blue-400 hover:text-blue-300 underline"
+                        >
+                            Forgot your password?
                         </button>
                     </div>
 
