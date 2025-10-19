@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isAuthenticated, getUserFromToken } from '../services/authService';
+import { userApi } from '../services/apiService';
 import Header from '../components/Header';
 import UserCard from '../components/UserCard';
 import ApiTester from '../components/ApiTester';
@@ -8,19 +9,33 @@ import ApiTester from '../components/ApiTester';
 export default function DashboardPage() {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
         const loadUser = async () => {
-            const isAuth = await isAuthenticated();
-            if (!isAuth) {
-                navigate('/');
-                return;
-            }
+            try {
+                const isAuth = await isAuthenticated();
+                if (!isAuth) {
+                    navigate('/');
+                    return;
+                }
 
-            const userData = await getUserFromToken();
-            setUser(userData);
-            setLoading(false);
+                // Get user ID from Cognito token first
+                const cognitoUser = await getUserFromToken();
+                if (!cognitoUser || !cognitoUser.sub) {
+                    throw new Error('Unable to get user ID from token');
+                }
+
+                // Use the existing getUserById endpoint with the user's own ID
+                const response = await userApi.getUserById(cognitoUser.sub);
+                setUser(response.data.data); // Backend returns { data: UserDTO, message: string }
+                setLoading(false);
+            } catch (err) {
+                console.error('Failed to load user data:', err);
+                setError(err.response?.data?.message || err.message || 'Failed to load user data');
+                setLoading(false);
+            }
         };
 
         loadUser();
@@ -30,6 +45,23 @@ export default function DashboardPage() {
         return (
             <div className="min-h-screen bg-slate-900 flex items-center justify-center">
                 <p className="text-slate-300">Loading...</p>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+                <div className="bg-slate-800 border border-red-700 p-6 rounded-lg">
+                    <h2 className="text-xl font-semibold text-red-400 mb-2">Error</h2>
+                    <p className="text-slate-300 mb-4">{error}</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                    >
+                        Retry
+                    </button>
+                </div>
             </div>
         );
     }
