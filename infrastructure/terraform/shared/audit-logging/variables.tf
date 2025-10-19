@@ -38,3 +38,24 @@ variable "log_retention_days" {
   type        = number
   default     = 2555 # ~7 years for compliance
 }
+
+variable "cognito_user_pool_id" {
+  description = "Cognito User Pool ID for JWT authorization"
+  type        = string
+}
+
+variable "cognito_user_pool_client_id" {
+  description = "Cognito User Pool Client ID for JWT authorization"
+  type        = string
+}
+
+variable "aws_region" {
+  description = "AWS region for API Gateway Cognito authorizer"
+  type        = string
+}
+
+variable "allowed_origins" {
+  description = "Allowed CORS origins for API Gateway"
+  type        = list(string)
+  default     = ["*"]
+}

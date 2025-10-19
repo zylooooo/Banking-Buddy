@@ -1,0 +1,1190 @@
+[0m[1mmodule.s3.random_string.bucket_suffix: Refreshing state... [id=nfof3hjp][0m
+[0m[1mmodule.ses.aws_ses_configuration_set.cognito_emails: Refreshing state... [id=banking-buddy-dev-cognito-emails][0m
+[0m[1mmodule.vpc.aws_vpc.main: Refreshing state... [id=vpc-018ed53d6e924ade4][0m
+[0m[1mmodule.ses.data.aws_region.current: Reading...[0m[0m
+[0m[1mdata.aws_region.current: Reading...[0m[0m
+[0m[1mmodule.ses.aws_ses_email_identity.sender: Refreshing state... [id=cs301g2t1@gmail.com][0m
+[0m[1mmodule.rds.aws_db_parameter_group.main: Refreshing state... [id=banking-buddy-dev-mysql-params][0m
+[0m[1mmodule.s3.aws_s3_bucket.shared_data: Refreshing state... [id=banking-buddy-dev-shared-data-nfof3hjp][0m
+[0m[1mdata.aws_region.current: Read complete after 0s [id=ap-southeast-1][0m
+[0m[1mmodule.ses.data.aws_region.current: Read complete after 0s [id=ap-southeast-1][0m
+[0m[1mmodule.cognito.data.aws_region.current: Reading...[0m[0m
+[0m[1mmodule.cognito.data.aws_region.current: Read complete after 0s [id=ap-southeast-1][0m
+[0m[1mmodule.cognito.aws_cognito_user_pool.main: Refreshing state... [id=ap-southeast-1_eSZVNDkyn][0m
+[0m[1mmodule.s3.aws_s3_bucket_public_access_block.shared_data: Refreshing state... [id=banking-buddy-dev-shared-data-nfof3hjp][0m
+[0m[1mmodule.s3.aws_s3_bucket_versioning.shared_data: Refreshing state... [id=banking-buddy-dev-shared-data-nfof3hjp][0m
+[0m[1mmodule.s3.aws_s3_bucket_server_side_encryption_configuration.shared_data: Refreshing state... [id=banking-buddy-dev-shared-data-nfof3hjp][0m
+[0m[1mmodule.s3.aws_s3_bucket_lifecycle_configuration.shared_data: Refreshing state... [id=banking-buddy-dev-shared-data-nfof3hjp][0m
+[0m[1mmodule.cognito.aws_cognito_user_pool_domain.main: Refreshing state... [id=banking-buddy-dev-auth][0m
+[0m[1mmodule.cognito.aws_cognito_user_pool_client.main: Refreshing state... [id=72qh2eukvcfpv5j9e7nmd6k4bt][0m
+[0m[1mmodule.vpc.aws_internet_gateway.main: Refreshing state... [id=igw-0a7eb7fcfd66144de][0m
+[0m[1mmodule.security_groups.aws_security_group.rds: Refreshing state... [id=sg-0ca8c67dd352f7ccc][0m
+[0m[1mmodule.vpc.aws_subnet.public[0]: Refreshing state... [id=subnet-09922528bdbc824a8][0m
+[0m[1mmodule.vpc.aws_subnet.public[1]: Refreshing state... [id=subnet-0bd8ab5059b85f7b2][0m
+[0m[1mmodule.security_groups.aws_security_group.alb: Refreshing state... [id=sg-0ace1f421cd0cbcd8][0m
+[0m[1mmodule.security_groups.aws_security_group.lambda: Refreshing state... [id=sg-0ad09dfd959658f97][0m
+[0m[1mmodule.vpc.aws_subnet.private[1]: Refreshing state... [id=subnet-032604982274fa621][0m
+[0m[1mmodule.vpc.aws_subnet.private[0]: Refreshing state... [id=subnet-04df339641422c4fd][0m
+[0m[1mmodule.vpc.aws_eip.nat: Refreshing state... [id=eipalloc-08dfc610f13624e24][0m
+[0m[1mmodule.vpc.aws_route_table.public: Refreshing state... [id=rtb-00685f2ab571b1dfa][0m
+[0m[1mmodule.cognito.aws_cognito_user_pool_ui_customization.main: Refreshing state... [id=ap-southeast-1_eSZVNDkyn,72qh2eukvcfpv5j9e7nmd6k4bt][0m
+[0m[1mmodule.security_groups.aws_security_group.elastic_beanstalk: Refreshing state... [id=sg-008880183fb648d46][0m
+[0m[1mmodule.rds.aws_db_subnet_group.main: Refreshing state... [id=banking-buddy-dev-db-subnet-group][0m
+[0m[1mmodule.vpc.aws_route_table_association.public[0]: Refreshing state... [id=rtbassoc-0db31af6b5c6d1402][0m
+[0m[1mmodule.vpc.aws_route_table_association.public[1]: Refreshing state... [id=rtbassoc-09636af4018cc8136][0m
+[0m[1mmodule.security_groups.aws_security_group_rule.rds_from_eb: Refreshing state... [id=sgrule-1024627644][0m
+[0m[1mmodule.vpc.aws_nat_gateway.main: Refreshing state... [id=nat-0e895a2b9cbf7cb4f][0m
+[0m[1mmodule.security_groups.aws_security_group.sftp_server: Refreshing state... [id=sg-04e4b4e5f114aa0c0][0m
+[0m[1mmodule.audit_logging.aws_dynamodb_table.audit_logs: Refreshing state... [id=banking-buddy-dev-audit-logs][0m
+[0m[1mmodule.rds.aws_db_instance.main: Refreshing state... [id=db-KDX2Y3EYY7GSJGEXHLB6K5QZ2Y][0m
+[0m[1mmodule.vpc.aws_route_table.private: Refreshing state... [id=rtb-06838e2257a5ff34e][0m
+[0m[1mmodule.user-service.aws_lb.main: Refreshing state... [id=arn:aws:elasticloadbalancing:ap-southeast-1:677761253473:loadbalancer/app/banking-buddy-dev-us-alb/830dcdc6f4800a05][0m
+[0m[1mmodule.user-service.aws_lb_target_group.main: Refreshing state... [id=arn:aws:elasticloadbalancing:ap-southeast-1:677761253473:targetgroup/banking-buddy-dev-us-tg/ae15e317147de154][0m
+[0m[1mmodule.vpc.aws_route_table_association.private[1]: Refreshing state... [id=rtbassoc-08ef93267241321fc][0m
+[0m[1mmodule.vpc.aws_route_table_association.private[0]: Refreshing state... [id=rtbassoc-09e375f4e895b3501][0m
+[0m[1mmodule.secrets-manager.random_string.secret_suffix: Refreshing state... [id=2qq6h7][0m
+[0m[1mmodule.secrets-manager.aws_secretsmanager_secret.rds_credentials: Refreshing state... [id=arn:aws:secretsmanager:ap-southeast-1:677761253473:secret:banking-buddy-dev-rds-credentials-2qq6h7-ZTQTPz][0m
+[0m[1mmodule.secrets-manager.aws_secretsmanager_secret.sftp_credentials: Refreshing state... [id=arn:aws:secretsmanager:ap-southeast-1:677761253473:secret:banking-buddy-dev-sftp-credentials-2qq6h7-KRCM1y][0m
+[0m[1mmodule.secrets-manager.aws_secretsmanager_secret.crm_db_credentials: Refreshing state... [id=arn:aws:secretsmanager:ap-southeast-1:677761253473:secret:banking-buddy-dev-crm-db-credentials-2qq6h7-BL04uu][0m
+[0m[1mmodule.audit_logging.aws_iam_policy.audit_dynamodb_write_policy: Refreshing state... [id=arn:aws:iam::677761253473:policy/banking-buddy-dev-audit-dynamodb-write-policy][0m
+[0m[1mmodule.secrets-manager.aws_secretsmanager_secret_version.sftp_credentials: Refreshing state... [id=arn:aws:secretsmanager:ap-southeast-1:677761253473:secret:banking-buddy-dev-sftp-credentials-2qq6h7-KRCM1y|terraform-20251018075309410200000007][0m
+[0m[1mmodule.secrets-manager.aws_secretsmanager_secret_version.rds_credentials: Refreshing state... [id=arn:aws:secretsmanager:ap-southeast-1:677761253473:secret:banking-buddy-dev-rds-credentials-2qq6h7-ZTQTPz|terraform-20251018075309410700000008][0m
+[0m[1mmodule.secrets-manager.aws_secretsmanager_secret_version.crm_db_credentials: Refreshing state... [id=arn:aws:secretsmanager:ap-southeast-1:677761253473:secret:banking-buddy-dev-crm-db-credentials-2qq6h7-BL04uu|terraform-20251018075309413500000009][0m
+[0m[1mmodule.user-service.aws_lb_listener.http: Refreshing state... [id=arn:aws:elasticloadbalancing:ap-southeast-1:677761253473:listener/app/banking-buddy-dev-us-alb/830dcdc6f4800a05/3e31f00ef738a289][0m
+[0m[1mmodule.iam.aws_iam_role.cognito_ses: Refreshing state... [id=banking-buddy-dev-cognito-ses-role][0m
+[0m[1mmodule.iam.aws_iam_role.sftp_server: Refreshing state... [id=banking-buddy-dev-sftp-server-role][0m
+[0m[1mmodule.iam.aws_iam_role.lambda_execution: Refreshing state... [id=banking-buddy-dev-lambda-execution-role][0m
+[0m[1mmodule.transaction-processor.aws_s3_object.transactions_data: Refreshing state... [id=transaction-processor/transactions.csv][0m
+[0m[1mmodule.transaction-processor.aws_cloudwatch_log_group.lambda: Refreshing state... [id=/aws/lambda/banking-buddy-dev-transaction-processor][0m
+[0m[1mmodule.iam.aws_iam_role.elastic_beanstalk: Refreshing state... [id=banking-buddy-dev-elastic-beanstalk-role][0m
+[0m[1mmodule.transaction-processor.aws_cloudwatch_event_rule.daily_schedule: Refreshing state... [id=banking-buddy-dev-daily-schedule][0m
+[0m[1mmodule.transaction-processor.null_resource.lambda_package_builder: Refreshing state... [id=518090041385305788][0m
+[0m[1mmodule.iam.aws_iam_role_policy.lambda_execution: Refreshing state... [id=banking-buddy-dev-lambda-execution-role:banking-buddy-dev-lambda-execution-policy][0m
+[0m[1mmodule.iam.aws_iam_role_policy.cognito_ses: Refreshing state... [id=banking-buddy-dev-cognito-ses-role:banking-buddy-dev-cognito-ses-policy][0m
+[0m[1mmodule.iam.aws_iam_role_policy.sftp_s3_access: Refreshing state... [id=banking-buddy-dev-sftp-server-role:banking-buddy-dev-sftp-s3-access][0m
+[0m[1mmodule.iam.aws_iam_instance_profile.sftp_server: Refreshing state... [id=banking-buddy-dev-sftp-server-profile][0m
+[0m[1mmodule.iam.aws_iam_role_policy.sftp_secrets_access: Refreshing state... [id=banking-buddy-dev-sftp-server-role:banking-buddy-dev-sftp-secrets-access][0m
+[0m[1mmodule.transaction-processor.aws_instance.sftp_server: Refreshing state... [id=i-08440b753a60949e2][0m
+[0m[1mmodule.iam.aws_iam_role_policy.elastic_beanstalk_crm_db: Refreshing state... [id=banking-buddy-dev-elastic-beanstalk-role:banking-buddy-dev-elastic-beanstalk-crm-db][0m
+[0m[1mmodule.iam.aws_iam_role_policy.elastic_beanstalk_logs: Refreshing state... [id=banking-buddy-dev-elastic-beanstalk-role:banking-buddy-dev-elastic-beanstalk-logs][0m
+[0m[1mmodule.iam.aws_iam_role_policy.elastic_beanstalk_audit_dynamodb: Refreshing state... [id=banking-buddy-dev-elastic-beanstalk-role:banking-buddy-dev-elastic-beanstalk-audit-dynamodb][0m
+[0m[1mmodule.iam.aws_iam_role_policy.elastic_beanstalk_cognito: Refreshing state... [id=banking-buddy-dev-elastic-beanstalk-role:banking-buddy-dev-elastic-beanstalk-cognito][0m
+[0m[1mmodule.iam.aws_iam_instance_profile.elastic_beanstalk: Refreshing state... [id=banking-buddy-dev-elastic-beanstalk-profile][0m
+[0m[1mmodule.transaction-processor.aws_lambda_function.transaction_processor: Refreshing state... [id=banking-buddy-dev-transaction-processor][0m
+[0m[1mmodule.transaction-processor.aws_lambda_permission.allow_cloudwatch: Refreshing state... [id=AllowExecutionFromCloudWatch][0m
+[0m[1mmodule.transaction-processor.aws_cloudwatch_event_target.lambda: Refreshing state... [id=banking-buddy-dev-daily-schedule-TriggerLambda][0m
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  [32m+[0m create[0m
+  [33m~[0m update in-place[0m
+[31m-[0m/[32m+[0m destroy and then create replacement[0m
+ [36m<=[0m read (data resources)[0m
+
+Terraform will perform the following actions:
+
+[1m  # module.audit_logging.aws_apigatewayv2_api.audit_logs_api[0m will be created
+[0m  [32m+[0m[0m resource "aws_apigatewayv2_api" "audit_logs_api" {
+      [32m+[0m[0m api_endpoint                 = (known after apply)
+      [32m+[0m[0m api_key_selection_expression = "$request.header.x-api-key"
+      [32m+[0m[0m arn                          = (known after apply)
+      [32m+[0m[0m description                  = "API for querying audit logs with role-based access control"
+      [32m+[0m[0m execution_arn                = (known after apply)
+      [32m+[0m[0m id                           = (known after apply)
+      [32m+[0m[0m ip_address_type              = (known after apply)
+      [32m+[0m[0m name                         = "banking-buddy-dev-audit-logs-api"
+      [32m+[0m[0m protocol_type                = "HTTP"
+      [32m+[0m[0m route_selection_expression   = "$request.method $request.path"
+      [32m+[0m[0m tags                         = {
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+        }
+      [32m+[0m[0m tags_all                     = {
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+        }
+
+      [32m+[0m[0m cors_configuration {
+          [32m+[0m[0m allow_headers = [
+              [32m+[0m[0m "Authorization",
+              [32m+[0m[0m "Content-Type",
+              [32m+[0m[0m "X-Amz-Date",
+              [32m+[0m[0m "X-Amz-Security-Token",
+              [32m+[0m[0m "X-Api-Key",
+            ]
+          [32m+[0m[0m allow_methods = [
+              [32m+[0m[0m "GET",
+              [32m+[0m[0m "OPTIONS",
+            ]
+          [32m+[0m[0m allow_origins = [
+              [32m+[0m[0m "http://localhost:3000",
+              [32m+[0m[0m "http://localhost:5173",
+            ]
+          [32m+[0m[0m max_age       = 300
+        }
+    }
+
+[1m  # module.audit_logging.aws_apigatewayv2_authorizer.cognito[0m will be created
+[0m  [32m+[0m[0m resource "aws_apigatewayv2_authorizer" "cognito" {
+      [32m+[0m[0m api_id                           = (known after apply)
+      [32m+[0m[0m authorizer_result_ttl_in_seconds = (known after apply)
+      [32m+[0m[0m authorizer_type                  = "JWT"
+      [32m+[0m[0m id                               = (known after apply)
+      [32m+[0m[0m identity_sources                 = [
+          [32m+[0m[0m "$request.header.Authorization",
+        ]
+      [32m+[0m[0m name                             = "banking-buddy-dev-cognito-authorizer"
+
+      [32m+[0m[0m jwt_configuration {
+          [32m+[0m[0m audience = [
+              [32m+[0m[0m "72qh2eukvcfpv5j9e7nmd6k4bt",
+            ]
+          [32m+[0m[0m issuer   = "https://cognito-idp.ap-southeast-1.amazonaws.com/ap-southeast-1_eSZVNDkyn"
+        }
+    }
+
+[1m  # module.audit_logging.aws_apigatewayv2_integration.audit_reader[0m will be created
+[0m  [32m+[0m[0m resource "aws_apigatewayv2_integration" "audit_reader" {
+      [32m+[0m[0m api_id                                    = (known after apply)
+      [32m+[0m[0m connection_type                           = "INTERNET"
+      [32m+[0m[0m id                                        = (known after apply)
+      [32m+[0m[0m integration_method                        = "POST"
+      [32m+[0m[0m integration_response_selection_expression = (known after apply)
+      [32m+[0m[0m integration_type                          = "AWS_PROXY"
+      [32m+[0m[0m integration_uri                           = (known after apply)
+      [32m+[0m[0m payload_format_version                    = "2.0"
+      [32m+[0m[0m timeout_milliseconds                      = (known after apply)
+    }
+
+[1m  # module.audit_logging.aws_apigatewayv2_route.get_audit_logs[0m will be created
+[0m  [32m+[0m[0m resource "aws_apigatewayv2_route" "get_audit_logs" {
+      [32m+[0m[0m api_id             = (known after apply)
+      [32m+[0m[0m api_key_required   = false
+      [32m+[0m[0m authorization_type = "JWT"
+      [32m+[0m[0m authorizer_id      = (known after apply)
+      [32m+[0m[0m id                 = (known after apply)
+      [32m+[0m[0m route_key          = "GET /api/v1/audit/logs"
+      [32m+[0m[0m target             = (known after apply)
+    }
+
+[1m  # module.audit_logging.aws_apigatewayv2_stage.default[0m will be created
+[0m  [32m+[0m[0m resource "aws_apigatewayv2_stage" "default" {
+      [32m+[0m[0m api_id        = (known after apply)
+      [32m+[0m[0m arn           = (known after apply)
+      [32m+[0m[0m auto_deploy   = true
+      [32m+[0m[0m deployment_id = (known after apply)
+      [32m+[0m[0m execution_arn = (known after apply)
+      [32m+[0m[0m id            = (known after apply)
+      [32m+[0m[0m invoke_url    = (known after apply)
+      [32m+[0m[0m name          = "$default"
+      [32m+[0m[0m tags          = {
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+        }
+      [32m+[0m[0m tags_all      = {
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+        }
+
+      [32m+[0m[0m access_log_settings {
+          [32m+[0m[0m destination_arn = (known after apply)
+          [32m+[0m[0m format          = jsonencode(
+                {
+                  [32m+[0m[0m authorizerError = "$context.authorizer.error"
+                  [32m+[0m[0m errorMessage    = "$context.error.message"
+                  [32m+[0m[0m httpMethod      = "$context.httpMethod"
+                  [32m+[0m[0m ip              = "$context.identity.sourceIp"
+                  [32m+[0m[0m protocol        = "$context.protocol"
+                  [32m+[0m[0m requestId       = "$context.requestId"
+                  [32m+[0m[0m requestTime     = "$context.requestTime"
+                  [32m+[0m[0m responseLength  = "$context.responseLength"
+                  [32m+[0m[0m routeKey        = "$context.routeKey"
+                  [32m+[0m[0m status          = "$context.status"
+                }
+            )
+        }
+    }
+
+[1m  # module.audit_logging.aws_cloudwatch_log_group.api_gateway[0m will be created
+[0m  [32m+[0m[0m resource "aws_cloudwatch_log_group" "api_gateway" {
+      [32m+[0m[0m arn               = (known after apply)
+      [32m+[0m[0m id                = (known after apply)
+      [32m+[0m[0m log_group_class   = (known after apply)
+      [32m+[0m[0m name              = "/aws/apigateway/banking-buddy-dev-audit-logs-api"
+      [32m+[0m[0m name_prefix       = (known after apply)
+      [32m+[0m[0m retention_in_days = 7
+      [32m+[0m[0m skip_destroy      = false
+      [32m+[0m[0m tags              = {
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+        }
+      [32m+[0m[0m tags_all          = {
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+        }
+    }
+
+[1m  # module.audit_logging.aws_cloudwatch_log_group.lambda_reader[0m will be created
+[0m  [32m+[0m[0m resource "aws_cloudwatch_log_group" "lambda_reader" {
+      [32m+[0m[0m arn               = (known after apply)
+      [32m+[0m[0m id                = (known after apply)
+      [32m+[0m[0m log_group_class   = (known after apply)
+      [32m+[0m[0m name              = "/aws/lambda/banking-buddy-dev-audit-reader"
+      [32m+[0m[0m name_prefix       = (known after apply)
+      [32m+[0m[0m retention_in_days = 7
+      [32m+[0m[0m skip_destroy      = false
+      [32m+[0m[0m tags              = {
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+        }
+      [32m+[0m[0m tags_all          = {
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+        }
+    }
+
+[1m  # module.audit_logging.aws_cloudwatch_log_group.lambda_writer[0m will be created
+[0m  [32m+[0m[0m resource "aws_cloudwatch_log_group" "lambda_writer" {
+      [32m+[0m[0m arn               = (known after apply)
+      [32m+[0m[0m id                = (known after apply)
+      [32m+[0m[0m log_group_class   = (known after apply)
+      [32m+[0m[0m name              = "/aws/lambda/banking-buddy-dev-audit-writer"
+      [32m+[0m[0m name_prefix       = (known after apply)
+      [32m+[0m[0m retention_in_days = 7
+      [32m+[0m[0m skip_destroy      = false
+      [32m+[0m[0m tags              = {
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+        }
+      [32m+[0m[0m tags_all          = {
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+        }
+    }
+
+[1m  # module.audit_logging.aws_cloudwatch_metric_alarm.dlq_messages[0m will be created
+[0m  [32m+[0m[0m resource "aws_cloudwatch_metric_alarm" "dlq_messages" {
+      [32m+[0m[0m actions_enabled                       = true
+      [32m+[0m[0m alarm_description                     = "Alert when messages appear in audit logs DLQ"
+      [32m+[0m[0m alarm_name                            = "banking-buddy-dev-audit-dlq-depth"
+      [32m+[0m[0m arn                                   = (known after apply)
+      [32m+[0m[0m comparison_operator                   = "GreaterThanThreshold"
+      [32m+[0m[0m dimensions                            = {
+          [32m+[0m[0m "QueueName" = "banking-buddy-dev-audit-logs-dlq"
+        }
+      [32m+[0m[0m evaluate_low_sample_count_percentiles = (known after apply)
+      [32m+[0m[0m evaluation_periods                    = 1
+      [32m+[0m[0m id                                    = (known after apply)
+      [32m+[0m[0m metric_name                           = "ApproximateNumberOfMessagesVisible"
+      [32m+[0m[0m namespace                             = "AWS/SQS"
+      [32m+[0m[0m period                                = 300
+      [32m+[0m[0m statistic                             = "Average"
+      [32m+[0m[0m tags                                  = {
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+        }
+      [32m+[0m[0m tags_all                              = {
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+        }
+      [32m+[0m[0m threshold                             = 0
+      [32m+[0m[0m treat_missing_data                    = "notBreaching"
+    }
+
+[1m  # module.audit_logging.aws_iam_policy.sqs_publish_policy[0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_policy" "sqs_publish_policy" {
+      [32m+[0m[0m arn              = (known after apply)
+      [32m+[0m[0m attachment_count = (known after apply)
+      [32m+[0m[0m description      = "Policy for services to publish audit logs to SQS"
+      [32m+[0m[0m id               = (known after apply)
+      [32m+[0m[0m name             = "banking-buddy-dev-audit-sqs-publish-policy"
+      [32m+[0m[0m name_prefix      = (known after apply)
+      [32m+[0m[0m path             = "/"
+      [32m+[0m[0m policy           = (known after apply)
+      [32m+[0m[0m policy_id        = (known after apply)
+      [32m+[0m[0m tags             = {
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+        }
+      [32m+[0m[0m tags_all         = {
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+        }
+    }
+
+[1m  # module.audit_logging.aws_iam_role.lambda_reader[0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_role" "lambda_reader" {
+      [32m+[0m[0m arn                   = (known after apply)
+      [32m+[0m[0m assume_role_policy    = jsonencode(
+            {
+              [32m+[0m[0m Statement = [
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action    = "sts:AssumeRole"
+                      [32m+[0m[0m Effect    = "Allow"
+                      [32m+[0m[0m Principal = {
+                          [32m+[0m[0m Service = "lambda.amazonaws.com"
+                        }
+                    },
+                ]
+              [32m+[0m[0m Version   = "2012-10-17"
+            }
+        )
+      [32m+[0m[0m create_date           = (known after apply)
+      [32m+[0m[0m force_detach_policies = false
+      [32m+[0m[0m id                    = (known after apply)
+      [32m+[0m[0m managed_policy_arns   = (known after apply)
+      [32m+[0m[0m max_session_duration  = 3600
+      [32m+[0m[0m name                  = "banking-buddy-dev-audit-reader-lambda-role"
+      [32m+[0m[0m name_prefix           = (known after apply)
+      [32m+[0m[0m path                  = "/"
+      [32m+[0m[0m tags                  = {
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+        }
+      [32m+[0m[0m tags_all              = {
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+        }
+      [32m+[0m[0m unique_id             = (known after apply)
+
+      [32m+[0m[0m inline_policy (known after apply)
+    }
+
+[1m  # module.audit_logging.aws_iam_role.lambda_writer[0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_role" "lambda_writer" {
+      [32m+[0m[0m arn                   = (known after apply)
+      [32m+[0m[0m assume_role_policy    = jsonencode(
+            {
+              [32m+[0m[0m Statement = [
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action    = "sts:AssumeRole"
+                      [32m+[0m[0m Effect    = "Allow"
+                      [32m+[0m[0m Principal = {
+                          [32m+[0m[0m Service = "lambda.amazonaws.com"
+                        }
+                    },
+                ]
+              [32m+[0m[0m Version   = "2012-10-17"
+            }
+        )
+      [32m+[0m[0m create_date           = (known after apply)
+      [32m+[0m[0m force_detach_policies = false
+      [32m+[0m[0m id                    = (known after apply)
+      [32m+[0m[0m managed_policy_arns   = (known after apply)
+      [32m+[0m[0m max_session_duration  = 3600
+      [32m+[0m[0m name                  = "banking-buddy-dev-audit-writer-lambda-role"
+      [32m+[0m[0m name_prefix           = (known after apply)
+      [32m+[0m[0m path                  = "/"
+      [32m+[0m[0m tags                  = {
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+        }
+      [32m+[0m[0m tags_all              = {
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+        }
+      [32m+[0m[0m unique_id             = (known after apply)
+
+      [32m+[0m[0m inline_policy (known after apply)
+    }
+
+[1m  # module.audit_logging.aws_iam_role_policy.lambda_reader_dynamodb[0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_role_policy" "lambda_reader_dynamodb" {
+      [32m+[0m[0m id          = (known after apply)
+      [32m+[0m[0m name        = "banking-buddy-dev-audit-reader-dynamodb"
+      [32m+[0m[0m name_prefix = (known after apply)
+      [32m+[0m[0m policy      = jsonencode(
+            {
+              [32m+[0m[0m Statement = [
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action   = [
+                          [32m+[0m[0m "dynamodb:Query",
+                          [32m+[0m[0m "dynamodb:Scan",
+                        ]
+                      [32m+[0m[0m Effect   = "Allow"
+                      [32m+[0m[0m Resource = [
+                          [32m+[0m[0m "arn:aws:dynamodb:ap-southeast-1:677761253473:table/banking-buddy-dev-audit-logs",
+                          [32m+[0m[0m "arn:aws:dynamodb:ap-southeast-1:677761253473:table/banking-buddy-dev-audit-logs/index/*",
+                        ]
+                    },
+                ]
+              [32m+[0m[0m Version   = "2012-10-17"
+            }
+        )
+      [32m+[0m[0m role        = (known after apply)
+    }
+
+[1m  # module.audit_logging.aws_iam_role_policy.lambda_writer_dynamodb[0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_role_policy" "lambda_writer_dynamodb" {
+      [32m+[0m[0m id          = (known after apply)
+      [32m+[0m[0m name        = "banking-buddy-dev-audit-writer-dynamodb"
+      [32m+[0m[0m name_prefix = (known after apply)
+      [32m+[0m[0m policy      = jsonencode(
+            {
+              [32m+[0m[0m Statement = [
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action   = [
+                          [32m+[0m[0m "dynamodb:PutItem",
+                        ]
+                      [32m+[0m[0m Effect   = "Allow"
+                      [32m+[0m[0m Resource = [
+                          [32m+[0m[0m "arn:aws:dynamodb:ap-southeast-1:677761253473:table/banking-buddy-dev-audit-logs",
+                          [32m+[0m[0m "arn:aws:dynamodb:ap-southeast-1:677761253473:table/banking-buddy-dev-audit-logs/index/*",
+                        ]
+                    },
+                ]
+              [32m+[0m[0m Version   = "2012-10-17"
+            }
+        )
+      [32m+[0m[0m role        = (known after apply)
+    }
+
+[1m  # module.audit_logging.aws_iam_role_policy.lambda_writer_sqs[0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_role_policy" "lambda_writer_sqs" {
+      [32m+[0m[0m id          = (known after apply)
+      [32m+[0m[0m name        = "banking-buddy-dev-audit-writer-sqs"
+      [32m+[0m[0m name_prefix = (known after apply)
+      [32m+[0m[0m policy      = (known after apply)
+      [32m+[0m[0m role        = (known after apply)
+    }
+
+[1m  # module.audit_logging.aws_iam_role_policy_attachment.lambda_reader_logs[0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_role_policy_attachment" "lambda_reader_logs" {
+      [32m+[0m[0m id         = (known after apply)
+      [32m+[0m[0m policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+      [32m+[0m[0m role       = "banking-buddy-dev-audit-reader-lambda-role"
+    }
+
+[1m  # module.audit_logging.aws_iam_role_policy_attachment.lambda_writer_logs[0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_role_policy_attachment" "lambda_writer_logs" {
+      [32m+[0m[0m id         = (known after apply)
+      [32m+[0m[0m policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+      [32m+[0m[0m role       = "banking-buddy-dev-audit-writer-lambda-role"
+    }
+
+[1m  # module.audit_logging.aws_lambda_event_source_mapping.sqs_trigger[0m will be created
+[0m  [32m+[0m[0m resource "aws_lambda_event_source_mapping" "sqs_trigger" {
+      [32m+[0m[0m arn                           = (known after apply)
+      [32m+[0m[0m batch_size                    = 10
+      [32m+[0m[0m enabled                       = true
+      [32m+[0m[0m event_source_arn              = (known after apply)
+      [32m+[0m[0m function_arn                  = (known after apply)
+      [32m+[0m[0m function_name                 = (known after apply)
+      [32m+[0m[0m function_response_types       = [
+          [32m+[0m[0m "ReportBatchItemFailures",
+        ]
+      [32m+[0m[0m id                            = (known after apply)
+      [32m+[0m[0m last_modified                 = (known after apply)
+      [32m+[0m[0m last_processing_result        = (known after apply)
+      [32m+[0m[0m maximum_record_age_in_seconds = (known after apply)
+      [32m+[0m[0m maximum_retry_attempts        = (known after apply)
+      [32m+[0m[0m parallelization_factor        = (known after apply)
+      [32m+[0m[0m state                         = (known after apply)
+      [32m+[0m[0m state_transition_reason       = (known after apply)
+      [32m+[0m[0m tags_all                      = {
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+        }
+      [32m+[0m[0m uuid                          = (known after apply)
+
+      [32m+[0m[0m amazon_managed_kafka_event_source_config (known after apply)
+
+      [32m+[0m[0m self_managed_kafka_event_source_config (known after apply)
+    }
+
+[1m  # module.audit_logging.aws_lambda_function.audit_reader[0m will be created
+[0m  [32m+[0m[0m resource "aws_lambda_function" "audit_reader" {
+      [32m+[0m[0m architectures                  = (known after apply)
+      [32m+[0m[0m arn                            = (known after apply)
+      [32m+[0m[0m code_sha256                    = (known after apply)
+      [32m+[0m[0m filename                       = "shared/audit-logging/lambda/audit-reader.zip"
+      [32m+[0m[0m function_name                  = "banking-buddy-dev-audit-reader"
+      [32m+[0m[0m handler                        = "lambda_function.lambda_handler"
+      [32m+[0m[0m id                             = (known after apply)
+      [32m+[0m[0m invoke_arn                     = (known after apply)
+      [32m+[0m[0m last_modified                  = (known after apply)
+      [32m+[0m[0m memory_size                    = 256
+      [32m+[0m[0m package_type                   = "Zip"
+      [32m+[0m[0m publish                        = false
+      [32m+[0m[0m qualified_arn                  = (known after apply)
+      [32m+[0m[0m qualified_invoke_arn           = (known after apply)
+      [32m+[0m[0m reserved_concurrent_executions = -1
+      [32m+[0m[0m role                           = (known after apply)
+      [32m+[0m[0m runtime                        = "python3.12"
+      [32m+[0m[0m signing_job_arn                = (known after apply)
+      [32m+[0m[0m signing_profile_version_arn    = (known after apply)
+      [32m+[0m[0m skip_destroy                   = false
+      [32m+[0m[0m source_code_hash               = "q/KSP/GdrkVaEeHu26kHIGR3oOIM70IOG5Rah/pUa7w="
+      [32m+[0m[0m source_code_size               = (known after apply)
+      [32m+[0m[0m tags                           = {
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Name"        = "banking-buddy-dev-audit-reader"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+          [32m+[0m[0m "Purpose"     = "Query audit logs from DynamoDB with role-based filtering"
+        }
+      [32m+[0m[0m tags_all                       = {
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Name"        = "banking-buddy-dev-audit-reader"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+          [32m+[0m[0m "Purpose"     = "Query audit logs from DynamoDB with role-based filtering"
+        }
+      [32m+[0m[0m timeout                        = 30
+      [32m+[0m[0m version                        = (known after apply)
+
+      [32m+[0m[0m environment {
+          [32m+[0m[0m variables = {
+              [32m+[0m[0m "AGENT_INDEX_NAME"     = "AgentIndex"
+              [32m+[0m[0m "DYNAMODB_TABLE_NAME"  = "banking-buddy-dev-audit-logs"
+              [32m+[0m[0m "OPERATION_INDEX_NAME" = "OperationIndex"
+            }
+        }
+
+      [32m+[0m[0m ephemeral_storage (known after apply)
+
+      [32m+[0m[0m logging_config (known after apply)
+
+      [32m+[0m[0m tracing_config (known after apply)
+    }
+
+[1m  # module.audit_logging.aws_lambda_function.audit_writer[0m will be created
+[0m  [32m+[0m[0m resource "aws_lambda_function" "audit_writer" {
+      [32m+[0m[0m architectures                  = (known after apply)
+      [32m+[0m[0m arn                            = (known after apply)
+      [32m+[0m[0m code_sha256                    = (known after apply)
+      [32m+[0m[0m filename                       = "shared/audit-logging/lambda/audit-writer.zip"
+      [32m+[0m[0m function_name                  = "banking-buddy-dev-audit-writer"
+      [32m+[0m[0m handler                        = "lambda_function.lambda_handler"
+      [32m+[0m[0m id                             = (known after apply)
+      [32m+[0m[0m invoke_arn                     = (known after apply)
+      [32m+[0m[0m last_modified                  = (known after apply)
+      [32m+[0m[0m memory_size                    = 256
+      [32m+[0m[0m package_type                   = "Zip"
+      [32m+[0m[0m publish                        = false
+      [32m+[0m[0m qualified_arn                  = (known after apply)
+      [32m+[0m[0m qualified_invoke_arn           = (known after apply)
+      [32m+[0m[0m reserved_concurrent_executions = -1
+      [32m+[0m[0m role                           = (known after apply)
+      [32m+[0m[0m runtime                        = "python3.12"
+      [32m+[0m[0m signing_job_arn                = (known after apply)
+      [32m+[0m[0m signing_profile_version_arn    = (known after apply)
+      [32m+[0m[0m skip_destroy                   = false
+      [32m+[0m[0m source_code_hash               = "3rp6tR7tNQOYkrcl/Eus3N6jid6pFBnay4LE43vwkFM="
+      [32m+[0m[0m source_code_size               = (known after apply)
+      [32m+[0m[0m tags                           = {
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Name"        = "banking-buddy-dev-audit-writer"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+          [32m+[0m[0m "Purpose"     = "Process audit log messages from SQS and write to DynamoDB"
+        }
+      [32m+[0m[0m tags_all                       = {
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Name"        = "banking-buddy-dev-audit-writer"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+          [32m+[0m[0m "Purpose"     = "Process audit log messages from SQS and write to DynamoDB"
+        }
+      [32m+[0m[0m timeout                        = 30
+      [32m+[0m[0m version                        = (known after apply)
+
+      [32m+[0m[0m environment {
+          [32m+[0m[0m variables = {
+              [32m+[0m[0m "DYNAMODB_TABLE_NAME" = "banking-buddy-dev-audit-logs"
+              [32m+[0m[0m "LOG_RETENTION_DAYS"  = "2555"
+              [32m+[0m[0m "MAX_RETRIES"         = "3"
+            }
+        }
+
+      [32m+[0m[0m ephemeral_storage (known after apply)
+
+      [32m+[0m[0m logging_config (known after apply)
+
+      [32m+[0m[0m tracing_config (known after apply)
+    }
+
+[1m  # module.audit_logging.aws_lambda_permission.api_gateway[0m will be created
+[0m  [32m+[0m[0m resource "aws_lambda_permission" "api_gateway" {
+      [32m+[0m[0m action              = "lambda:InvokeFunction"
+      [32m+[0m[0m function_name       = "banking-buddy-dev-audit-reader"
+      [32m+[0m[0m id                  = (known after apply)
+      [32m+[0m[0m principal           = "apigateway.amazonaws.com"
+      [32m+[0m[0m source_arn          = (known after apply)
+      [32m+[0m[0m statement_id        = "AllowAPIGatewayInvoke"
+      [32m+[0m[0m statement_id_prefix = (known after apply)
+    }
+
+[1m  # module.audit_logging.aws_sqs_queue.audit_logs[0m will be created
+[0m  [32m+[0m[0m resource "aws_sqs_queue" "audit_logs" {
+      [32m+[0m[0m arn                               = (known after apply)
+      [32m+[0m[0m content_based_deduplication       = false
+      [32m+[0m[0m deduplication_scope               = (known after apply)
+      [32m+[0m[0m delay_seconds                     = 0
+      [32m+[0m[0m fifo_queue                        = false
+      [32m+[0m[0m fifo_throughput_limit             = (known after apply)
+      [32m+[0m[0m id                                = (known after apply)
+      [32m+[0m[0m kms_data_key_reuse_period_seconds = (known after apply)
+      [32m+[0m[0m max_message_size                  = 262144
+      [32m+[0m[0m message_retention_seconds         = 345600
+      [32m+[0m[0m name                              = "banking-buddy-dev-audit-logs"
+      [32m+[0m[0m name_prefix                       = (known after apply)
+      [32m+[0m[0m policy                            = (known after apply)
+      [32m+[0m[0m receive_wait_time_seconds         = 20
+      [32m+[0m[0m redrive_allow_policy              = (known after apply)
+      [32m+[0m[0m redrive_policy                    = (known after apply)
+      [32m+[0m[0m sqs_managed_sse_enabled           = (known after apply)
+      [32m+[0m[0m tags                              = {
+          [32m+[0m[0m "Environment" = "banking-buddy-dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Name"        = "banking-buddy-dev-audit-logs"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+          [32m+[0m[0m "Purpose"     = "Main queue for async audit log processing"
+        }
+      [32m+[0m[0m tags_all                          = {
+          [32m+[0m[0m "Environment" = "banking-buddy-dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Name"        = "banking-buddy-dev-audit-logs"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+          [32m+[0m[0m "Purpose"     = "Main queue for async audit log processing"
+        }
+      [32m+[0m[0m url                               = (known after apply)
+      [32m+[0m[0m visibility_timeout_seconds        = 30
+    }
+
+[1m  # module.audit_logging.aws_sqs_queue.audit_logs_dlq[0m will be created
+[0m  [32m+[0m[0m resource "aws_sqs_queue" "audit_logs_dlq" {
+      [32m+[0m[0m arn                               = (known after apply)
+      [32m+[0m[0m content_based_deduplication       = false
+      [32m+[0m[0m deduplication_scope               = (known after apply)
+      [32m+[0m[0m delay_seconds                     = 0
+      [32m+[0m[0m fifo_queue                        = false
+      [32m+[0m[0m fifo_throughput_limit             = (known after apply)
+      [32m+[0m[0m id                                = (known after apply)
+      [32m+[0m[0m kms_data_key_reuse_period_seconds = (known after apply)
+      [32m+[0m[0m max_message_size                  = 262144
+      [32m+[0m[0m message_retention_seconds         = 1209600
+      [32m+[0m[0m name                              = "banking-buddy-dev-audit-logs-dlq"
+      [32m+[0m[0m name_prefix                       = (known after apply)
+      [32m+[0m[0m policy                            = (known after apply)
+      [32m+[0m[0m receive_wait_time_seconds         = 0
+      [32m+[0m[0m redrive_allow_policy              = (known after apply)
+      [32m+[0m[0m redrive_policy                    = (known after apply)
+      [32m+[0m[0m sqs_managed_sse_enabled           = (known after apply)
+      [32m+[0m[0m tags                              = {
+          [32m+[0m[0m "Environment" = "banking-buddy-dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Name"        = "banking-buddy-dev-audit-logs-dlq"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+          [32m+[0m[0m "Purpose"     = "Dead letter queue for failed audit log messages"
+        }
+      [32m+[0m[0m tags_all                          = {
+          [32m+[0m[0m "Environment" = "banking-buddy-dev"
+          [32m+[0m[0m "ManagedBy"   = "terraform"
+          [32m+[0m[0m "Name"        = "banking-buddy-dev-audit-logs-dlq"
+          [32m+[0m[0m "Owner"       = "cs301-g2t1"
+          [32m+[0m[0m "Project"     = "banking-buddy"
+          [32m+[0m[0m "Purpose"     = "Dead letter queue for failed audit log messages"
+        }
+      [32m+[0m[0m url                               = (known after apply)
+      [32m+[0m[0m visibility_timeout_seconds        = 30
+    }
+
+[1m  # module.cognito.aws_cognito_user_pool_ui_customization.main[0m will be updated in-place
+[0m  [33m~[0m[0m resource "aws_cognito_user_pool_ui_customization" "main" {
+      [33m~[0m[0m css                = <<-EOT
+          [31m-[0m[0m .background-customizable {
+          [32m+[0m[0m .background-customizable {
+          [31m-[0m[0m     background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%) !important;
+          [32m+[0m[0m     background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%) !important;
+          [31m-[0m[0m     min-height: 100vh !important;
+          [32m+[0m[0m     min-height: 100vh !important;
+          [31m-[0m[0m }
+          [32m+[0m[0m }
+          [31m-[0m[0m 
+          [32m+[0m[0m 
+          [31m-[0m[0m .banner-customizable {
+          [32m+[0m[0m .banner-customizable {
+          [31m-[0m[0m     padding: 20px 0px !important;
+          [32m+[0m[0m     padding: 20px 0px !important;
+          [31m-[0m[0m     background-color: transparent !important;
+          [32m+[0m[0m     background-color: transparent !important;
+          [31m-[0m[0m }
+          [32m+[0m[0m }
+          [31m-[0m[0m 
+          [32m+[0m[0m 
+          [31m-[0m[0m .label-customizable {
+          [32m+[0m[0m .label-customizable {
+          [31m-[0m[0m     color: #cbd5e1 !important;
+          [32m+[0m[0m     color: #cbd5e1 !important;
+          [31m-[0m[0m     font-weight: 500 !important;
+          [32m+[0m[0m     font-weight: 500 !important;
+          [31m-[0m[0m }
+          [32m+[0m[0m }
+          [31m-[0m[0m 
+          [32m+[0m[0m 
+          [31m-[0m[0m .textDescription-customizable {
+          [32m+[0m[0m .textDescription-customizable {
+          [31m-[0m[0m     color: #94a3b8 !important;
+          [32m+[0m[0m     color: #94a3b8 !important;
+          [31m-[0m[0m }
+          [32m+[0m[0m }
+          [31m-[0m[0m 
+          [32m+[0m[0m 
+          [31m-[0m[0m .inputField-customizable {
+          [32m+[0m[0m .inputField-customizable {
+          [31m-[0m[0m     color: #e2e8f0 !important;
+          [32m+[0m[0m     color: #e2e8f0 !important;
+          [31m-[0m[0m     background-color: #334155 !important;
+          [32m+[0m[0m     background-color: #334155 !important;
+          [31m-[0m[0m     border: 1px solid #475569 !important;
+          [32m+[0m[0m     border: 1px solid #475569 !important;
+          [31m-[0m[0m     border-radius: 0.5rem !important;
+          [32m+[0m[0m     border-radius: 0.5rem !important;
+          [31m-[0m[0m     padding: 0.75rem !important;
+          [32m+[0m[0m     padding: 0.75rem !important;
+          [31m-[0m[0m }
+          [32m+[0m[0m }
+          [31m-[0m[0m 
+          [32m+[0m[0m 
+          [31m-[0m[0m .submitButton-customizable {
+          [32m+[0m[0m .submitButton-customizable {
+          [31m-[0m[0m     background-color: #2563eb !important;
+          [32m+[0m[0m     background-color: #2563eb !important;
+          [31m-[0m[0m     color: white !important;
+          [32m+[0m[0m     color: white !important;
+          [31m-[0m[0m     border-radius: 0.5rem !important;
+          [32m+[0m[0m     border-radius: 0.5rem !important;
+          [31m-[0m[0m     padding: 0.75rem 1rem !important;
+          [32m+[0m[0m     padding: 0.75rem 1rem !important;
+          [31m-[0m[0m     font-weight: 500 !important;
+          [32m+[0m[0m     font-weight: 500 !important;
+          [31m-[0m[0m }
+          [32m+[0m[0m }
+          [31m-[0m[0m 
+          [32m+[0m[0m 
+          [31m-[0m[0m .errorMessage-customizable {
+          [32m+[0m[0m .errorMessage-customizable {
+          [31m-[0m[0m     background-color: rgba(127, 29, 29, 0.3) !important;
+          [32m+[0m[0m     background-color: rgba(127, 29, 29, 0.3) !important;
+          [31m-[0m[0m     border: 1px solid #dc2626 !important;
+          [32m+[0m[0m     border: 1px solid #dc2626 !important;
+          [31m-[0m[0m     color: #fca5a5 !important;
+          [32m+[0m[0m     color: #fca5a5 !important;
+          [31m-[0m[0m     border-radius: 0.5rem !important;
+          [32m+[0m[0m     border-radius: 0.5rem !important;
+          [31m-[0m[0m     padding: 1rem !important;
+          [32m+[0m[0m     padding: 1rem !important;
+          [31m-[0m[0m }
+          [32m+[0m[0m }
+          [31m-[0m[0m 
+          [32m+[0m[0m 
+          [31m-[0m[0m .redirect-customizable {
+          [32m+[0m[0m .redirect-customizable {
+          [31m-[0m[0m     color: #60a5fa !important;
+          [32m+[0m[0m     color: #60a5fa !important;
+            }
+        EOT
+        id                 = "ap-southeast-1_eSZVNDkyn,72qh2eukvcfpv5j9e7nmd6k4bt"
+        [90m# (6 unchanged attributes hidden)[0m[0m
+    }
+
+[1m  # module.secrets-manager.aws_secretsmanager_secret_version.crm_db_credentials[0m must be [1m[31mreplaced[0m
+[0m[31m-[0m/[32m+[0m[0m resource "aws_secretsmanager_secret_version" "crm_db_credentials" {
+      [33m~[0m[0m arn                  = "arn:aws:secretsmanager:ap-southeast-1:677761253473:secret:banking-buddy-dev-crm-db-credentials-2qq6h7-BL04uu" -> (known after apply)
+      [32m+[0m[0m has_secret_string_wo = (known after apply)
+      [33m~[0m[0m id                   = "arn:aws:secretsmanager:ap-southeast-1:677761253473:secret:banking-buddy-dev-crm-db-credentials-2qq6h7-BL04uu|terraform-20251018075309413500000009" -> (known after apply)
+      [33m~[0m[0m secret_string        = (sensitive value) [31m# forces replacement[0m[0m
+      [33m~[0m[0m version_id           = "terraform-20251018075309413500000009" -> (known after apply)
+      [33m~[0m[0m version_stages       = [
+          [31m-[0m[0m "AWSCURRENT",
+        ] -> (known after apply)
+        [90m# (3 unchanged attributes hidden)[0m[0m
+    }
+
+[1m  # module.security_groups.aws_security_group.sftp_server[0m will be updated in-place
+[0m  [33m~[0m[0m resource "aws_security_group" "sftp_server" {
+        id                     = "sg-04e4b4e5f114aa0c0"
+      [33m~[0m[0m ingress                = [
+          [31m-[0m[0m {
+              [31m-[0m[0m cidr_blocks      = [
+                  [31m-[0m[0m "47.128.165.11/32",
+                  [31m-[0m[0m "121.7.49.238/32",
+                ]
+              [31m-[0m[0m description      = "SSH/SFTP access from Lambda via NAT gateway and SSH from local machine "
+              [31m-[0m[0m from_port        = 22
+              [31m-[0m[0m ipv6_cidr_blocks = []
+              [31m-[0m[0m prefix_list_ids  = []
+              [31m-[0m[0m protocol         = "tcp"
+              [31m-[0m[0m security_groups  = []
+              [31m-[0m[0m self             = false
+              [31m-[0m[0m to_port          = 22
+            },
+          [32m+[0m[0m {
+              [32m+[0m[0m cidr_blocks      = [
+                  [32m+[0m[0m "47.128.165.11/32",
+                  [32m+[0m[0m "42.61.141.206/32",
+                  [32m+[0m[0m "10.119.0.0/16",
+                ]
+              [32m+[0m[0m description      = "SSH/SFTP access from Lambda via NAT gateway and SSH from local machine "
+              [32m+[0m[0m from_port        = 22
+              [32m+[0m[0m ipv6_cidr_blocks = []
+              [32m+[0m[0m prefix_list_ids  = []
+              [32m+[0m[0m protocol         = "tcp"
+              [32m+[0m[0m security_groups  = []
+              [32m+[0m[0m self             = false
+              [32m+[0m[0m to_port          = 22
+            },
+        ]
+        name                   = "banking-buddy-dev-sftp-server-20251018074450697500000002"
+        tags                   = {
+            "Environment" = "dev"
+            "ManagedBy"   = "terraform"
+            "Name"        = "banking-buddy-dev-sftp-server-sg"
+            "Owner"       = "cs301-g2t1"
+            "Project"     = "banking-buddy"
+            "Type"        = "SFTP Server"
+        }
+        [90m# (8 unchanged attributes hidden)[0m[0m
+    }
+
+[1m  # module.security_groups.aws_security_group_rule.rds_from_eb[0m will be created
+[0m  [32m+[0m[0m resource "aws_security_group_rule" "rds_from_eb" {
+      [32m+[0m[0m description              = "MySQL access from Elastic Beanstalk"
+      [32m+[0m[0m from_port                = 3306
+      [32m+[0m[0m id                       = (known after apply)
+      [32m+[0m[0m protocol                 = "tcp"
+      [32m+[0m[0m security_group_id        = "sg-0ca8c67dd352f7ccc"
+      [32m+[0m[0m security_group_rule_id   = (known after apply)
+      [32m+[0m[0m self                     = false
+      [32m+[0m[0m source_security_group_id = "sg-008880183fb648d46"
+      [32m+[0m[0m to_port                  = 3306
+      [32m+[0m[0m type                     = "ingress"
+    }
+
+[1m  # module.transaction-processor.data.aws_ami.amazon_linux[0m will be read during apply
+  # (depends on a resource or a module with changes pending)
+[0m [36m<=[0m[0m data "aws_ami" "amazon_linux" {
+      [32m+[0m[0m architecture          = (known after apply)
+      [32m+[0m[0m arn                   = (known after apply)
+      [32m+[0m[0m block_device_mappings = (known after apply)
+      [32m+[0m[0m boot_mode             = (known after apply)
+      [32m+[0m[0m creation_date         = (known after apply)
+      [32m+[0m[0m deprecation_time      = (known after apply)
+      [32m+[0m[0m description           = (known after apply)
+      [32m+[0m[0m ena_support           = (known after apply)
+      [32m+[0m[0m hypervisor            = (known after apply)
+      [32m+[0m[0m id                    = (known after apply)
+      [32m+[0m[0m image_id              = (known after apply)
+      [32m+[0m[0m image_location        = (known after apply)
+      [32m+[0m[0m image_owner_alias     = (known after apply)
+      [32m+[0m[0m image_type            = (known after apply)
+      [32m+[0m[0m imds_support          = (known after apply)
+      [32m+[0m[0m kernel_id             = (known after apply)
+      [32m+[0m[0m last_launched_time    = (known after apply)
+      [32m+[0m[0m most_recent           = true
+      [32m+[0m[0m name                  = (known after apply)
+      [32m+[0m[0m owner_id              = (known after apply)
+      [32m+[0m[0m owners                = [
+          [32m+[0m[0m "amazon",
+        ]
+      [32m+[0m[0m platform              = (known after apply)
+      [32m+[0m[0m platform_details      = (known after apply)
+      [32m+[0m[0m product_codes         = (known after apply)
+      [32m+[0m[0m public                = (known after apply)
+      [32m+[0m[0m ramdisk_id            = (known after apply)
+      [32m+[0m[0m root_device_name      = (known after apply)
+      [32m+[0m[0m root_device_type      = (known after apply)
+      [32m+[0m[0m root_snapshot_id      = (known after apply)
+      [32m+[0m[0m sriov_net_support     = (known after apply)
+      [32m+[0m[0m state                 = (known after apply)
+      [32m+[0m[0m state_reason          = (known after apply)
+      [32m+[0m[0m tags                  = (known after apply)
+      [32m+[0m[0m tpm_support           = (known after apply)
+      [32m+[0m[0m usage_operation       = (known after apply)
+      [32m+[0m[0m virtualization_type   = (known after apply)
+
+      [32m+[0m[0m filter {
+          [32m+[0m[0m name   = "name"
+          [32m+[0m[0m values = [
+              [32m+[0m[0m "amzn2-ami-hvm-*-x86_64-gp2",
+            ]
+        }
+      [32m+[0m[0m filter {
+          [32m+[0m[0m name   = "virtualization-type"
+          [32m+[0m[0m values = [
+              [32m+[0m[0m "hvm",
+            ]
+        }
+    }
+
+[1m  # module.transaction-processor.data.aws_key_pair.sftp_server[0m will be read during apply
+  # (depends on a resource or a module with changes pending)
+[0m [36m<=[0m[0m data "aws_key_pair" "sftp_server" {
+      [32m+[0m[0m arn         = (known after apply)
+      [32m+[0m[0m create_time = (known after apply)
+      [32m+[0m[0m fingerprint = (known after apply)
+      [32m+[0m[0m id          = (known after apply)
+      [32m+[0m[0m key_name    = "banking-buddy-dev"
+      [32m+[0m[0m key_type    = (known after apply)
+      [32m+[0m[0m public_key  = (known after apply)
+      [32m+[0m[0m tags        = (known after apply)
+    }
+
+[1m  # module.transaction-processor.data.aws_region.current[0m will be read during apply
+  # (depends on a resource or a module with changes pending)
+[0m [36m<=[0m[0m data "aws_region" "current" {
+      [32m+[0m[0m description = (known after apply)
+      [32m+[0m[0m endpoint    = (known after apply)
+      [32m+[0m[0m id          = (known after apply)
+      [32m+[0m[0m name        = (known after apply)
+    }
+
+[1m  # module.transaction-processor.data.aws_secretsmanager_secret.sftp_credentials[0m will be read during apply
+  # (depends on a resource or a module with changes pending)
+[0m [36m<=[0m[0m data "aws_secretsmanager_secret" "sftp_credentials" {
+      [32m+[0m[0m arn               = (known after apply)
+      [32m+[0m[0m created_date      = (known after apply)
+      [32m+[0m[0m description       = (known after apply)
+      [32m+[0m[0m id                = (known after apply)
+      [32m+[0m[0m kms_key_id        = (known after apply)
+      [32m+[0m[0m last_changed_date = (known after apply)
+      [32m+[0m[0m name              = "banking-buddy-dev-sftp-credentials-2qq6h7"
+      [32m+[0m[0m policy            = (known after apply)
+      [32m+[0m[0m tags              = (known after apply)
+    }
+
+[1m  # module.transaction-processor.data.aws_secretsmanager_secret_version.sftp_credentials[0m will be read during apply
+  # (config refers to values not yet known)
+[0m [36m<=[0m[0m data "aws_secretsmanager_secret_version" "sftp_credentials" {
+      [32m+[0m[0m arn            = (known after apply)
+      [32m+[0m[0m created_date   = (known after apply)
+      [32m+[0m[0m id             = (known after apply)
+      [32m+[0m[0m secret_binary  = (sensitive value)
+      [32m+[0m[0m secret_id      = (known after apply)
+      [32m+[0m[0m secret_string  = (sensitive value)
+      [32m+[0m[0m version_id     = (known after apply)
+      [32m+[0m[0m version_stages = (known after apply)
+    }
+
+[1m  # module.transaction-processor.aws_instance.sftp_server[0m must be [1m[31mreplaced[0m
+[0m[31m-[0m/[32m+[0m[0m resource "aws_instance" "sftp_server" {
+      [33m~[0m[0m ami                                  = "ami-0441960019378ba16" -> (known after apply) [31m# forces replacement[0m[0m
+      [33m~[0m[0m arn                                  = "arn:aws:ec2:ap-southeast-1:677761253473:instance/i-08440b753a60949e2" -> (known after apply)
+      [33m~[0m[0m availability_zone                    = "ap-southeast-1a" -> (known after apply)
+      [33m~[0m[0m cpu_core_count                       = 1 -> (known after apply)
+      [33m~[0m[0m cpu_threads_per_core                 = 2 -> (known after apply)
+      [33m~[0m[0m disable_api_stop                     = false -> (known after apply)
+      [33m~[0m[0m disable_api_termination              = false -> (known after apply)
+      [33m~[0m[0m ebs_optimized                        = false -> (known after apply)
+      [32m+[0m[0m enable_primary_ipv6                  = (known after apply)
+      [31m-[0m[0m hibernation                          = false [90m-> null[0m[0m
+      [32m+[0m[0m host_id                              = (known after apply)
+      [32m+[0m[0m host_resource_group_arn              = (known after apply)
+      [33m~[0m[0m id                                   = "i-08440b753a60949e2" -> (known after apply)
+      [33m~[0m[0m instance_initiated_shutdown_behavior = "stop" -> (known after apply)
+      [32m+[0m[0m instance_lifecycle                   = (known after apply)
+      [33m~[0m[0m instance_state                       = "running" -> (known after apply)
+      [33m~[0m[0m ipv6_address_count                   = 0 -> (known after apply)
+      [33m~[0m[0m ipv6_addresses                       = [] -> (known after apply)
+      [33m~[0m[0m monitoring                           = false -> (known after apply)
+      [32m+[0m[0m outpost_arn                          = (known after apply)
+      [32m+[0m[0m password_data                        = (known after apply)
+      [32m+[0m[0m placement_group                      = (known after apply)
+      [33m~[0m[0m placement_partition_number           = 0 -> (known after apply)
+      [33m~[0m[0m primary_network_interface_id         = "eni-094bfac6130067565" -> (known after apply)
+      [33m~[0m[0m private_dns                          = "ip-10-0-0-139.ap-southeast-1.compute.internal" -> (known after apply)
+      [33m~[0m[0m private_ip                           = "10.0.0.139" -> (known after apply)
+      [33m~[0m[0m public_dns                           = "ec2-52-77-216-163.ap-southeast-1.compute.amazonaws.com" -> (known after apply)
+      [33m~[0m[0m public_ip                            = "52.77.216.163" -> (known after apply)
+      [33m~[0m[0m secondary_private_ips                = [] -> (known after apply)
+      [33m~[0m[0m security_groups                      = [] -> (known after apply)
+      [32m+[0m[0m spot_instance_request_id             = (known after apply)
+        tags                                 = {
+            "Environment" = "dev"
+            "ManagedBy"   = "terraform"
+            "Name"        = "banking-buddy-dev-sftp-server"
+            "Owner"       = "cs301-g2t1"
+            "Project"     = "banking-buddy"
+        }
+      [33m~[0m[0m tenancy                              = "default" -> (known after apply)
+      [33m~[0m[0m user_data                            = "14ec7186146162c9b89f0a5bcfbdfb41d771a486" -> (known after apply)
+      [32m+[0m[0m user_data_base64                     = (known after apply)
+        [90m# (10 unchanged attributes hidden)[0m[0m
+
+      [33m~[0m[0m capacity_reservation_specification (known after apply)
+      [31m-[0m[0m capacity_reservation_specification {
+          [31m-[0m[0m capacity_reservation_preference = "open" [90m-> null[0m[0m
+        }
+
+      [33m~[0m[0m cpu_options (known after apply)
+      [31m-[0m[0m cpu_options {
+          [31m-[0m[0m core_count       = 1 [90m-> null[0m[0m
+          [31m-[0m[0m threads_per_core = 2 [90m-> null[0m[0m
+            [90m# (1 unchanged attribute hidden)[0m[0m
+        }
+
+      [31m-[0m[0m credit_specification {
+          [31m-[0m[0m cpu_credits = "unlimited" [90m-> null[0m[0m
+        }
+
+      [33m~[0m[0m ebs_block_device (known after apply)
+
+      [33m~[0m[0m enclave_options (known after apply)
+      [31m-[0m[0m enclave_options {
+          [31m-[0m[0m enabled = false [90m-> null[0m[0m
+        }
+
+      [33m~[0m[0m ephemeral_block_device (known after apply)
+
+      [33m~[0m[0m instance_market_options (known after apply)
+
+      [33m~[0m[0m maintenance_options (known after apply)
+      [31m-[0m[0m maintenance_options {
+          [31m-[0m[0m auto_recovery = "default" [90m-> null[0m[0m
+        }
+
+      [33m~[0m[0m metadata_options (known after apply)
+      [31m-[0m[0m metadata_options {
+          [31m-[0m[0m http_endpoint               = "enabled" [90m-> null[0m[0m
+          [31m-[0m[0m http_protocol_ipv6          = "disabled" [90m-> null[0m[0m
+          [31m-[0m[0m http_put_response_hop_limit = 1 [90m-> null[0m[0m
+          [31m-[0m[0m http_tokens                 = "optional" [90m-> null[0m[0m
+          [31m-[0m[0m instance_metadata_tags      = "disabled" [90m-> null[0m[0m
+        }
+
+      [33m~[0m[0m network_interface (known after apply)
+
+      [33m~[0m[0m private_dns_name_options (known after apply)
+      [31m-[0m[0m private_dns_name_options {
+          [31m-[0m[0m enable_resource_name_dns_a_record    = false [90m-> null[0m[0m
+          [31m-[0m[0m enable_resource_name_dns_aaaa_record = false [90m-> null[0m[0m
+          [31m-[0m[0m hostname_type                        = "ip-name" [90m-> null[0m[0m
+        }
+
+      [33m~[0m[0m root_block_device (known after apply)
+      [31m-[0m[0m root_block_device {
+          [31m-[0m[0m delete_on_termination = true [90m-> null[0m[0m
+          [31m-[0m[0m device_name           = "/dev/xvda" [90m-> null[0m[0m
+          [31m-[0m[0m encrypted             = false [90m-> null[0m[0m
+          [31m-[0m[0m iops                  = 100 [90m-> null[0m[0m
+          [31m-[0m[0m tags                  = {
+              [31m-[0m[0m "Environment" = "dev"
+              [31m-[0m[0m "ManagedBy"   = "terraform"
+              [31m-[0m[0m "Owner"       = "cs301-g2t1"
+              [31m-[0m[0m "Project"     = "banking-buddy"
+            } [90m-> null[0m[0m
+          [31m-[0m[0m tags_all              = {
+              [31m-[0m[0m "Environment" = "dev"
+              [31m-[0m[0m "ManagedBy"   = "terraform"
+              [31m-[0m[0m "Owner"       = "cs301-g2t1"
+              [31m-[0m[0m "Project"     = "banking-buddy"
+            } [90m-> null[0m[0m
+          [31m-[0m[0m throughput            = 0 [90m-> null[0m[0m
+          [31m-[0m[0m volume_id             = "vol-085b8210c09053578" [90m-> null[0m[0m
+          [31m-[0m[0m volume_size           = 8 [90m-> null[0m[0m
+          [31m-[0m[0m volume_type           = "gp2" [90m-> null[0m[0m
+            [90m# (1 unchanged attribute hidden)[0m[0m
+        }
+    }
+
+[1m  # module.transaction-processor.aws_lambda_function.transaction_processor[0m will be updated in-place
+[0m  [33m~[0m[0m resource "aws_lambda_function" "transaction_processor" {
+        id                             = "banking-buddy-dev-transaction-processor"
+        tags                           = {
+            "Environment" = "dev"
+            "ManagedBy"   = "terraform"
+            "Owner"       = "cs301-g2t1"
+            "Project"     = "banking-buddy"
+        }
+        [90m# (29 unchanged attributes hidden)[0m[0m
+
+      [33m~[0m[0m environment {
+          [33m~[0m[0m variables = {
+              [31m-[0m[0m "AUDIT_DYNAMODB_TABLE_NAME" = "banking-buddy-dev-audit-logs"
+              [31m-[0m[0m "DB_HOST"                   = "banking-buddy-dev-rds-mysql.chfik5wqjcod.ap-southeast-1.rds.amazonaws.com"
+              [31m-[0m[0m "DB_PORT"                   = "3306"
+              [31m-[0m[0m "RDS_SECRET_NAME"           = "banking-buddy-dev-rds-credentials-2qq6h7"
+              [31m-[0m[0m "SFTP_HOST"                 = "52.77.216.163"
+              [31m-[0m[0m "SFTP_LOCAL_FILE"           = "/tmp/transactions.csv"
+              [31m-[0m[0m "SFTP_PORT"                 = "22"
+              [31m-[0m[0m "SFTP_REMOTE_FILE"          = "/data/transactions.csv"
+              [31m-[0m[0m "SFTP_SECRET_NAME"          = "banking-buddy-dev-sftp-credentials-2qq6h7"
+            } -> (known after apply)
+        }
+
+        [90m# (4 unchanged blocks hidden)[0m[0m
+    }
+
+[1m  # module.transaction-processor.null_resource.lambda_package_builder[0m must be [1m[31mreplaced[0m
+[0m[31m-[0m/[32m+[0m[0m resource "null_resource" "lambda_package_builder" {
+      [33m~[0m[0m id       = "518090041385305788" -> (known after apply)
+      [33m~[0m[0m triggers = { [31m# forces replacement[0m[0m
+          [33m~[0m[0m "config"       = "977cdd0f88d6d77e6c4b7c64f28a9f6d" [33m->[0m[0m "02fa6d614350f59ec55917891b2a5de2"
+          [33m~[0m[0m "database"     = "e3d5305d995d70ee5fbcb7b5ecd2441a" [33m->[0m[0m "63c16403fc3a89c5b91ec5e7e7142db1"
+          [33m~[0m[0m "lambda"       = "4ec33e95cbc9480a96f2c48278c6be79" [33m->[0m[0m "931f7796ddb73d4f9e7db87d7fdd3a88"
+          [33m~[0m[0m "requirements" = "3f6b0c8a62b0471978c9ede740683d2f" [33m->[0m[0m "a8b1a07c845773b1096965c5981ef03b"
+          [33m~[0m[0m "sftp"         = "07ae96282bc1e55d7a55e45d9a3ab482" [33m->[0m[0m "a4eef0d1f5e07ec21084b66adf75ffde"
+          [33m~[0m[0m "validator"    = "765460163fbf614570608642fc418d2a" [33m->[0m[0m "4abfa09fb69df72f3388b50c52efad70"
+        }
+    }
+
+[1mPlan:[0m 27 to add, 3 to change, 3 to destroy.
+[0m
+Changes to Outputs:
+  [32m+[0m[0m audit_api_gateway_endpoint           = (known after apply)
+  [32m+[0m[0m audit_sqs_publish_policy_arn         = (known after apply)
+  [32m+[0m[0m audit_sqs_queue_url                  = (known after apply)
+  [33m~[0m[0m transaction_processor_sftp_public_ip = "52.77.216.163" -> (known after apply)
+[90m
+─────────────────────────────────────────────────────────────────────────────[0m
+
+Saved the plan to: tfplan
+
+To perform exactly these actions, run the following command to apply:
+    terraform apply "tfplan"

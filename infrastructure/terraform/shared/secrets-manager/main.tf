@@ -1,7 +1,7 @@
 resource "random_string" "secret_suffix" {
-  length = 6
+  length  = 6
   special = false
-  upper = false
+  upper   = false
 }
 
 # RDS Credentials Secret

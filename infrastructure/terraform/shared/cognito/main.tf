@@ -12,17 +12,17 @@ resource "aws_cognito_user_pool" "main" {
   }
 
   schema {
-    name = "given_name"
+    name                = "given_name"
     attribute_data_type = "String"
-    required = true
-    mutable = true
+    required            = true
+    mutable             = true
   }
 
   schema {
-    name = "family_name"
+    name                = "family_name"
     attribute_data_type = "String"
-    required = true
-    mutable = true
+    required            = true
+    mutable             = true
   }
 
   # Custom attribute for role (admin/agent)
@@ -134,7 +134,7 @@ resource "aws_cognito_user_pool_client" "main" {
   # OAuth scopes for ALB integration
   allowed_oauth_flows                  = ["code"]
   allowed_oauth_flows_user_pool_client = true
-  allowed_oauth_scopes                 = [
+  allowed_oauth_scopes = [
     "openid",
     "email",
     "profile",
@@ -152,7 +152,7 @@ resource "aws_cognito_user_pool_client" "main" {
 
 resource "aws_cognito_user_pool_ui_customization" "main" {
   user_pool_id = aws_cognito_user_pool.main.id
-  client_id = aws_cognito_user_pool_client.main.id
+  client_id    = aws_cognito_user_pool_client.main.id
 
   css = file("${path.module}/hosted-ui.css")
 
