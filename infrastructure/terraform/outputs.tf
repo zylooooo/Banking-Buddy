@@ -72,6 +72,21 @@ output "audit_dynamodb_write_policy_arn" {
   value       = module.audit_logging.audit_dynamodb_write_policy_arn
 }
 
+output "audit_sqs_queue_url" {
+  description = "URL of the audit logs SQS queue"
+  value       = module.audit_logging.sqs_queue_url
+}
+
+output "audit_sqs_publish_policy_arn" {
+  description = "ARN of the IAM policy for publishing to audit SQS queue"
+  value       = module.audit_logging.sqs_publish_policy_arn
+}
+
+output "audit_api_gateway_endpoint" {
+  description = "API Gateway endpoint URL for querying audit logs"
+  value       = module.audit_logging.api_gateway_endpoint
+}
+
 # Cognito Outputs
 output "cognito_hosted_ui_url" {
   description = "Cognito Hosted UI URL"

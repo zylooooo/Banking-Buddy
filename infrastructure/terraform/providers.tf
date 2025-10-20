@@ -17,8 +17,8 @@ provider "aws" {
   region = var.aws_region
 
   # Retry configuration for handling transient API errors
-  retry_mode      = "adaptive"
-  max_retries     = 5
+  retry_mode  = "adaptive"
+  max_retries = 5
 
   default_tags {
     tags = {
@@ -29,3 +29,6 @@ provider "aws" {
     }
   }
 }
+
+# Data source for current AWS region
+data "aws_region" "current" {}

@@ -25,11 +25,11 @@ module "security_groups" {
 module "iam" {
   source = "./shared/iam"
 
-  common_tags           = local.common_tags
-  name_prefix           = local.name_prefix
-  s3_bucket_name        = module.s3.bucket_name
-  rds_secret_arn        = module.secrets-manager.rds_secret_arn
-  sftp_secret_arn       = module.secrets-manager.sftp_secret_arn
+  common_tags              = local.common_tags
+  name_prefix              = local.name_prefix
+  s3_bucket_name           = module.s3.bucket_name
+  rds_secret_arn           = module.secrets-manager.rds_secret_arn
+  sftp_secret_arn          = module.secrets-manager.sftp_secret_arn
   crm_db_secret_arn        = module.secrets-manager.crm_db_secret_arn
   audit_dynamodb_table_arn = module.audit_logging.dynamodb_table_arn
 
@@ -88,10 +88,18 @@ module "audit_logging" {
   private_subnet_ids = module.vpc.private_subnet_ids
   common_tags        = local.common_tags
   name_prefix        = local.name_prefix
-  
+
   dynamodb_read_capacity  = var.audit_dynamodb_read_capacity
   dynamodb_write_capacity = var.audit_dynamodb_write_capacity
   log_retention_days      = var.audit_log_retention_days
+
+  # API Gateway Cognito authorization
+  cognito_user_pool_id        = module.cognito.user_pool_id
+  cognito_user_pool_client_id = module.cognito.user_pool_client_id
+  aws_region                  = data.aws_region.current.name
+  allowed_origins             = var.audit_api_allowed_origins
+
+  depends_on = [module.cognito]
 }
 
 # Call the transaction processor module
@@ -117,7 +125,7 @@ module "transaction-processor" {
   rds_secret_name            = module.secrets-manager.rds_secret_name
   sftp_secret_name           = module.secrets-manager.sftp_secret_name
   ec2_key_pair_name          = var.ec2_key_pair_name
-  audit_dynamodb_table_name = module.audit_logging.dynamodb_table_name
+  audit_dynamodb_table_name  = module.audit_logging.dynamodb_table_name
 
   depends_on = [
     module.secrets-manager,
@@ -142,7 +150,7 @@ module "cognito" {
   ses_sender_email = module.ses.sender_email
   cognito_sns_role_arn = module.iam.cognito_sns_role_arn
   callback_urls    = ["http://localhost:3000/callback"] # Will be updated after ALB is created
-  logout_urls      = ["http://localhost:3000"] # Will be updated after ALB is created
+  logout_urls      = ["http://localhost:3000"]          # Will be updated after ALB is created
   common_tags      = local.common_tags
   environment      = var.environment
 
@@ -153,15 +161,15 @@ module "cognito" {
 module "user-service" {
   source = "./services/user-service"
 
-  name_prefix                 = local.name_prefix
-  vpc_id                      = module.vpc.vpc_id
-  public_subnet_ids           = module.vpc.public_subnet_ids
-  alb_security_group_id       = module.security_groups.alb_id
-  rds_endpoint                = module.rds.rds_endpoint
-  rds_secret_name             = module.secrets-manager.rds_secret_name
-  crm_db_username             = var.crm_db_username
-  crm_db_password             = var.crm_db_password
-  common_tags                 = local.common_tags
+  name_prefix           = local.name_prefix
+  vpc_id                = module.vpc.vpc_id
+  public_subnet_ids     = module.vpc.public_subnet_ids
+  alb_security_group_id = module.security_groups.alb_id
+  rds_endpoint          = module.rds.rds_endpoint
+  rds_secret_name       = module.secrets-manager.rds_secret_name
+  crm_db_username       = var.crm_db_username
+  crm_db_password       = var.crm_db_password
+  common_tags           = local.common_tags
 
   depends_on = [module.cognito, module.security_groups]
 }

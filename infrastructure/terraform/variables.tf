@@ -143,3 +143,9 @@ variable "audit_log_retention_days" {
   type        = number
   default     = 2555 # ~7 years for compliance
 }
+
+variable "audit_api_allowed_origins" {
+  description = "Allowed CORS origins for audit API Gateway"
+  type        = list(string)
+  default     = ["*"]
+}
