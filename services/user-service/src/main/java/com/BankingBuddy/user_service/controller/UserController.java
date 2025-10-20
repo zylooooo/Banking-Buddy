@@ -99,16 +99,16 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(null, "Password reset email sent"));
     }
 
-    @PostMapping("/{userId}/verify-email")
-    public ResponseEntity<ApiResponse<Void>> verifyUserEmail(
+    @PatchMapping("/{userId}/MFA")
+    public ResponseEntity<ApiResponse<Void>> setUpMFAForUser(
         @PathVariable String userId,
         HttpServletRequest httpRequest
     ) {
         UserContext currentUser = (UserContext) httpRequest.getAttribute("userContext");
 
         try {
-            userService.verifyUserEmail(userId, currentUser);
-            return ResponseEntity.ok(ApiResponse.success(null, "Email verified successfully"));
+            userService.setUpMFAForUser(userId, currentUser);
+            return ResponseEntity.ok(ApiResponse.success(null, "User onboarded successfully"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error(e.getMessage()));

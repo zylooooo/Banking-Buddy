@@ -33,10 +33,9 @@ module "iam" {
   crm_db_secret_arn        = module.secrets-manager.crm_db_secret_arn
   audit_dynamodb_table_arn = module.audit_logging.dynamodb_table_arn
 
-  cognito_user_pool_arn = module.cognito.user_pool_arn
   ses_email_arn         = module.ses.sender_email_arn
 
-  depends_on = [module.secrets-manager, module.cognito, module.ses, module.audit_logging]
+  depends_on = [module.secrets-manager, module.ses, module.audit_logging]
 }
 
 # Call the RDS module
@@ -141,12 +140,13 @@ module "cognito" {
   name_prefix      = local.name_prefix
   ses_email_arn    = module.ses.sender_email_arn
   ses_sender_email = module.ses.sender_email
+  cognito_sns_role_arn = module.iam.cognito_sns_role_arn
   callback_urls    = ["http://localhost:3000/callback"] # Will be updated after ALB is created
   logout_urls      = ["http://localhost:3000"] # Will be updated after ALB is created
   common_tags      = local.common_tags
   environment      = var.environment
 
-  depends_on = [module.ses]
+  depends_on = [module.ses, module.iam]
 }
 
 # Call the user-service module

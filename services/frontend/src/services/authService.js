@@ -2,7 +2,10 @@ import {
     signInWithRedirect,
     signOut,
     fetchAuthSession,
-    fetchUserAttributes
+    fetchUserAttributes,
+    updateUserAttributes,
+    confirmUserAttribute,
+    updateMFAPreference
 } from 'aws-amplify/auth';
 
 export const handleLogin = async () => {
@@ -88,3 +91,5 @@ export const handleForgotPassword = async () => {
         throw error;
     }
 };
+
+export { updateUserAttributes, confirmUserAttribute, updateMFAPreference };

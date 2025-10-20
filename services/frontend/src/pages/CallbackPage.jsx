@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { handleCallback } from '../services/authService';
+import { handleCallback, getUserFromToken } from '../services/authService';
+import { userApi } from '../services/apiService';
 
 export default function CallbackPage() {
     const [error, setError] = useState(null);
@@ -9,14 +10,27 @@ export default function CallbackPage() {
     useEffect(() => {
         const processCallback = async () => {
             try {
+                // Complete OAuth callback
                 await handleCallback();
-                navigate('/dashboard');
+                
+                // Get authenticated user info from token
+                const user = await getUserFromToken();
+                
+                const res = await userApi.getUserById(user.sub);
+
+                if (res.data.data.status === 'PENDING') {
+                    // First-time user -redirect to MFA set up
+                    navigate('/setup-mfa');
+                } else {
+                    // Returning user - redirect to dashboard
+                    navigate('/dashboard');
+                }
             } catch (err) {
                 setError('Authentication failed');
                 console.error(err);
             }
         };
-
+    
         processCallback();
     }, [navigate]);
 

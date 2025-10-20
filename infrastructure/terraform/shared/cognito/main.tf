@@ -4,7 +4,7 @@ resource "aws_cognito_user_pool" "main" {
 
   # Use email as username
   username_attributes      = ["email"]
-  auto_verified_attributes = ["email"]
+  auto_verified_attributes = ["email", "phone_number"]
 
   # Only admins can create users
   admin_create_user_config {
@@ -12,17 +12,24 @@ resource "aws_cognito_user_pool" "main" {
   }
 
   schema {
-    name = "given_name"
+    name                = "given_name"
     attribute_data_type = "String"
-    required = true
-    mutable = true
+    required            = true
+    mutable             = true
   }
 
   schema {
-    name = "family_name"
+    name                = "family_name"
     attribute_data_type = "String"
-    required = true
-    mutable = true
+    required            = true
+    mutable             = true
+  }
+
+  schema {
+    name                = "phone_number"
+    attribute_data_type = "String"
+    required            = false
+    mutable             = true
   }
 
   # Custom attribute for role (admin/agent)
@@ -51,6 +58,12 @@ resource "aws_cognito_user_pool" "main" {
   # MFA configuration (optional per user)
   mfa_configuration = "OPTIONAL"
 
+  # SMS MFA configuration 
+  sms_configuration {
+    external_id    = "banking-buddy-sms-external-id"
+    sns_caller_arn = var.cognito_sns_role_arn
+  }
+
   software_token_mfa_configuration {
     enabled = true
   }
@@ -60,6 +73,10 @@ resource "aws_cognito_user_pool" "main" {
     recovery_mechanism {
       name     = "verified_email"
       priority = 1
+    }
+    recovery_mechanism {
+      name     = "verified_phone_number"
+      priority = 2
     }
   }
 
@@ -73,7 +90,7 @@ resource "aws_cognito_user_pool" "main" {
 
   # User attributes that can be modified
   user_attribute_update_settings {
-    attributes_require_verification_before_update = ["email"]
+    attributes_require_verification_before_update = ["email", "phone_number"]
   }
 
   # Deletion protection
@@ -121,20 +138,23 @@ resource "aws_cognito_user_pool_client" "main" {
     "email_verified",
     "given_name",
     "family_name",
-    "custom:role"
+    "custom:role",
+    "phone_number",
+    "phone_number_verified"
   ]
 
   write_attributes = [
     "email",
     "given_name",
     "family_name",
+    "phone_number"
     # Note: custom:role is NOT in write_attributes
   ]
 
   # OAuth scopes for ALB integration
   allowed_oauth_flows                  = ["code"]
   allowed_oauth_flows_user_pool_client = true
-  allowed_oauth_scopes                 = [
+  allowed_oauth_scopes = [
     "openid",
     "email",
     "profile",
@@ -152,7 +172,7 @@ resource "aws_cognito_user_pool_client" "main" {
 
 resource "aws_cognito_user_pool_ui_customization" "main" {
   user_pool_id = aws_cognito_user_pool.main.id
-  client_id = aws_cognito_user_pool_client.main.id
+  client_id    = aws_cognito_user_pool_client.main.id
 
   css = file("${path.module}/hosted-ui.css")
 

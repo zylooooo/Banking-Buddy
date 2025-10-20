@@ -24,6 +24,8 @@ export const userApi = {
     updateUser: (userId, userData) => apiClient.patch(`/users/${userId}`, userData),
     disableUser: (userId) => apiClient.patch(`/users/${userId}/disable`),
     enableUser: (userId) => apiClient.patch(`/users/${userId}/enable`),
+    setUpMFAForUser: (userId) => 
+        apiClient.patch(`/users/${userId}/MFA`),
 };
 
 export default apiClient;

@@ -1,3 +1,6 @@
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}  
+
 # Lambda Execution Role
 resource "aws_iam_role" "lambda_execution" {
   name = "${var.name_prefix}-lambda-execution-role"
@@ -257,7 +260,7 @@ resource "aws_iam_role_policy" "elastic_beanstalk_cognito" {
           "cognito-idp:ForgotPassword",
           "cognito-idp:ConfirmForgotPassword"
         ]
-        Resource = var.cognito_user_pool_arn
+        Resource = "arn:aws:cognito-idp:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:userpool/*"
       }
     ]
   })
@@ -280,6 +283,45 @@ resource "aws_iam_role_policy" "elastic_beanstalk_logs" {
           "logs:DescribeLogStreams"
         ]
         Resource = "arn:aws:logs:*:*:*"
+      }
+    ]
+  })
+}
+
+# IAM Role for Cognito to send SMS via SNS
+resource "aws_iam_role" "cognito_sns" {
+  name = "${var.name_prefix}-cognito-sns-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "cognito-idp.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = var.common_tags
+}
+
+# Policy for Cognito to sens SMS via SNS
+resource "aws_iam_role_policy" "cognito_sns" {
+  name = "${var.name_prefix}-cognito-sns-policy"
+  role = aws_iam_role.cognito_sns.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sns:Publish"
+        ]
+        Resource = "*"
       }
     ]
   })

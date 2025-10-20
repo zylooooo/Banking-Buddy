@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import CallbackPage from './pages/CallbackPage';
+import MFASetupPage from './pages/MFASetupPage';
 import { isAuthenticated } from './services/authService';
 
 function ProtectedRoute({ children }) {
@@ -56,6 +57,7 @@ function App() {
       <Routes>
         <Route path="/" element={<RootRedirect />} />
         <Route path="/callback" element={<CallbackPage />} />
+        <Route path="/setup-mfa" element={<MFASetupPage />} />
         <Route
           path="/dashboard"
           element={

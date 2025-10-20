@@ -35,3 +35,8 @@ variable "common_tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "cognito_sns_role_arn" {
+  description = "ARN of the IAM role for Cognito to send SMS via SNS"
+  type        = string
+}

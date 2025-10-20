@@ -233,30 +233,27 @@ public class UserService {
                 .toList();
     }
 
-    public void verifyUserEmail(String userId, UserContext currentUser) {
-        // Only allow users to verify their own email
+    public void setUpMFAForUser(String userId, UserContext currentUser) {
+        // Only allow users themselves to finish onboarding
         if (!currentUser.getUserId().equals(userId)) {
-            throw new ForbiddenException("Only users themselves can verify their own email");
+            throw new ForbiddenException("Only users themselves can set up MFA");
         }
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + userId));
         
-        if (user.getStatus().equals(UserStatus.ACTIVE)) {
-            log.info("User {} is already verified", user.getEmail());
-            return;
-        } else if (user.getStatus().equals(UserStatus.DISABLED)) {
-            throw new ForbiddenException("Deleted users cannot be verified");
+        if (user.getStatus().equals(UserStatus.DISABLED)) {
+            throw new ForbiddenException("Cannot set up MFA for deleted users");
         }
 
-        // Update use's status
+        // Update user's status
         user.setStatus(UserStatus.ACTIVE);
         user.setUpdatedBy(currentUser.getUserId());
         userRepository.save(user);
 
-        log.info("Verified user: {} by {}", user.getEmail(), currentUser.getEmail());
-        return;
+        log.info("Complete MFA set up for user: {}", user.getEmail());
     }
+
 
     private UserDTO mapToDTO(User user) {
         return UserDTO.builder()

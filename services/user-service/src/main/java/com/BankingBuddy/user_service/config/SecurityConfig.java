@@ -81,7 +81,7 @@ public class SecurityConfig {
         configuration.setAllowedOriginPatterns(List.of("*"));
         
         // Allow only HTTP methods used by the API
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         
         // Allow headers expected by the API
         configuration.setAllowedHeaders(List.of(

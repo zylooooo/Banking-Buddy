@@ -28,3 +28,8 @@ output "cognito_ses_role_name" {
   description = "Name of the Cognito SES role"
   value       = aws_iam_role.cognito_ses.name
 }
+
+output "cognito_sns_role_arn" {
+  description = "ARN of the Cognito SNS role"
+  value       = aws_iam_role.cognito_sns.arn
+}
