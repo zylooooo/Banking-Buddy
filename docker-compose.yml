@@ -41,6 +41,29 @@ services:
       retries: 10
       start_period: 30s
   
+  # Client service
+  client-service:
+    build:
+      context: ./services
+      dockerfile: client-service/Dockerfile
+    container_name: banking-buddy-client-service
+    restart: unless-stopped
+    ports:
+      - '8081:8081'
+    env_file:
+      - ./services/client-service/.env.client-service
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    networks:
+      - banking-buddy-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 3s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+  
   # Frontend
   frontend:
     build:
@@ -56,6 +79,8 @@ services:
       mysql-db:
         condition: service_healthy
       user-service:
+        condition: service_healthy
+      client-service:
         condition: service_healthy
     networks:
       - banking-buddy-network
