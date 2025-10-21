@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Comparator;
 
 @Service
 @Slf4j
@@ -28,10 +29,28 @@ public class UserService {
         this.cognitoService = cognitoService;
     }
 
+    private UserDTO mapToDTO(User user) {
+        return UserDTO.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .role(user.getRole())
+                .status(user.getStatus().name())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build();
+    }
+
     public UserDTO createUser(CreateUserRequest request, UserContext currentUser) {
         // Authorization check
         if (currentUser.getRole() != UserRole.ADMIN && currentUser.getRole() != UserRole.ROOT_ADMIN) {
-            throw new ForbiddenException("Only admins can create new agents");
+            throw new ForbiddenException("Only admins can create new users");
+        }
+
+        // Admins can only create agents
+        if (currentUser.getRole() == UserRole.ADMIN && request.getRole() != UserRole.AGENT) {
+            throw new ForbiddenException("Admins can only create agents");
         }
 
         // Check if user already exists
@@ -97,7 +116,8 @@ public class UserService {
         } else if (currentUser.getRole() == UserRole.ROOT_ADMIN) {
             // Root admins can update all user profiles and roles except root admin
             if (user.getRole() == UserRole.ROOT_ADMIN) {
-                throw new ForbiddenException("Root admins can only update all user profiles and roles except root admin");
+                throw new ForbiddenException(
+                        "Root admins can only update all user profiles and roles except root admin");
             }
         }
 
@@ -219,16 +239,19 @@ public class UserService {
         // Get all users from the database
         List<User> allUsers = userRepository.findAll();
 
-        // If the user is an admin, return all agents
+        // If the user is an admin, return all agents that were created by the admin
         if (currentUser.getRole() == UserRole.ADMIN) {
             return allUsers.stream()
                     .filter(user -> user.getRole() == UserRole.AGENT)
+                    .filter(user -> user.getCreatedBy().equals(currentUser.getUserId()))
+                    .sorted(Comparator.comparing(User::getCreatedAt).reversed())
                     .map(this::mapToDTO)
                     .toList();
         }
 
         // Return all admins and agents if user is root admin
         return allUsers.stream()
+                .sorted(Comparator.comparing(User::getCreatedAt).reversed())
                 .map(this::mapToDTO)
                 .toList();
     }
@@ -241,7 +264,7 @@ public class UserService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + userId));
-        
+
         if (user.getStatus().equals(UserStatus.DISABLED)) {
             throw new ForbiddenException("Cannot set up MFA for deleted users");
         }
@@ -254,17 +277,4 @@ public class UserService {
         log.info("Complete MFA set up for user: {}", user.getEmail());
     }
 
-
-    private UserDTO mapToDTO(User user) {
-        return UserDTO.builder()
-                .id(user.getId())
-                .email(user.getEmail())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
-                .role(user.getRole())
-                .status(user.getStatus().name())
-                .createdAt(user.getCreatedAt())
-                .updatedAt(user.getUpdatedAt())
-                .build();
-    }
 }
