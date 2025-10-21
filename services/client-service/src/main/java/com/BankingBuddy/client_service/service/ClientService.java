@@ -30,6 +30,7 @@ public class ClientService {
 
     private final ClientRepository clientRepository;
     private final AuditPublisher auditPublisher;
+    private final EmailService emailService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
@@ -49,10 +50,7 @@ public class ClientService {
             throw new ForbiddenException("Only AGENT or ADMIN roles can create client profiles");
         }
 
-        // 2. Validate age consistency
-        validateAgeConsistency(request.getDateOfBirth(), request.getAge());
-
-        // 3. Check email uniqueness
+        // 2. Check email uniqueness
         if (clientRepository.existsByEmailAndDeletedFalse(request.getEmail())) {
             log.error("Email already exists: {}", request.getEmail());
             throw new ClientAlreadyExistsException("A client with this email already exists");
@@ -73,7 +71,6 @@ public class ClientService {
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .dateOfBirth(request.getDateOfBirth())
-                .age(request.getAge())
                 .gender(request.getGender())
                 .email(request.getEmail())
                 .phoneNumber(request.getPhoneNumber())
@@ -82,10 +79,7 @@ public class ClientService {
                 .state(request.getState())
                 .postalCode(request.getPostalCode())
                 .country(request.getCountry())
-                .accountType(request.getAccountType())
-                .accountStatus(request.getAccountStatus())
                 .agentId(userContext.getUserId())
-                .notes(request.getNotes())
                 .deleted(false)
                 .build();
 
@@ -100,20 +94,6 @@ public class ClientService {
     }
 
     /**
-     * Validate that age matches date of birth
-     */
-    private void validateAgeConsistency(LocalDate dateOfBirth, Integer age) {
-        int calculatedAge = Period.between(dateOfBirth, LocalDate.now()).getYears();
-        
-        if (Math.abs(calculatedAge - age) > 1) {
-            log.error("Age inconsistency: provided age {}, calculated age {}", age, calculatedAge);
-            throw new InvalidOperationException(
-                    String.format("Age provided (%d) does not match date of birth (calculated: %d)", age, calculatedAge)
-            );
-        }
-    }
-
-    /**
      * Publish audit log for client creation
      */
     private void publishAuditLog(Client client, UserContext userContext) {
@@ -125,8 +105,6 @@ public class ClientService {
             clientData.put("email", client.getEmail());
             clientData.put("phoneNumber", client.getPhoneNumber());
             clientData.put("gender", client.getGender().getValue());
-            clientData.put("accountType", client.getAccountType().getValue());
-            clientData.put("accountStatus", client.getAccountStatus().getValue());
             clientData.put("agentId", client.getAgentId());
 
             // Convert client data to JSON string
@@ -148,6 +126,97 @@ public class ClientService {
     }
 
     /**
+     * Get all clients for the authenticated agent
+     * Returns ClientSummaryDTO list for "Manage Profiles" page
+     * No audit logs per specification (bulk reads not logged)
+     * 
+     * @param userContext the authenticated user context
+     * @return list of client summaries
+     */
+    public java.util.List<com.BankingBuddy.client_service.model.dto.ClientSummaryDTO> getAllClientsForAgent(UserContext userContext) {
+        log.info("Retrieving all clients for agent: {}", userContext.getUserId());
+        
+        java.util.List<Client> clients = clientRepository.findByAgentIdAndDeletedFalse(userContext.getUserId());
+        
+        return clients.stream()
+                .map(client -> com.BankingBuddy.client_service.model.dto.ClientSummaryDTO.builder()
+                        .clientId(client.getClientId())
+                        .fullName(client.getFirstName() + " " + client.getLastName())
+                        .verified(client.getVerified())
+                        .email(client.getEmail())
+                        .phoneNumber(client.getPhoneNumber())
+                        .build())
+                .collect(java.util.stream.Collectors.toList());
+    }
+    
+    /**
+     * Verify client identity
+     * Marks client as verified and sends verification email via SES
+     * Email sending is async and non-blocking - email failure does not affect response
+     * 
+     * @param clientId the client ID to verify
+     * @param userContext the authenticated user context
+     */
+    @Transactional
+    public void verifyClient(String clientId, UserContext userContext) {
+        log.info("Verifying client {}. Agent: {}", clientId, userContext.getUserId());
+        
+        // 1. Fetch client from database
+        Client client = clientRepository.findByClientIdAndDeletedFalse(clientId)
+                .orElseThrow(() -> {
+                    log.error("Client not found or deleted: {}", clientId);
+                    return new com.BankingBuddy.client_service.exception.ClientNotFoundException(
+                            "Client not found or has been deleted");
+                });
+        
+        // 2. Check authorization - agent must own the client
+        if (!client.getAgentId().equals(userContext.getUserId())) {
+            log.error("Agent {} attempted to verify client {} owned by agent {}",
+                     userContext.getUserId(), clientId, client.getAgentId());
+            throw new com.BankingBuddy.client_service.exception.ClientNotFoundException(
+                    "Client not found or has been deleted");
+        }
+        
+        // 3. Check if already verified (idempotent)
+        if (Boolean.TRUE.equals(client.getVerified())) {
+            log.info("Client {} is already verified. Returning success (idempotent)", clientId);
+            return; // Idempotent - return success without further action
+        }
+        
+        // 4. Update verified = true and save to database
+        client.setVerified(true);
+        clientRepository.save(client);
+        log.info("Client {} marked as verified in database", clientId);
+        
+        // 5. Publish audit log to SQS (non-blocking)
+        try {
+            auditPublisher.logUpdate(
+                    clientId,
+                    userContext.getUserId(),
+                    "Verification Status",
+                    "Pending",
+                    "Verified"
+            );
+            log.info("Published verification audit log to SQS for client {}", clientId);
+        } catch (Exception e) {
+            log.error("Failed to publish verification audit log for client {}: {}", 
+                     clientId, e.getMessage(), e);
+            // Continue - audit failure should not stop verification
+        }
+        
+        // 6. Send verification email via SES (async, non-blocking)
+        // Email failure does not affect the response (handled in EmailService)
+        try {
+            emailService.sendVerificationEmail(client);
+            log.info("Triggered async verification email send for client {}", clientId);
+        } catch (Exception e) {
+            log.error("Failed to trigger verification email for client {}: {}", 
+                     clientId, e.getMessage(), e);
+            // Continue - email failure should not stop verification
+        }
+    }
+
+    /**
      * Convert Client entity to ClientDTO
      */
     private ClientDTO convertToDTO(Client client) {
@@ -156,7 +225,6 @@ public class ClientService {
                 .firstName(client.getFirstName())
                 .lastName(client.getLastName())
                 .dateOfBirth(client.getDateOfBirth())
-                .age(client.getAge())
                 .gender(client.getGender())
                 .email(client.getEmail())
                 .phoneNumber(client.getPhoneNumber())
@@ -165,10 +233,9 @@ public class ClientService {
                 .state(client.getState())
                 .postalCode(client.getPostalCode())
                 .country(client.getCountry())
-                .accountType(client.getAccountType())
-                .accountStatus(client.getAccountStatus())
                 .agentId(client.getAgentId())
-                .notes(client.getNotes())
+                .verified(client.getVerified())
+                .deleted(client.getDeleted())
                 .createdAt(client.getCreatedAt())
                 .updatedAt(client.getUpdatedAt())
                 .build();

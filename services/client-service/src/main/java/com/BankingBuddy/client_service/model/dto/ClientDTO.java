@@ -1,7 +1,5 @@
 package com.BankingBuddy.client_service.model.dto;
 
-import com.BankingBuddy.client_service.model.enums.AccountStatus;
-import com.BankingBuddy.client_service.model.enums.AccountType;
 import com.BankingBuddy.client_service.model.enums.Gender;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
@@ -25,7 +23,6 @@ public class ClientDTO {
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate dateOfBirth;
 
-    private Integer age;
     private Gender gender;
     private String email;
     private String phoneNumber;
@@ -34,10 +31,9 @@ public class ClientDTO {
     private String state;
     private String postalCode;
     private String country;
-    private AccountType accountType;
-    private AccountStatus accountStatus;
     private String agentId;
-    private String notes;
+    private Boolean verified;
+    private Boolean deleted;
 
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;

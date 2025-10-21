@@ -13,7 +13,7 @@ resource "aws_sqs_queue" "audit_logs_dlq" {
 # Main SQS Queue for audit logs
 resource "aws_sqs_queue" "audit_logs" {
   name                       = "${var.name_prefix}-audit-logs"
-  visibility_timeout_seconds = 30     # Lambda processing time window
+  visibility_timeout_seconds = 90     # Lambda processing time window (30s timeout + buffer for retries)
   message_retention_seconds  = 345600 # 4 days
   receive_wait_time_seconds  = 20     # Long polling for cost optimization
 

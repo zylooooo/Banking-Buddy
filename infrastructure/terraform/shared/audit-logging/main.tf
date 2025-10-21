@@ -1,7 +1,9 @@
 # Mission-Critical Audit Logging Infrastructure
-# This module creates only DynamoDB for direct synchronous logging
+# This module creates the DynamoDB table for async audit logging
+# Architecture: Services -> SQS Queue -> Lambda Writer -> DynamoDB
+# See sqs.tf for queue configuration and lambda-writer.tf for Lambda consumer
 
-# DynamoDB table for storing audit logs
+# DynamoDB table for storing audit logs (written by Lambda Writer)
 resource "aws_dynamodb_table" "audit_logs" {
   name           = "${var.name_prefix}-audit-logs"
   billing_mode   = "PROVISIONED"
@@ -59,10 +61,11 @@ resource "aws_dynamodb_table" "audit_logs" {
   tags = var.common_tags
 }
 
-# IAM policy for services to write directly to DynamoDB
+# IAM policy for Lambda Writer to write to DynamoDB
+# Note: Services should use sqs_publish_policy (see sqs.tf) to publish to SQS, not write directly to DynamoDB
 resource "aws_iam_policy" "audit_dynamodb_write_policy" {
   name        = "${var.name_prefix}-audit-dynamodb-write-policy"
-  description = "Policy for services to write audit logs directly to DynamoDB"
+  description = "Policy for Lambda Writer to write audit logs to DynamoDB (used by Lambda execution role)"
 
   policy = jsonencode({
     Version = "2012-10-17"
