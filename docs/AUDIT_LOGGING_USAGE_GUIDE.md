@@ -6,7 +6,7 @@ The Banking Buddy audit logging system provides asynchronous, scalable audit tra
 
 ## Architecture
 
-```
+```text
 Your Service → SQS Queue → Lambda (audit-writer) → DynamoDB
                                 ↓
                           Dead Letter Queue (DLQ)
@@ -15,6 +15,7 @@ Query Logs: API Gateway → Lambda (audit-reader) → DynamoDB
 ```
 
 **Key Points:**
+
 - ✅ **Fully Decoupled** - No direct dependencies between services and audit logging
 - ✅ **Fire and Forget** - Send message to SQS and continue processing
 - ✅ **Scalable** - Lambda auto-scales, DynamoDB handles high throughput
@@ -32,7 +33,8 @@ terraform output audit_sqs_queue_url
 ```
 
 **Queue URL Format:**
-```
+
+```HTTP
 https://sqs.{region}.amazonaws.com/{account-id}/dev-banking-buddy-audit-logs
 ```
 
@@ -349,13 +351,14 @@ module.exports = { logCreate, logUpdate, logDelete, logRead };
 
 | Field | Required For | Type | Description | Example |
 |-------|--------------|------|-------------|---------|
-| `after_value` | CREATE, UPDATE | String | New value(s) after operation | `"John Doe|john@example.com"` |
-| `before_value` | UPDATE, DELETE | String | Original value(s) before operation | `"Jane Doe|jane@example.com"` |
+| `after_value` | CREATE, UPDATE | String | New value(s) after operation | `"John Doe <john@example.com>"` |
+| `before_value` | UPDATE, DELETE | String | Original value(s) before operation | `"Jane Doe <jane@example.com>"` |
 | `attribute_name` | UPDATE | String | Name of the attribute being updated | `"email"`, `"address"` |
 
 ### Example Messages
 
 **CREATE Operation:**
+
 ```json
 {
   "log_id": "75EF3ACB-E531-4BFE-8762-8CC7F7336806",
@@ -370,6 +373,7 @@ module.exports = { logCreate, logUpdate, logDelete, logRead };
 ```
 
 **UPDATE Operation:**
+
 ```json
 {
   "log_id": "54A423E3-15EA-41CD-AA0C-44E7D4AD0315",
@@ -386,6 +390,7 @@ module.exports = { logCreate, logUpdate, logDelete, logRead };
 ```
 
 **DELETE Operation:**
+
 ```json
 {
   "log_id": "3B7C9A21-4D5E-6F8A-9B0C-1D2E3F4A5B6C",
@@ -400,6 +405,7 @@ module.exports = { logCreate, logUpdate, logDelete, logRead };
 ```
 
 **READ Operation:**
+
 ```json
 {
   "log_id": "9C8D7E6F-5A4B-3C2D-1E0F-A9B8C7D6E5F4",
@@ -419,12 +425,14 @@ module.exports = { logCreate, logUpdate, logDelete, logRead };
 Once API Gateway is deployed, query logs using HTTP requests:
 
 **Agent Query (Own Logs Only):**
+
 ```bash
 curl -X GET "https://{api-id}.execute-api.ap-southeast-1.amazonaws.com/logs?client_id=CLIENT_001&hours=24" \
   -H "Authorization: Bearer {agent-jwt-token}"
 ```
 
 **Admin Query (All Logs):**
+
 ```bash
 curl -X GET "https://{api-id}.execute-api.ap-southeast-1.amazonaws.com/logs?hours=24&operation=UPDATE&limit=50" \
   -H "Authorization: Bearer {admin-jwt-token}"
@@ -480,6 +488,7 @@ Your service needs SQS permissions to send messages:
 ```
 
 **Terraform:** The audit logging module outputs a pre-configured policy ARN:
+
 ```hcl
 data "terraform_remote_state" "audit" {
   # ... backend config ...
@@ -494,6 +503,7 @@ resource "aws_iam_role_policy_attachment" "service_audit_publish" {
 ## Best Practices
 
 ### 1. Fire and Forget
+
 Don't wait for SQS response. Send the message asynchronously and continue processing:
 
 ```python
@@ -511,11 +521,13 @@ if response['ResponseMetadata']['HTTPStatusCode'] != 200:
 ```
 
 ### 2. Use Consistent Identifiers
+
 - `client_id`: Use the database primary key or UUID
 - `agent_id`: Use the Cognito `sub` claim from JWT
 - `source_service`: Use a consistent service name across your organization
 
 ### 3. Structure Values for Readability
+
 Use pipe-delimited format for multi-field values:
 
 ```python
@@ -527,6 +539,7 @@ after_value = json.dumps({"name": user.name, "email": user.email})  # Hard to re
 ```
 
 ### 4. Set Appropriate TTL
+
 Default is 30 days. Adjust based on compliance requirements:
 
 ```python
@@ -535,6 +548,7 @@ ttl = int((datetime.utcnow() + timedelta(days=90)).timestamp())
 ```
 
 ### 5. Batch When Possible
+
 If logging multiple operations, send multiple messages in one call:
 
 ```python
@@ -550,6 +564,7 @@ sqs.send_message_batch(QueueUrl=queue_url, Entries=entries)
 ### Messages Not Appearing in DynamoDB
 
 1. **Check Lambda logs:**
+
    ```bash
    aws logs tail /aws/lambda/dev-banking-buddy-audit-writer --since 5m
    ```
@@ -560,6 +575,7 @@ sqs.send_message_batch(QueueUrl=queue_url, Entries=entries)
    - Invalid crud_operation value
 
 3. **Check Dead Letter Queue:**
+
    ```bash
    aws sqs receive-message --queue-url https://sqs.ap-southeast-1.amazonaws.com/{account-id}/dev-banking-buddy-audit-logs-dlq
    ```
@@ -569,6 +585,7 @@ sqs.send_message_batch(QueueUrl=queue_url, Entries=entries)
 1. **Agent queries:** Ensure `agent_id` in the log matches the JWT `sub` claim
 2. **Time window:** Increase `hours` parameter (default is 24)
 3. **Check DynamoDB directly:**
+
    ```bash
    aws dynamodb scan --table-name dev-banking-buddy-audit-logs --limit 5
    ```
@@ -576,6 +593,7 @@ sqs.send_message_batch(QueueUrl=queue_url, Entries=entries)
 ### Permission Errors
 
 Ensure your service's IAM role has:
+
 - `sqs:SendMessage` on the audit queue
 - Proper VPC configuration if Lambda/services are in VPC
 
@@ -600,6 +618,7 @@ Ensure your service's IAM role has:
 ## Cost Estimation
 
 **For 1 million audit logs per month:**
+
 - SQS: $0.40 (1M requests × $0.40/million)
 - Lambda: $0.20 (1M invocations × $0.20/million + compute)
 - DynamoDB: $1.25 (write capacity)
@@ -608,6 +627,7 @@ Ensure your service's IAM role has:
 ## Support
 
 For issues or questions:
+
 1. Check [AUDIT_LOGGING_TEST_RESULTS.md](./AUDIT_LOGGING_TEST_RESULTS.md) for validated behavior
 2. Review Lambda CloudWatch logs for error messages
 3. Contact the platform team
@@ -615,6 +635,7 @@ For issues or questions:
 ---
 
 **Quick Reference:**
+
 - Queue URL: Get from `terraform output audit_sqs_queue_url`
 - Required Fields: log_id, timestamp, client_id, agent_id, crud_operation, source_service, ttl
 - IAM Policy ARN: Get from `terraform output audit_sqs_publish_policy_arn`

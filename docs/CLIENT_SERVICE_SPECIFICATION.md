@@ -27,6 +27,7 @@
 The Client Service manages client profiles and their associated bank accounts for the Banking Buddy CRM system. It provides CRUD operations with role-based access control and asynchronous audit logging.
 
 ### Key Features
+
 - **Client Profile Management**: Agents can create, view, update, verify, and delete (soft) client profiles
 - **Account Management**: Agents create accounts for their clients; Admins can manage all accounts
 - **Role-Based Access**: Agents access only their clients; Admins access all accounts
@@ -35,6 +36,7 @@ The Client Service manages client profiles and their associated bank accounts fo
 - **Email Notifications**: SES email on client verification
 
 ### Technology Stack
+
 - **Framework**: Spring Boot 3.5.6
 - **Language**: Java 21
 - **Database**: MySQL on Amazon RDS (AWS managed MySQL database) - Database: `crm_clients`
@@ -49,7 +51,7 @@ The Client Service manages client profiles and their associated bank accounts fo
 
 ### High-Level Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Application Load Balancer                │
 │                    (JWT Validation + Injection)                 │
@@ -97,7 +99,7 @@ The Client Service manages client profiles and their associated bank accounts fo
 
 ### Service Layer Structure
 
-```
+```text
 services/client-service/
 ├── src/
 │   ├── main/
@@ -278,6 +280,7 @@ CREATE TABLE accounts (
 ```
 
 **Note on Balance Field:**
+
 - Added `balance DECIMAL(15, 2)` field to track account balance
 - Initially set to `initial_deposit` value on account creation
 - Used for validation during client/account deletion (must be 0)
@@ -288,11 +291,13 @@ CREATE TABLE accounts (
 ## API Endpoints
 
 ### Base URL
-```
+
+```HTTP
 http://localhost:8080/api
 ```
 
 ### Authentication
+
 All endpoints require JWT token in `x-amzn-oidc-data` header (injected by ALB).
 
 **Temporary (Development):** Pass JWT directly in header  
@@ -300,9 +305,10 @@ All endpoints require JWT token in `x-amzn-oidc-data` header (injected by ALB).
 
 ---
 
-## Client Endpoints
+## Client API Endpoints
 
 ### 1. Create Client Profile (Mook)
+
 **API Endpoint:** `POST /api/clients`
 
 **Access:** `AGENT` only
@@ -310,6 +316,7 @@ All endpoints require JWT token in `x-amzn-oidc-data` header (injected by ALB).
 **Description:** Agent creates a new client profile. Agent ID is auto-populated from JWT.
 
 **Request Body:**
+
 ```json
 {
   "firstName": "John",
@@ -327,6 +334,7 @@ All endpoints require JWT token in `x-amzn-oidc-data` header (injected by ALB).
 ```
 
 **Response (201 Created):**
+
 ```json
 {
   "success": true,
@@ -354,10 +362,12 @@ All endpoints require JWT token in `x-amzn-oidc-data` header (injected by ALB).
 ```
 
 **Authorization:**
+
 - Role: `AGENT`
 - `agent_id` auto-populated from `UserContext.getUserId()`
 
 **Audit Log (SQS Message):**
+
 ```json
 {
   "log_id": "uuid",
@@ -372,6 +382,7 @@ All endpoints require JWT token in `x-amzn-oidc-data` header (injected by ALB).
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: Validation errors (age, email format, etc.)
 - `409 Conflict`: Email or phone already exists (not soft-deleted)
 - `401 Unauthorized`: Missing or invalid JWT
@@ -380,6 +391,7 @@ All endpoints require JWT token in `x-amzn-oidc-data` header (injected by ALB).
 ---
 
 ### 2. Verify Client Identity (Mook)
+
 **API Endpoint:** `POST /api/clients/{clientId}/verify`
 
 **Access:** `AGENT` only (own clients)
@@ -389,6 +401,7 @@ All endpoints require JWT token in `x-amzn-oidc-data` header (injected by ALB).
 **Request:** Path parameter only (no body)
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -398,6 +411,7 @@ All endpoints require JWT token in `x-amzn-oidc-data` header (injected by ALB).
 ```
 
 **Business Logic:**
+
 1. Query database to fetch client (via `clientRepository.findById()`)
 2. Verify agent owns the client
 3. Check if already verified (if yes, return success idempotently)
@@ -413,11 +427,13 @@ All endpoints require JWT token in `x-amzn-oidc-data` header (injected by ALB).
 **Implementation Note:** Uses repository pattern for database access, not internal HTTP calls.
 
 **Authorization:**
+
 - Role: `AGENT`
 - Client must belong to agent
 - Client must not be deleted
 
 **Audit Log:**
+
 ```json
 {
   "log_id": "uuid",
@@ -434,7 +450,8 @@ All endpoints require JWT token in `x-amzn-oidc-data` header (injected by ALB).
 ```
 
 **Email (SES):**
-```
+
+```Text
 To: john.doe@example.com
 Subject: Your Banking Buddy Profile is Verified! ✓
 
@@ -454,6 +471,7 @@ Banking Buddy Team
 ```
 
 **Error Responses:**
+
 - `404 Not Found`: Client not found or doesn't belong to agent
 - `401 Unauthorized`: Missing or invalid JWT
 - `403 Forbidden`: User role is not AGENT
@@ -463,6 +481,7 @@ Banking Buddy Team
 ---
 
 ### 3. Update Client Information
+
 **API Endpoint:** `PUT /api/clients/{clientId}`
 
 **Access:** `AGENT` only (own clients)
@@ -470,6 +489,7 @@ Banking Buddy Team
 **Description:** Updates client information with PATCH semantics. Accepts any subset of fields (partial or full update). Backend fetches current client state, compares with request, and only updates fields that have changed. Only fields with different values are logged. Cannot update `agent_id` or `verified` (use verify endpoint).
 
 **Request (any subset of fields):**
+
 ```json
 {
   "firstName": "John",
@@ -487,6 +507,7 @@ Banking Buddy Team
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -515,11 +536,13 @@ Banking Buddy Team
 ```
 
 **Authorization:**
+
 - Role: `AGENT`
 - Client must belong to agent
 - Client must not be deleted
 
 **Implementation Logic:**
+
 1. Query database to fetch current client (via `clientRepository.findById()`)
 2. Verify authorization (client belongs to agent)
 3. Compare each field in request body with current database value
@@ -531,6 +554,7 @@ Banking Buddy Team
 **Implementation Note:** Uses repository pattern for direct database queries, not internal HTTP calls.
 
 **Audit Log (separate SQS message for EACH changed field):**
+
 ```json
 {
   "log_id": "uuid",
@@ -549,6 +573,7 @@ Banking Buddy Team
 **Note:** Only log fields that actually changed. If request includes a field with the same value as database, do not create an audit log for that field.
 
 **Error Responses:**
+
 - `400 Bad Request`: Validation errors
 - `404 Not Found`: Client not found or doesn't belong to agent
 - `409 Conflict`: Email/phone already exists (different client)
@@ -556,6 +581,7 @@ Banking Buddy Team
 ---
 
 ### 4. Get Client Profile
+
 **API Endpoint:** `GET /api/clients/{clientId}`
 
 **Access:** `AGENT` only (own clients)
@@ -565,6 +591,7 @@ Banking Buddy Team
 **Request:** Path parameter `clientId`
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -617,17 +644,20 @@ Banking Buddy Team
 ```
 
 **Implementation Details:**
+
 - Use JPA `@OneToMany` relationship or custom JOIN query via repository
 - Fetch client and accounts in single database query to avoid N+1 problem
 - Only return accounts where `deleted = false`
 - Uses repository pattern for direct database access (no internal HTTP calls)
 
 **Authorization:**
+
 - Role: `AGENT`
 - Client must belong to agent: `client.agent_id = UserContext.getUserId()`
 - Client must not be deleted: `client.deleted = false`
 
 **Audit Log (SQS Message):**
+
 ```json
 {
   "log_id": "uuid",
@@ -641,6 +671,7 @@ Banking Buddy Team
 ```
 
 **Error Responses:**
+
 - `404 Not Found`: Client not found or doesn't belong to agent
 - `401 Unauthorized`: Missing or invalid JWT
 - `403 Forbidden`: User role is not AGENT
@@ -656,6 +687,7 @@ Banking Buddy Team
 **Request:** Path parameter only
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -665,6 +697,7 @@ Banking Buddy Team
 ```
 
 **Business Logic:**
+
 1. Query database to fetch client (via `clientRepository.findById()`)
 2. Verify agent owns the client
 3. **Query database to fetch all client's accounts** (via `accountRepository.findByClientIdAndDeletedFalse()`)
@@ -679,6 +712,7 @@ Banking Buddy Team
 **Implementation Note:** Uses repository pattern for direct database queries (no internal HTTP calls to GET endpoints).
 
 **Authorization:**
+
 - Role: `AGENT`
 - Client must belong to agent
 - Client must not already be deleted
@@ -686,6 +720,7 @@ Banking Buddy Team
 **Audit Logs (multiple messages):**
 
 Client deletion:
+
 ```json
 {
   "log_id": "uuid",
@@ -700,6 +735,7 @@ Client deletion:
 ```
 
 Each account deletion (if 2 accounts):
+
 ```json
 {
   "log_id": "uuid-1",
@@ -712,6 +748,7 @@ Each account deletion (if 2 accounts):
   "ttl": 1735661601
 }
 ```
+
 ```json
 {
   "log_id": "uuid-2",
@@ -726,7 +763,9 @@ Each account deletion (if 2 accounts):
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: One or more accounts have non-zero balance
+
   ```json
   {
     "success": false,
@@ -747,6 +786,7 @@ Each account deletion (if 2 accounts):
     }
   }
   ```
+
 - `404 Not Found`: Client not found or doesn't belong to agent
 - `409 Conflict`: Client already deleted
 
@@ -755,6 +795,7 @@ Each account deletion (if 2 accounts):
 ## Account Endpoints
 
 ### 6. Create Account
+
 **API Endpoint:** `POST /api/accounts`
 
 **Access:** `AGENT` only (for own clients)
@@ -762,6 +803,7 @@ Each account deletion (if 2 accounts):
 **Description:** Agent creates a new account for one of their clients. Used on client detail page.
 
 **Request:**
+
 ```json
 {
   "clientId": "CLT-550e8400-e29b-41d4-a716-446655440000",
@@ -774,6 +816,7 @@ Each account deletion (if 2 accounts):
 ```
 
 **Response (201 Created):**
+
 ```json
 {
   "success": true,
@@ -796,6 +839,7 @@ Each account deletion (if 2 accounts):
 ```
 
 **Business Logic:**
+
 1. Verify `clientId` belongs to authenticated agent
 2. Verify client is not soft-deleted
 3. Create account with `balance = initialDeposit`
@@ -803,11 +847,13 @@ Each account deletion (if 2 accounts):
 5. Return created account
 
 **Authorization:**
+
 - Role: `AGENT`
 - Client specified in request must belong to agent
 - Client must not be deleted
 
 **Audit Log:**
+
 ```json
 {
   "log_id": "uuid",
@@ -822,6 +868,7 @@ Each account deletion (if 2 accounts):
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: Invalid account type, initial deposit <= 0, branch ID too short
 - `404 Not Found`: Client not found or doesn't belong to agent
 - `403 Forbidden`: Client is soft-deleted
@@ -830,7 +877,8 @@ Each account deletion (if 2 accounts):
 
 ### 7. DELETE /api/accounts/{accountId} - Soft Delete Account
 
-**Access:** 
+**Access:**
+
 - `AGENT` (for own clients' accounts)
 - `ADMIN` and `ROOT_ADMIN` (for all accounts)
 
@@ -839,6 +887,7 @@ Each account deletion (if 2 accounts):
 **Request:** Path parameter only
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -848,6 +897,7 @@ Each account deletion (if 2 accounts):
 ```
 
 **Business Logic:**
+
 1. Fetch account
 2. **Check if balance = 0** (if not, throw error)
 3. For AGENT: Verify account's client belongs to agent
@@ -856,12 +906,14 @@ Each account deletion (if 2 accounts):
 6. Return success
 
 **Authorization:**
+
 - Role: `AGENT`, `ADMIN`, or `ROOT_ADMIN`
 - For AGENT: Account's client must belong to agent
 - Account must not already be deleted
 - **Account balance must be 0**
 
 **Audit Log:**
+
 ```json
 {
   "log_id": "uuid",
@@ -876,7 +928,9 @@ Each account deletion (if 2 accounts):
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: Account has non-zero balance
+
   ```json
   {
     "success": false,
@@ -887,6 +941,7 @@ Each account deletion (if 2 accounts):
     }
   }
   ```
+
 - `404 Not Found`: Account not found
 - `403 Forbidden`: Agent doesn't own the client
 - `409 Conflict`: Account already deleted
@@ -900,6 +955,7 @@ These endpoints provide list/summary views for managing clients and accounts.
 ### Client Endpoints
 
 #### Get All Clients for Agent (Mook)
+
 **API Endpoint:** `GET /api/clients`
 
 **Access:** `AGENT` only
@@ -909,6 +965,7 @@ These endpoints provide list/summary views for managing clients and accounts.
 **Request:** None (agent_id from JWT)
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -933,20 +990,23 @@ These endpoints provide list/summary views for managing clients and accounts.
 ```
 
 **Authorization:**
+
 - Role: `AGENT`
 - Query: `WHERE agent_id = ? AND deleted = false`
 
 **Audit Log:** None (bulk read not logged)
 
 **Error Responses:**
+
 - `401 Unauthorized`: Missing or invalid JWT
 - `403 Forbidden`: User role is not AGENT
 
 ---
 
-### Account Endpoints
+### Account API Endpoints
 
 #### Get All Accounts (Admin Only) (Mook)
+
 **API Endpoint:** `GET /api/accounts`
 
 **Access:** `ADMIN` and `ROOT_ADMIN` only
@@ -956,6 +1016,7 @@ These endpoints provide list/summary views for managing clients and accounts.
 **Request:** None
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -994,6 +1055,7 @@ These endpoints provide list/summary views for managing clients and accounts.
 ```
 
 **Implementation:**
+
 ```sql
 SELECT 
     a.account_id, a.account_type, a.account_status, a.opening_date,
@@ -1008,11 +1070,13 @@ ORDER BY a.created_at DESC;
 ```
 
 **Authorization:**
+
 - Role: `ADMIN` or `ROOT_ADMIN`
 
 **Audit Log:** None (bulk read not logged for admin)
 
 **Error Responses:**
+
 - `401 Unauthorized`: Missing or invalid JWT
 - `403 Forbidden`: User role is AGENT
 
@@ -1036,6 +1100,7 @@ ORDER BY a.created_at DESC;
 | GET /api/accounts | ❌ | ✅ | ✅ | Admin views all accounts |
 
 **Key Authorization Rules:**
+
 1. **Agents:**
    - Can only access clients where `client.agent_id = their_user_id`
    - Can only access accounts belonging to their clients
@@ -1057,7 +1122,7 @@ ORDER BY a.created_at DESC;
 **Previous:** Synchronous writes to DynamoDB (mission-critical)  
 **Current:** Asynchronous publishing to SQS (non-blocking, fire-and-forget)
 
-```
+```text
 Client Service → SQS Queue → Lambda (audit-writer) → DynamoDB
                      ↓
               Dead Letter Queue (DLQ)
@@ -1076,6 +1141,7 @@ Client Service → SQS Queue → Lambda (audit-writer) → DynamoDB
 ```
 
 **Configuration (application.properties):**
+
 ```properties
 # Audit Logging
 audit.sqs.queue.url=${AUDIT_SQS_QUEUE_URL}
@@ -1084,6 +1150,7 @@ audit.log.retention.days=30
 ```
 
 **Bean Configuration:**
+
 ```java
 @Configuration
 public class AuditConfig {
@@ -1229,6 +1296,7 @@ public class ClientService {
 ### SQS Message Schema
 
 **Required Fields (All Operations):**
+
 - `log_id` (UUID)
 - `timestamp` (ISO 8601 with 'Z')
 - `client_id` (String)
@@ -1238,6 +1306,7 @@ public class ClientService {
 - `ttl` (Unix timestamp)
 
 **Conditional Fields:**
+
 - `after_value` - Required for CREATE and UPDATE
 - `before_value` - Required for UPDATE and DELETE
 - `attribute_name` - Required for UPDATE
@@ -1257,6 +1326,7 @@ catch (SqsException e) {
 ```
 
 **SQS Retry Policy:**
+
 - Client-service will NOT retry if SQS publish fails
 - SQS has built-in DLQ for failed Lambda processing
 - Main CRUD operation is not affected by logging failures
@@ -1303,6 +1373,7 @@ catch (SqsException e) {
 ### Business Rules
 
 1. **Email/Phone Uniqueness:** Only among non-deleted clients
+
    ```sql
    UNIQUE KEY uk_email_not_deleted (email, deleted)
    UNIQUE KEY uk_phone_not_deleted (phone_number, deleted)
@@ -1330,7 +1401,7 @@ catch (SqsException e) {
 
 ### Client Creation Flow
 
-```
+```text
 1. Agent submits CreateClientRequest
 2. Extract agent_id from UserContext (JWT)
 3. Validate email/phone uniqueness (excluding soft-deleted)
@@ -1345,7 +1416,7 @@ catch (SqsException e) {
 
 ### Client Verification Flow
 
-```
+```text
 1. Agent requests to verify client
 2. Verify agent owns client
 3. Check if already verified (idempotent)
@@ -1358,7 +1429,7 @@ catch (SqsException e) {
 
 ### Client Update Flow
 
-```
+```text
 1. Agent submits UpdateClientRequest
 2. Verify agent owns client
 3. Fetch existing client
@@ -1372,7 +1443,7 @@ catch (SqsException e) {
 
 ### Client Deletion Flow (with Cascade)
 
-```
+```text
 1. Agent requests to delete client
 2. Verify agent owns client
 3. Fetch ALL client's accounts (including soft-deleted = false)
@@ -1388,7 +1459,7 @@ catch (SqsException e) {
 
 ### Account Creation Flow
 
-```
+```text
 1. Agent submits CreateAccountRequest with clientId
 2. Verify agent owns the specified client
 3. Verify client is not soft-deleted
@@ -1405,7 +1476,7 @@ catch (SqsException e) {
 
 ### Account Deletion Flow
 
-```
+```text
 1. User (Agent or Admin) requests to delete account
 2. Fetch account
 3. Check balance = 0:
@@ -1418,7 +1489,7 @@ catch (SqsException e) {
 
 ### GET Client with Accounts (JOIN Query)
 
-```
+```text
 1. Agent requests client details
 2. Verify agent owns client
 3. Fetch client with LEFT JOIN to accounts:
@@ -1436,7 +1507,7 @@ Use `@OneToMany` with `fetch = FetchType.EAGER` or `@EntityGraph`
 
 ---
 
-## Error Handling
+## Error Handling for HTTP requests
 
 ### Global Exception Handler
 
@@ -1499,6 +1570,7 @@ public class GlobalExceptionHandler {
 ```
 
 **With Validation Errors:**
+
 ```json
 {
   "success": false,
@@ -1546,5 +1618,5 @@ AUDIT_LOG_RETENTION_DAYS=30
 ```
 
 ---
- 
+
 **Last Updated:** October 20, 2025
