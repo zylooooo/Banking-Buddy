@@ -1357,6 +1357,7 @@ catch (SqsException e) {
 | Deleted | Boolean | Default: false, soft delete flag |
 
 **Phone Number Format Details:**
+
 - **Storage:** Digits only (no "+" or other symbols)
 - **Validation Pattern:** `^[0-9]{10,15}$`
 - **Country Code:** Must be included in the digits (e.g., `6591234567` for Singapore +65, `14155552671` for US +1)
