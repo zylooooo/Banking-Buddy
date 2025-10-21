@@ -110,8 +110,8 @@ services/client-service/
 │   │   │   │   ├── AwsProperties.java       # AWS config properties
 │   │   │   │   ├── AppProperties.java       # App config
 │   │   │   │   ├── SecurityConfig.java      # Spring Security
-│   │   │   │   ├── WebConfig.java           # Interceptor registration
-│   │   │   │   └── AuditConfig.java         # AuditPublisher bean
+│   │   │   │   ├── WebMvcConfig.java        # Interceptor registration
+│   │   │   │   └── JpaAuditingConfig.java   # @EnableJpaAuditing
 │   │   │   ├── controller/
 │   │   │   │   ├── ClientController.java
 │   │   │   │   └── AccountController.java
@@ -186,7 +186,7 @@ CREATE TABLE clients (
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     date_of_birth DATE NOT NULL,
-    gender ENUM('Male', 'Female', 'Non-binary', 'Prefer not to say') NOT NULL,
+    gender ENUM('Male', 'Female', 'Non_binary', 'Prefer_not_to_say') NOT NULL,
     
     -- Contact Information
     email VARCHAR(255) NOT NULL,
@@ -324,7 +324,7 @@ All endpoints require JWT token in `x-amzn-oidc-data` header (injected by ALB).
   "dateOfBirth": "1990-05-15",
   "gender": "Male",
   "email": "john.doe@example.com",
-  "phoneNumber": "+6591234567",
+  "phoneNumber": "6591234567",
   "address": "123 Orchard Road",
   "city": "Singapore",
   "state": "Central",
@@ -347,7 +347,7 @@ All endpoints require JWT token in `x-amzn-oidc-data` header (injected by ALB).
     "dateOfBirth": "1990-05-15",
     "gender": "Male",
     "email": "john.doe@example.com",
-    "phoneNumber": "+6591234567",
+    "phoneNumber": "6591234567",
     "address": "123 Orchard Road",
     "city": "Singapore",
     "state": "Central",
@@ -376,7 +376,7 @@ All endpoints require JWT token in `x-amzn-oidc-data` header (injected by ALB).
   "agent_id": "agent-uuid-from-jwt",
   "crud_operation": "CREATE",
   "source_service": "client-service",
-  "after_value": "John|Doe|john.doe@example.com|+6591234567|123 Orchard Road",
+  "after_value": "John|Doe|john.doe@example.com|6591234567|123 Orchard Road",
   "ttl": 1735660800
 }
 ```
@@ -497,7 +497,7 @@ Banking Buddy Team
   "dateOfBirth": "1990-05-15",
   "gender": "Male",
   "email": "john.doe.jr@example.com",
-  "phoneNumber": "+6591234567",
+  "phoneNumber": "6591234567",
   "address": "456 Orchard Road #10-01",
   "city": "Singapore",
   "state": "Central",
@@ -521,7 +521,7 @@ Banking Buddy Team
     "dateOfBirth": "1990-05-15",
     "gender": "Male",
     "email": "john.doe.jr@example.com",
-    "phoneNumber": "+6591234567",
+    "phoneNumber": "6591234567",
     "address": "456 Orchard Road #10-01",
     "city": "Singapore",
     "state": "Central",
@@ -605,7 +605,7 @@ Banking Buddy Team
     "dateOfBirth": "1990-05-15",
     "gender": "Male",
     "email": "john.doe@example.com",
-    "phoneNumber": "+6591234567",
+    "phoneNumber": "6591234567",
     "address": "123 Orchard Road",
     "city": "Singapore",
     "state": "Central",
@@ -729,7 +729,7 @@ Client deletion:
   "agent_id": "agent-uuid-from-jwt",
   "crud_operation": "DELETE",
   "source_service": "client-service",
-  "before_value": "John|Doe|john.doe@example.com|+6591234567",
+  "before_value": "John|Doe|john.doe@example.com|6591234567",
   "ttl": 1735661600
 }
 ```
@@ -976,14 +976,14 @@ These endpoints provide list/summary views for managing clients and accounts.
       "fullName": "John Doe",
       "verified": true,
       "email": "john.doe@example.com",
-      "phoneNumber": "+6591234567"
+      "phoneNumber": "6591234567"
     },
     {
       "clientId": "CLT-75ef3acb-e531-4bfe-8762-8cc7f7336806",
       "fullName": "Jane Smith",
       "verified": false,
       "email": "jane.smith@example.com",
-      "phoneNumber": "+6598765432"
+      "phoneNumber": "6598765432"
     }
   ]
 }
@@ -1097,7 +1097,7 @@ ORDER BY a.created_at DESC;
 | DELETE /api/accounts/{id} | ✅ (own clients) | ✅ | ✅ | Requires balance=0 |
 | **Additional Endpoints** | | | | |
 | GET /api/clients | ✅ (own only) | ❌ | ❌ | Agent lists own clients (summary) |
-| GET /api/accounts | ❌ | ✅ | ✅ | Admin views all accounts |
+| GET /api/accounts | ❌ | ✅ | ✅ | Admin/Root Admin view all accounts (same permissions) |
 
 **Key Authorization Rules:**
 
@@ -1105,7 +1105,8 @@ ORDER BY a.created_at DESC;
    - Can only access clients where `client.agent_id = their_user_id`
    - Can only access accounts belonging to their clients
    - Cannot access admin functions
-2. **Admins:**
+2. **Admins (ADMIN and ROOT_ADMIN):**
+   - Both roles have identical permissions in client-service
    - Cannot create or manage clients (that's agent responsibility)
    - Can view and manage ALL accounts
    - Can delete any account (if balance = 0)
@@ -1343,9 +1344,9 @@ catch (SqsException e) {
 | First Name | Required, 2-50 chars, alphabetic + spaces | Must contain only letters and spaces |
 | Last Name | Required, 2-50 chars, alphabetic + spaces | Must contain only letters and spaces |
 | Date of Birth | Required, valid date, past | Age 18-100 years |
-| Gender | Required, enum | Male, Female, Non-binary, Prefer not to say |
+| Gender | Required, enum | Male, Female, Non_binary, Prefer_not_to_say |
 | Email | Required, valid email format | Must be unique (excluding soft-deleted) |
-| Phone Number | Required, 10-15 digits | Must be unique (excluding soft-deleted) |
+| Phone Number | Required, 10-15 digits only | Format: `^[0-9]{10,15}$` (digits only with country code, no "+" prefix). Must be unique (excluding soft-deleted) |
 | Address | Required, 5-100 chars | - |
 | City | Required, 2-50 chars | - |
 | State | Required, 2-50 chars | - |
@@ -1354,6 +1355,18 @@ catch (SqsException e) {
 | Agent ID | Auto-assigned from JWT | Immutable, references users.id |
 | Verified | Boolean | Default: false, changed via verify endpoint |
 | Deleted | Boolean | Default: false, soft delete flag |
+
+**Phone Number Format Details:**
+- **Storage:** Digits only (no "+" or other symbols)
+- **Validation Pattern:** `^[0-9]{10,15}$`
+- **Country Code:** Must be included in the digits (e.g., `6591234567` for Singapore +65, `14155552671` for US +1)
+- **Examples:**
+  - ✅ Valid: `6591234567` (Singapore)
+  - ✅ Valid: `14155552671` (US)
+  - ✅ Valid: `447700900123` (UK)
+  - ❌ Invalid: `+6591234567` (has "+" prefix)
+  - ❌ Invalid: `91234567` (only 8 digits, missing country code)
+- **Input Handling:** If user provides "+", strip it before validation and storage
 
 ### Account Validation
 
