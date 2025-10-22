@@ -1,13 +1,22 @@
-import {
-    signInWithRedirect,
-    signOut,
-    fetchAuthSession,
-    fetchUserAttributes
-} from 'aws-amplify/auth';
+// Development Authentication Service
+// This is a simplified version for development without AWS Cognito
+
+let mockUser = null;
+let mockAuthenticated = false;
 
 export const handleLogin = async () => {
     try {
-        await signInWithRedirect();
+        // Mock authentication - in development, automatically log in as admin
+        mockUser = {
+            email: 'admin@scroogebank.com',
+            firstName: 'Admin',
+            lastName: 'User',
+            role: 'admin',
+            sub: 'mock-admin-id'
+        };
+        mockAuthenticated = true;
+        localStorage.setItem('mockAuth', JSON.stringify({ authenticated: true, user: mockUser }));
+        return true;
     } catch (error) {
         console.error('Login failed:', error);
         throw error;
@@ -16,8 +25,8 @@ export const handleLogin = async () => {
 
 export const handleCallback = async () => {
     try {
-        const session = await fetchAuthSession();
-        return session;
+        // Mock callback handling
+        return { authenticated: mockAuthenticated };
     } catch (error) {
         console.error('Callback failed:', error);
         throw error;
@@ -26,14 +35,12 @@ export const handleCallback = async () => {
 
 export const getUserFromToken = async () => {
     try {
-        const attributes = await fetchUserAttributes();
-        return {
-            email: attributes.email,
-            firstName: attributes.given_name,
-            lastName: attributes.family_name,
-            role: attributes['custom:role'],
-            sub: attributes.sub,
-        };
+        const stored = localStorage.getItem('mockAuth');
+        if (stored) {
+            const { user } = JSON.parse(stored);
+            return user;
+        }
+        return null;
     } catch (error) {
         console.error('Get user failed:', error);
         return null;
@@ -42,18 +49,39 @@ export const getUserFromToken = async () => {
 
 export const getIdToken = async () => {
     try {
-        const session = await fetchAuthSession();
-        return session.tokens?.idToken?.toString() || null;
+        if (mockAuthenticated) {
+            return 'mock-jwt-token';
+        }
+        return null;
     } catch (error) {
         console.error('Get ID token failed:', error);
         return null;
     }
 };
 
+export const getUserRole = async () => {
+    try {
+        const stored = localStorage.getItem('mockAuth');
+        if (stored) {
+            const { user } = JSON.parse(stored);
+            return user.role || 'agent';
+        }
+        return null;
+    } catch (error) {
+        console.error('Get user role failed:', error);
+        return null;
+    }
+};
+
 export const isAuthenticated = async () => {
     try {
-        const session = await fetchAuthSession();
-        return session.tokens !== undefined;
+        const stored = localStorage.getItem('mockAuth');
+        if (stored) {
+            const { authenticated } = JSON.parse(stored);
+            mockAuthenticated = authenticated;
+            return authenticated;
+        }
+        return false;
     } catch (error) {
         return false;
     }
@@ -61,30 +89,44 @@ export const isAuthenticated = async () => {
 
 export const logout = async () => {
     try {
-        await signOut();
+        mockUser = null;
+        mockAuthenticated = false;
+        localStorage.removeItem('mockAuth');
     } catch (error) {
         console.error('Logout failed:', error);
     }
 };
 
-// REMOVE the custom resetPassword functions and use Hosted UI
 export const handleForgotPassword = async () => {
     try {
-        const config = {
-            userPoolId: import.meta.env.VITE_COGNITO_USER_POOL_ID,
-            clientId: import.meta.env.VITE_COGNITO_CLIENT_ID,
-        };
-
-        const cognitoDomain = import.meta.env.VITE_COGNITO_DOMAIN;
-        const region = import.meta.env.VITE_AWS_REGION;
-        const redirectUri = import.meta.env.VITE_REDIRECT_URI;
-
-        // Use Cognito Hosted UI for password reset
-        const forgotPasswordUrl = `https://${cognitoDomain}.auth.${region}.amazoncognito.com/forgotPassword?client_id=${config.clientId}&response_type=code&scope=email+openid+profile&redirect_uri=${encodeURIComponent(redirectUri)}`;
-
-        window.location.href = forgotPasswordUrl;
+        alert('Forgot password functionality will be implemented with AWS Cognito');
     } catch (error) {
         console.error('Forgot password failed:', error);
         throw error;
     }
+};
+
+// Development helper functions
+export const loginAsAdmin = () => {
+    mockUser = {
+        email: 'admin@scroogebank.com',
+        firstName: 'Admin',
+        lastName: 'User',
+        role: 'admin',
+        sub: 'mock-admin-id'
+    };
+    mockAuthenticated = true;
+    localStorage.setItem('mockAuth', JSON.stringify({ authenticated: true, user: mockUser }));
+};
+
+export const loginAsAgent = () => {
+    mockUser = {
+        email: 'agent@scroogebank.com',
+        firstName: 'Agent',
+        lastName: 'Smith',
+        role: 'agent',
+        sub: 'mock-agent-id'
+    };
+    mockAuthenticated = true;
+    localStorage.setItem('mockAuth', JSON.stringify({ authenticated: true, user: mockUser }));
 };

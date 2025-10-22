@@ -11,9 +11,12 @@
   },
   "dependencies": {
     "@aws-amplify/ui-react": "^6.13.0",
+    "@heroicons/react": "^2.2.0",
     "aws-amplify": "^6.15.7",
     "axios": "^1.12.2",
+    "date-fns": "^4.1.0",
     "jwt-decode": "^4.0.0",
+    "lucide-react": "^0.546.0",
     "oidc-client-ts": "^3.3.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
