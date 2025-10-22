@@ -1,11 +1,15 @@
 package com.BankingBuddy.client_service.controller;
 
+import com.BankingBuddy.client_service.model.dto.AccountDTO;
 import com.BankingBuddy.client_service.model.dto.AccountWithClientDTO;
 import com.BankingBuddy.client_service.model.dto.ApiResponse;
+import com.BankingBuddy.client_service.model.dto.CreateAccountRequest;
 import com.BankingBuddy.client_service.security.UserContext;
 import com.BankingBuddy.client_service.service.AccountService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,18 +42,66 @@ public class AccountController {
         log.info("GET /api/accounts called by user: {} (role: {})", 
                 userContext.getUserId(), userContext.getRole());
 
-        // Authorization check - only ADMIN and ROOT_ADMIN can access
-        if (userContext.getRole() != com.BankingBuddy.client_service.security.UserRole.ADMIN && 
-            userContext.getRole() != com.BankingBuddy.client_service.security.UserRole.ROOT_ADMIN) {
-            log.error("Unauthorized role attempting to get all accounts: {}", userContext.getRole());
-            throw new com.BankingBuddy.client_service.exception.ForbiddenException(
-                    "Only ADMIN or ROOT_ADMIN roles can access all accounts");
-        }
-
-        List<AccountWithClientDTO> accounts = accountService.getAllAccounts();
+        // Service layer handles authorization (defense in depth)
+        List<AccountWithClientDTO> accounts = accountService.getAllAccounts(userContext);
 
         ApiResponse<List<AccountWithClientDTO>> response = 
                 ApiResponse.success(accounts, "Accounts retrieved successfully");
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Create a new account for a client
+     * Agent only - creates account for their own clients
+     * Per specification: AGENT can create accounts for own clients
+     * 
+     * @param request the account creation request
+     * @param userContext the authenticated user context (AGENT only)
+     * @return ResponseEntity with created account data
+     */
+    @PostMapping
+    public ResponseEntity<ApiResponse<AccountDTO>> createAccount(
+            @Valid @RequestBody CreateAccountRequest request,
+            @RequestAttribute("userContext") UserContext userContext) {
+
+        log.info("POST /api/accounts called by user: {} (role: {})", 
+                userContext.getUserId(), userContext.getRole());
+
+        AccountDTO accountDTO = accountService.createAccount(request, userContext);
+
+        ApiResponse<AccountDTO> response = ApiResponse.success(
+                accountDTO,
+                "Account created successfully"
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * Soft delete an account
+     * AGENT can delete accounts of their own clients
+     * ADMIN and ROOT_ADMIN can delete any account
+     * Per specification: Can only delete if balance = 0
+     * 
+     * @param accountId the account ID to delete
+     * @param userContext the authenticated user context
+     * @return ResponseEntity with success message
+     */
+    @DeleteMapping("/{accountId}")
+    public ResponseEntity<ApiResponse<Void>> deleteAccount(
+            @PathVariable String accountId,
+            @RequestAttribute("userContext") UserContext userContext) {
+
+        log.info("DELETE /api/accounts/{} called by user: {} (role: {})", 
+                accountId, userContext.getUserId(), userContext.getRole());
+
+        accountService.deleteAccount(accountId, userContext);
+
+        ApiResponse<Void> response = ApiResponse.success(
+                null,
+                "Account deleted successfully"
+        );
 
         return ResponseEntity.ok(response);
     }

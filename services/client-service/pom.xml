@@ -86,13 +86,6 @@
 			<version>${aws-sdk.version}</version>
 		</dependency>
 		
-		<!-- Audit Logging Client (Shared Library) -->
-		<dependency>
-			<groupId>com.bankingbuddy</groupId>
-			<artifactId>audit-logging-client</artifactId>
-			<version>1.0.0</version>
-		</dependency>
-		
 		<!-- Lombok -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>

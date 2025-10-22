@@ -9,12 +9,6 @@ RUN apk add --no-cache \
 # Set working directory
 WORKDIR /app
 
-# First, install the audit-logging-client library into local Maven repo
-# Copy the pre-built JAR and POM from the shared library
-COPY shared/java/target/audit-logging-client-1.0.0.jar /root/.m2/repository/com/bankingbuddy/audit-logging-client/1.0.0/audit-logging-client-1.0.0.jar
-COPY shared/java/pom.xml /root/.m2/repository/com/bankingbuddy/audit-logging-client/1.0.0/audit-logging-client-1.0.0.pom
-
-# Now build client-service
 # Copy Maven wrapper and pom.xml first 
 COPY client-service/mvnw .
 COPY client-service/.mvn .mvn

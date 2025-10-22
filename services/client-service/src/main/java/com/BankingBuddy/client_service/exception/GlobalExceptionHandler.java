@@ -57,6 +57,22 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handle AccountNotFoundException
+     */
+    @ExceptionHandler(AccountNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAccountNotFoundException(
+            AccountNotFoundException ex) {
+        log.error("Account not found: {}", ex.getMessage());
+
+        ApiResponse<Void> response = ApiResponse.error(
+                ex.getMessage(),
+                "ACCOUNT_NOT_FOUND"
+        );
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
+    /**
      * Handle ClientAlreadyExistsException
      */
     @ExceptionHandler(ClientAlreadyExistsException.class)

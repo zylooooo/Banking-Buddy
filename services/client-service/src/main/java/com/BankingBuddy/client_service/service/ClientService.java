@@ -3,24 +3,35 @@ package com.BankingBuddy.client_service.service;
 import com.BankingBuddy.client_service.exception.ClientAlreadyExistsException;
 import com.BankingBuddy.client_service.exception.ClientNotFoundException;
 import com.BankingBuddy.client_service.exception.ForbiddenException;
+import com.BankingBuddy.client_service.exception.InvalidOperationException;
 import com.BankingBuddy.client_service.model.dto.ClientDTO;
+import com.BankingBuddy.client_service.model.dto.ClientSummaryDTO;
 import com.BankingBuddy.client_service.model.dto.CreateClientRequest;
 import com.BankingBuddy.client_service.model.dto.UpdateClientRequest;
+import com.BankingBuddy.client_service.model.entity.Account;
 import com.BankingBuddy.client_service.model.entity.Client;
+import com.BankingBuddy.client_service.repository.AccountRepository;
 import com.BankingBuddy.client_service.repository.ClientRepository;
 import com.BankingBuddy.client_service.security.UserContext;
 import com.BankingBuddy.client_service.security.UserRole;
-import com.bankingbuddy.audit.AuditPublisher;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -29,43 +40,22 @@ import java.util.UUID;
 public class ClientService {
 
     private final ClientRepository clientRepository;
-    private final AuditPublisher auditPublisher;
+    private final AccountRepository accountRepository;
+    private final SqsClient sqsClient;
     private final EmailService emailService;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    
+    @Value("${audit.sqs.queue.url}")
+    private String auditQueueUrl;
+    
+    @Value("${audit.source.service}")
+    private String sourceService;
+    
+    @Value("${audit.log.retention.days:30}")
+    private long logRetentionDays;
 
     /**
-     * Publish audit log for client creation
-     */
-    private void publishAuditLog(Client client, UserContext userContext) {
-        try {
-            Map<String, Object> clientData = new HashMap<>();
-            clientData.put("clientId", client.getClientId());
-            clientData.put("firstName", client.getFirstName());
-            clientData.put("lastName", client.getLastName());
-            clientData.put("email", client.getEmail());
-            clientData.put("phoneNumber", client.getPhoneNumber());
-            clientData.put("gender", client.getGender().getValue());
-            clientData.put("agentId", client.getAgentId());
-
-            // Convert client data to JSON string
-            String afterValue = objectMapper.writeValueAsString(clientData);
-
-            auditPublisher.logCreate(
-                    client.getClientId(),
-                    userContext.getUserId(),
-                    afterValue);
-
-            log.info("Audit log published for client creation: {}", client.getClientId());
-        } catch (JsonProcessingException e) {
-            log.error("Failed to serialize client data to JSON: {}", e.getMessage(), e);
-        } catch (Exception e) {
-            // Don't fail the request if audit logging fails
-            log.error("Failed to publish audit log for client {}: {}", client.getClientId(), e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Publish audit log for client updates using the shared AuditPublisher
+     * Publish audit log for client updates (decoupled - direct SQS)
      * Only logs fields that actually changed
      * Non-blocking: audit failures don't affect the response
      */
@@ -76,13 +66,9 @@ public class ClientService {
                 @SuppressWarnings("unchecked")
                 Map<String, String> fieldChange = (Map<String, String>) entry.getValue();
 
-                // Use the shared AuditPublisher's logUpdate method
-                auditPublisher.logUpdate(
-                        clientId,
-                        userContext.getUserId(),
-                        fieldName,
-                        fieldChange.get("old"),
-                        fieldChange.get("new"));
+                // Send UPDATE audit log directly to SQS (decoupled)
+                sendAuditLogToSqs("UPDATE", clientId, userContext.getUserId(), 
+                                fieldName, fieldChange.get("old"), fieldChange.get("new"));
             }
 
             log.info("Published {} audit logs for client {} update", changes.size(), clientId);
@@ -127,10 +113,10 @@ public class ClientService {
     public ClientDTO createClient(CreateClientRequest request, UserContext userContext) {
         log.info("Creating client profile. Agent: {}", userContext.getUserId());
 
-        // 1. Authorization check - only AGENT and ADMIN can create clients
-        if (userContext.getRole() != UserRole.AGENT && userContext.getRole() != UserRole.ADMIN) {
+        // 1. Authorization check - ONLY AGENT can create clients (per spec)
+        if (userContext.getRole() != UserRole.AGENT) {
             log.error("Unauthorized role attempting to create client: {}", userContext.getRole());
-            throw new ForbiddenException("Only AGENT or ADMIN roles can create client profiles");
+            throw new ForbiddenException("Only AGENT role can create client profiles");
         }
 
         // 2. Check email uniqueness
@@ -177,6 +163,84 @@ public class ClientService {
     }
 
     /**
+     * Publish audit log for client creation
+     */
+    private void publishAuditLog(Client client, UserContext userContext) {
+        try {
+            Map<String, Object> clientData = new HashMap<>();
+            clientData.put("clientId", client.getClientId());
+            clientData.put("firstName", client.getFirstName());
+            clientData.put("lastName", client.getLastName());
+            clientData.put("email", client.getEmail());
+            clientData.put("phoneNumber", client.getPhoneNumber());
+            clientData.put("gender", client.getGender().getValue());
+            clientData.put("agentId", client.getAgentId());
+
+            // Convert client data to JSON string
+            String afterValue = objectMapper.writeValueAsString(clientData);
+
+            // Send CREATE audit log directly to SQS
+            sendAuditLogToSqs("CREATE", client.getClientId(), userContext.getUserId(), 
+                            null, null, afterValue);
+
+            log.info("Audit log published for client creation: {}", client.getClientId());
+        } catch (JsonProcessingException e) {
+            log.error("Failed to serialize client data to JSON: {}", e.getMessage(), e);
+        } catch (Exception e) {
+            // Don't fail the request if audit logging fails
+            log.error("Failed to publish audit log for client {}: {}", client.getClientId(), e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Send audit log message directly to SQS (decoupled, no shared library)
+     */
+    private void sendAuditLogToSqs(String operation, String clientId, String agentId,
+                                   String attributeName, String beforeValue, String afterValue) {
+        try {
+            // Build audit message as JSON
+            Map<String, Object> auditMessage = new HashMap<>();
+            auditMessage.put("log_id", UUID.randomUUID().toString());
+            auditMessage.put("timestamp", Instant.now().toString());
+            auditMessage.put("client_id", clientId);
+            auditMessage.put("agent_id", agentId);
+            auditMessage.put("crud_operation", operation);
+            auditMessage.put("source_service", sourceService);
+            
+            // Calculate TTL (retention days from now)
+            long ttl = Instant.now().plus(logRetentionDays, ChronoUnit.DAYS).getEpochSecond();
+            auditMessage.put("ttl", ttl);
+            
+            // Add operation-specific fields
+            if (attributeName != null) {
+                auditMessage.put("attribute_name", attributeName);
+            }
+            if (beforeValue != null) {
+                auditMessage.put("before_value", beforeValue);
+            }
+            if (afterValue != null) {
+                auditMessage.put("after_value", afterValue);
+            }
+            
+            // Convert to JSON string
+            String messageBody = objectMapper.writeValueAsString(auditMessage);
+            
+            // Send to SQS
+            SendMessageRequest request = SendMessageRequest.builder()
+                    .queueUrl(auditQueueUrl)
+                    .messageBody(messageBody)
+                    .build();
+            
+            sqsClient.sendMessage(request);
+            log.debug("Sent {} audit log to SQS for client {}", operation, clientId);
+            
+        } catch (Exception e) {
+            // Non-blocking: log error but don't throw
+            log.error("Failed to send audit log to SQS: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
      * Get all clients for the authenticated agent
      * Returns ClientSummaryDTO list for "Manage Profiles" page
      * No audit logs per specification (bulk reads not logged)
@@ -184,21 +248,27 @@ public class ClientService {
      * @param userContext the authenticated user context
      * @return list of client summaries
      */
-    public java.util.List<com.BankingBuddy.client_service.model.dto.ClientSummaryDTO> getAllClientsForAgent(
+    public List<ClientSummaryDTO> getAllClientsForAgent(
             UserContext userContext) {
         log.info("Retrieving all clients for agent: {}", userContext.getUserId());
 
-        java.util.List<Client> clients = clientRepository.findByAgentIdAndDeletedFalse(userContext.getUserId());
+        // Authorization: AGENT only (per spec)
+        if (userContext.getRole() != UserRole.AGENT) {
+            log.error("Unauthorized role attempting to list clients: {}", userContext.getRole());
+            throw new ForbiddenException("Only AGENT role can list client profiles");
+        }
+        
+        List<Client> clients = clientRepository.findByAgentIdAndDeletedFalse(userContext.getUserId());
 
         return clients.stream()
-                .map(client -> com.BankingBuddy.client_service.model.dto.ClientSummaryDTO.builder()
+                .map(client -> ClientSummaryDTO.builder()
                         .clientId(client.getClientId())
                         .fullName(client.getFirstName() + " " + client.getLastName())
                         .verified(client.getVerified())
                         .email(client.getEmail())
                         .phoneNumber(client.getPhoneNumber())
                         .build())
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
     }
 
     /**
@@ -212,21 +282,25 @@ public class ClientService {
      */
     public void verifyClient(String clientId, UserContext userContext) {
         log.info("Verifying client {}. Agent: {}", clientId, userContext.getUserId());
+        
+        // Authorization: AGENT only (per spec)
+        if (userContext.getRole() != UserRole.AGENT) {
+            log.error("Unauthorized role attempting to verify client: {}", userContext.getRole());
+            throw new ForbiddenException("Only AGENT role can verify clients");
+        }
 
         // 1. Fetch client from database
         Client client = clientRepository.findByClientIdAndDeletedFalse(clientId)
                 .orElseThrow(() -> {
                     log.error("Client not found or deleted: {}", clientId);
-                    return new com.BankingBuddy.client_service.exception.ClientNotFoundException(
-                            "Client not found or has been deleted");
+                    return new ClientNotFoundException("Client not found or has been deleted");
                 });
 
         // 2. Check authorization - agent must own the client
         if (!client.getAgentId().equals(userContext.getUserId())) {
             log.error("Agent {} attempted to verify client {} owned by agent {}",
                     userContext.getUserId(), clientId, client.getAgentId());
-            throw new com.BankingBuddy.client_service.exception.ClientNotFoundException(
-                    "Client not found or has been deleted");
+            throw new ClientNotFoundException("Client not found or has been deleted");
         }
 
         // 3. Check if already verified (idempotent)
@@ -242,12 +316,8 @@ public class ClientService {
 
         // 5. Publish audit log to SQS (non-blocking)
         try {
-            auditPublisher.logUpdate(
-                    clientId,
-                    userContext.getUserId(),
-                    "Verification Status",
-                    "Pending",
-                    "Verified");
+            sendAuditLogToSqs("UPDATE", clientId, userContext.getUserId(), 
+                            "Verification Status", "Pending", "Verified");
             log.info("Published verification audit log to SQS for client {}", clientId);
         } catch (Exception e) {
             log.error("Failed to publish verification audit log for client {}: {}",
@@ -282,6 +352,16 @@ public class ClientService {
             }
 
             log.info("Client {} retrieved successfully by {}", clientId, userContext.getUserId());
+            
+            // Publish READ audit log to SQS (per specification)
+            try {
+                sendAuditLogToSqs("READ", clientId, userContext.getUserId(), null, null, null);
+                log.debug("Published READ audit log for client {}", clientId);
+            } catch (Exception e) {
+                log.error("Failed to publish READ audit log for client {}: {}", clientId, e.getMessage());
+                // Non-blocking: continue with response
+            }
+            
             return convertToDTO(client);
         } catch (ClientNotFoundException e) {
             log.error("Client {} not found: {}", clientId, e.getMessage());
@@ -431,12 +511,83 @@ public class ClientService {
             throw new ForbiddenException("Only agents can soft delete their own client profiles");
         }
 
+        // Per specification: Fetch ALL client's accounts and check if ALL have balance = 0
+        List<Account> clientAccounts = accountRepository.findByClientIdAndDeletedFalse(clientId);
+        
+        if (!clientAccounts.isEmpty()) {
+            // Check if ANY account has non-zero balance
+            List<Account> accountsWithBalance = clientAccounts.stream()
+                .filter(account -> account.getBalance().compareTo(BigDecimal.ZERO) > 0)
+                .collect(Collectors.toList());
+            
+            if (!accountsWithBalance.isEmpty()) {
+                // Build error message with list of accounts
+                String accountList = accountsWithBalance.stream()
+                    .map(account -> String.format("Account %s (balance: %.2f %s)", 
+                        account.getAccountId(), 
+                        account.getBalance(), 
+                        account.getCurrency()))
+                    .collect(Collectors.joining(", "));
+                
+                log.error("Cannot delete client {}: {} account(s) have non-zero balance: {}", 
+                    clientId, accountsWithBalance.size(), accountList);
+                
+                throw new InvalidOperationException(
+                    String.format("Cannot delete client: %d account(s) have non-zero balance. " +
+                        "Accounts with balance: %s", 
+                        accountsWithBalance.size(), accountList));
+            }
+        }
+
+        // Prepare before_value for audit log (per specification)
+        String beforeValue = String.format("%s|%s|%s|%s",
+                client.getFirstName(),
+                client.getLastName(),
+                client.getEmail(),
+                client.getPhoneNumber());
+
+        // Perform soft delete on client
         client.setDeleted(true);
         clientRepository.save(client);
         log.info("Client {} soft deleted successfully by agent {}", clientId, userContext.getUserId());
 
-        // TODO: double check the logging logic
-        // Publish audit log for client deletion
-        auditPublisher.logDelete(clientId, userContext.getUserId(), null);
+        // Cascade soft delete to ALL accounts (per specification)
+        for (Account account : clientAccounts) {
+            // Prepare before_value for account audit log
+            String accountBeforeValue = String.format("%s|%s|%s|%.2f %s",
+                account.getAccountId(),
+                account.getAccountType().getValue(),
+                account.getAccountStatus().getValue(),
+                account.getBalance(),
+                account.getCurrency());
+            
+            // Soft delete the account
+            account.setDeleted(true);
+            accountRepository.save(account);
+            log.info("Account {} cascaded soft deleted with client {}", account.getAccountId(), clientId);
+            
+            // Publish DELETE audit log for each account to SQS (non-blocking)
+            try {
+                sendAuditLogToSqs("DELETE", clientId, userContext.getUserId(), 
+                    "Account: " + account.getAccountId(), accountBeforeValue, null);
+                log.debug("Published DELETE audit log for account {}", account.getAccountId());
+            } catch (Exception e) {
+                log.error("Failed to publish DELETE audit log for account {}: {}", 
+                    account.getAccountId(), e.getMessage());
+                // Non-blocking: audit failure should not affect deletion
+            }
+        }
+
+        // Publish DELETE audit log for client to SQS (non-blocking)
+        try {
+            sendAuditLogToSqs("DELETE", clientId, userContext.getUserId(), null, beforeValue, null);
+            log.debug("Published DELETE audit log for client {}", clientId);
+        } catch (Exception e) {
+            log.error("Failed to publish DELETE audit log for client {}: {}", clientId, e.getMessage());
+            // Non-blocking: audit failure should not affect deletion
+        }
+        
+        log.info("Client {} and {} associated account(s) soft deleted successfully", 
+            clientId, clientAccounts.size());
     }
 }

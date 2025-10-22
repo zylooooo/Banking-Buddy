@@ -119,24 +119,44 @@ public class ClientController {
         return ResponseEntity.ok(ApiResponse.success(clientDTO, "Client profile retrieved successfully"));
     }
 
-    @PatchMapping("/{clientId}")
+    /**
+     * Update client information
+     * PUT with PATCH semantics - accepts partial updates
+     * Only updates fields that are provided and different from current values
+     * 
+     * @param clientId the client ID to update
+     * @param clientData the update request with optional fields
+     * @param userContext the authenticated user context (AGENT only, own clients)
+     * @return ResponseEntity with updated client data
+     */
+    @PutMapping("/{clientId}")
     public ResponseEntity<ApiResponse<ClientDTO>> updateClientById(
         @PathVariable String clientId,
         @Valid @RequestBody UpdateClientRequest clientData,
-        HttpServletRequest httpRequest
+        @RequestAttribute("userContext") UserContext userContext
     ) {
-        UserContext userContext = (UserContext) httpRequest.getAttribute("userContext");
+        log.info("PUT /api/clients/{} called by agent: {}", clientId, userContext.getUserId());
+
         ClientDTO client = clientService.updateClientById(clientId, clientData, userContext);
 
         return ResponseEntity.ok(ApiResponse.success(client, "Client profile updated successfully"));
     }
 
+    /**
+     * Soft delete client profile
+     * Cascades to all associated accounts (only if all accounts have balance = 0)
+     * 
+     * @param clientId the client ID to delete
+     * @param userContext the authenticated user context (AGENT only, own clients)
+     * @return ResponseEntity with success message
+     */
     @DeleteMapping("/{clientId}")
     public ResponseEntity<ApiResponse<Void>> softDeleteClientById(
         @PathVariable String clientId,
-        HttpServletRequest httpRequest
+        @RequestAttribute("userContext") UserContext userContext
     ) {
-        UserContext userContext = (UserContext) httpRequest.getAttribute("userContext");
+        log.info("DELETE /api/clients/{} called by agent: {}", clientId, userContext.getUserId());
+
         clientService.softDeleteClientById(clientId, userContext);
 
         return ResponseEntity.ok(ApiResponse.success(null, "Client profile soft deleted successfully"));
