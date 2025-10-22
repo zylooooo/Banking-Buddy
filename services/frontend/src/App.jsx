@@ -30,9 +30,15 @@ function RootRedirect() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const isAuth = await isAuthenticated();
-      setShouldRedirect(isAuth);
-      setLoading(false);
+      try {
+        const isAuth = await isAuthenticated();
+        setShouldRedirect(isAuth);
+      } catch (error) {
+        console.log('Not authenticated, showing login page');
+        setShouldRedirect(false);
+      } finally {
+        setLoading(false);
+      }
     };
     checkAuth();
   }, []);

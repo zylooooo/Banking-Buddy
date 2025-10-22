@@ -34,6 +34,7 @@ variable "crm_db_secret_arn" {
 }
 
 variable "audit_dynamodb_table_arn" {
-  description = "ARN of the audit DynamoDB table"
+  description = "ARN of the audit DynamoDB table (empty string to skip policy creation and break circular dependency)"
   type        = string
+  default     = ""
 }

@@ -29,13 +29,20 @@ export const handleCallback = async () => {
 
 export const getUserFromToken = async () => {
     try {
-        const attributes = await fetchUserAttributes();
+        // Get user info directly from ID token claims instead of calling fetchUserAttributes
+        const session = await fetchAuthSession();
+        if (!session.tokens || !session.tokens.idToken) {
+            console.log('No active session found');
+            return null;
+        }
+        
+        const claims = session.tokens.idToken.payload;
         return {
-            email: attributes.email,
-            firstName: attributes.given_name,
-            lastName: attributes.family_name,
-            role: attributes['custom:role'],
-            sub: attributes.sub,
+            email: claims.email,
+            firstName: claims.given_name,
+            lastName: claims.family_name,
+            role: claims['custom:role'],
+            sub: claims.sub,
         };
     } catch (error) {
         console.error('Get user failed:', error);

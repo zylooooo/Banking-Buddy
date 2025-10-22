@@ -135,7 +135,10 @@ resource "aws_iam_instance_profile" "sftp_server" {
 }
 
 # Elastic Beanstalk Policy for Audit DynamoDB Access (Mission-Critical)
+# Made conditional to break circular dependency with cognito
 resource "aws_iam_role_policy" "elastic_beanstalk_audit_dynamodb" {
+  count = var.audit_dynamodb_table_arn != "" ? 1 : 0
+  
   name = "${var.name_prefix}-elastic-beanstalk-audit-dynamodb"
   role = aws_iam_role.elastic_beanstalk.id
 

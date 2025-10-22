@@ -10,11 +10,18 @@ export default function CallbackPage() {
     useEffect(() => {
         const processCallback = async () => {
             try {
-                // Complete OAuth callback
+                // Complete OAuth callback - this processes the auth code
                 await handleCallback();
+                
+                // Wait a bit for tokens to be stored
+                await new Promise(resolve => setTimeout(resolve, 500));
                 
                 // Get authenticated user info from token
                 const user = await getUserFromToken();
+                
+                if (!user) {
+                    throw new Error('Failed to get user information');
+                }
                 
                 const res = await userApi.getUserById(user.sub);
 
@@ -27,7 +34,7 @@ export default function CallbackPage() {
                 }
             } catch (err) {
                 setError('Authentication failed');
-                console.error(err);
+                console.error('Callback error:', err);
             }
         };
     

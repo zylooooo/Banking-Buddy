@@ -11,6 +11,15 @@ resource "aws_cognito_user_pool" "main" {
     allow_admin_create_user_only = true
   }
 
+  # CRITICAL: Prevent destruction of user pool (contains all users!)
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      # Ignore schema changes to prevent recreation
+      schema,
+    ]
+  }
+
   schema {
     name                = "given_name"
     attribute_data_type = "String"
@@ -110,8 +119,13 @@ resource "aws_cognito_user_pool_client" "main" {
   name         = "${var.name_prefix}-app-client"
   user_pool_id = aws_cognito_user_pool.main.id
 
-  # Don't generate client secret for frontend
-  generate_secret = false
+  # Generate client secret (required for OAuth flows)
+  generate_secret = true
+
+  # CRITICAL: Prevent destruction of app client (would break all authentication!)
+  lifecycle {
+    prevent_destroy = true
+  }
 
   # Token validity
   id_token_validity      = 60 # 1 hour
@@ -151,12 +165,13 @@ resource "aws_cognito_user_pool_client" "main" {
     # Note: custom:role is NOT in write_attributes
   ]
 
-  # OAuth scopes for ALB integration
-  allowed_oauth_flows                  = ["code"]
+  # OAuth scopes for ALB integration and API Gateway
+  allowed_oauth_flows                  = ["code", "implicit"]
   allowed_oauth_flows_user_pool_client = true
   allowed_oauth_scopes = [
     "openid",
     "email",
+    "phone",
     "profile",
     "aws.cognito.signin.user.admin"
   ]

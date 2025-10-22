@@ -20,13 +20,12 @@ Amplify.configure({
                     scopes: [
                         'openid',
                         'email',
-                        'profile',
-                        'aws.cognito.signin.user.admin'
+                        'phone',
+                        'profile'
                     ],
                     redirectSignIn: [config.redirectUri],
                     redirectSignOut: [config.logoutUri],
-                    responseType: 'code',
-                    providers: ['Cognito']
+                    responseType: 'code'
                 }
             }
         }
