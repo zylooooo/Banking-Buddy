@@ -18,11 +18,7 @@ output "user_pool_client_id" {
   value       = aws_cognito_user_pool_client.main.id
 }
 
-output "user_pool_client_secret" {
-  description = "Secret of the Cognito User Pool Client"
-  value       = aws_cognito_user_pool_client.main.client_secret
-  sensitive   = true
-}
+# Client secret output removed - public client (no secret) for frontend apps
 
 output "user_pool_domain" {
   description = "Cognito User Pool domain"

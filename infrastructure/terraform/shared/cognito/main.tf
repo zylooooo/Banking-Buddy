@@ -119,8 +119,9 @@ resource "aws_cognito_user_pool_client" "main" {
   name         = "${var.name_prefix}-app-client"
   user_pool_id = aws_cognito_user_pool.main.id
 
-  # Generate client secret (required for OAuth flows)
-  generate_secret = true
+  # DO NOT generate client secret - frontend apps (React/Vite) cannot use secrets
+  # Client secrets are only for server-side applications
+  generate_secret = false
 
   # CRITICAL: Prevent destruction of app client (would break all authentication!)
   lifecycle {
