@@ -144,7 +144,7 @@ export default function TransactionManagementPage() {
                         <h2 className="text-2xl font-bold text-white">Transaction Management</h2>
                         <p className="text-slate-400">View and manage bank account transactions</p>
                     </div>
-                    {(currentUser?.role === 'ADMIN' || currentUser?.role === 'ROOT_ADMIN') && (
+                    {(currentUser?.role === 'ADMIN' || currentUser?.role === 'ROOT_ADMIN' || currentUser?.role === 'rootAdministrator') && (
                         <button
                             onClick={() => setShowSyncModal(true)}
                             className="px-4 py-2 bg-accent text-white rounded-md hover:bg-sky-600 transition"

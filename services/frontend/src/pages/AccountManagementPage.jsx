@@ -25,7 +25,7 @@ export default function AccountManagementPage() {
                 setCurrentUser(cognitoUser);
 
                 // Check if user has admin privileges
-                if (!cognitoUser || !['ADMIN', 'ROOT_ADMIN'].includes(cognitoUser.role)) {
+                if (!cognitoUser || !['ADMIN', 'ROOT_ADMIN', 'rootAdministrator'].includes(cognitoUser.role)) {
                     setError('Access denied. Admin privileges required.');
                     setLoading(false);
                     return;
