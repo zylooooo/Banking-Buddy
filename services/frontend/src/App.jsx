@@ -4,6 +4,13 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import CallbackPage from './pages/CallbackPage';
 import MFASetupPage from './pages/MFASetupPage';
+import ClientManagementPage from './pages/ClientManagementPage';
+import ClientDetailPage from './pages/ClientDetailPage';
+import UserManagementPage from './pages/UserManagementPage';
+import AccountManagementPage from './pages/AccountManagementPage';
+import TransactionManagementPage from './pages/TransactionManagementPage';
+import AuditLogPage from './pages/AuditLogPage';
+import CommunicationPage from './pages/CommunicationPage';
 import { isAuthenticated } from './services/authService';
 
 function ProtectedRoute({ children }) {
@@ -69,6 +76,62 @@ function App() {
           element={
             <ProtectedRoute>
               <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/clients"
+          element={
+            <ProtectedRoute>
+              <ClientManagementPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/clients/:clientId"
+          element={
+            <ProtectedRoute>
+              <ClientDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute>
+              <UserManagementPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/accounts"
+          element={
+            <ProtectedRoute>
+              <AccountManagementPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/transactions"
+          element={
+            <ProtectedRoute>
+              <TransactionManagementPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/audit-logs"
+          element={
+            <ProtectedRoute>
+              <AuditLogPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/communications"
+          element={
+            <ProtectedRoute>
+              <CommunicationPage />
             </ProtectedRoute>
           }
         />
