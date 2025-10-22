@@ -3,8 +3,11 @@ package com.BankingBuddy.client_service.controller;
 import com.BankingBuddy.client_service.model.dto.ApiResponse;
 import com.BankingBuddy.client_service.model.dto.ClientDTO;
 import com.BankingBuddy.client_service.model.dto.CreateClientRequest;
+import com.BankingBuddy.client_service.model.dto.UpdateClientRequest;
 import com.BankingBuddy.client_service.security.UserContext;
 import com.BankingBuddy.client_service.service.ClientService;
+
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -94,5 +97,48 @@ public class ClientController {
         ApiResponse<Void> response = ApiResponse.success(null, "Client verified successfully");
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get client by client id
+     * Returns detailed client information including all associated accounts
+     * This is used when the agent clicks into a client from the "Manage Profiles" page
+     * 
+     * @param clientId the client ID to get
+     * @param httpRequest the HTTP request containing the user context
+     * @return ResponseEntity with the client profile
+     */
+    @GetMapping("/{clientId}")
+    public ResponseEntity<ApiResponse<ClientDTO>> getClientById(
+        @PathVariable String clientId,
+        HttpServletRequest httpRequest
+    ) {
+        UserContext userContext = (UserContext) httpRequest.getAttribute("userContext");
+        ClientDTO clientDTO = clientService.getClientById(clientId, userContext);
+
+        return ResponseEntity.ok(ApiResponse.success(clientDTO, "Client profile retrieved successfully"));
+    }
+
+    @PatchMapping("/{clientId}")
+    public ResponseEntity<ApiResponse<ClientDTO>> updateClientById(
+        @PathVariable String clientId,
+        @Valid @RequestBody UpdateClientRequest clientData,
+        HttpServletRequest httpRequest
+    ) {
+        UserContext userContext = (UserContext) httpRequest.getAttribute("userContext");
+        ClientDTO client = clientService.updateClientById(clientId, clientData, userContext);
+
+        return ResponseEntity.ok(ApiResponse.success(client, "Client profile updated successfully"));
+    }
+
+    @DeleteMapping("/{clientId}")
+    public ResponseEntity<ApiResponse<Void>> softDeleteClientById(
+        @PathVariable String clientId,
+        HttpServletRequest httpRequest
+    ) {
+        UserContext userContext = (UserContext) httpRequest.getAttribute("userContext");
+        clientService.softDeleteClientById(clientId, userContext);
+
+        return ResponseEntity.ok(ApiResponse.success(null, "Client profile soft deleted successfully"));
     }
 }

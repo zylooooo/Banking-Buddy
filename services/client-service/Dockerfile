@@ -3,6 +3,7 @@ FROM eclipse-temurin:21-jdk-alpine AS builder
 # Run update and install dependencies
 RUN apk add --no-cache \
     curl \
+    maven \
     && rm -rf /var/cache/apk/*
 
 # Set working directory
@@ -23,13 +24,13 @@ COPY client-service/pom.xml .
 RUN chmod +x mvnw
 
 # Download dependencies (will now find audit-logging-client in local Maven repo)
-RUN ./mvnw dependency:go-offline -B
+RUN mvn dependency:go-offline -B
 
 # Copy source code
 COPY client-service/src ./src
 
 # Build the application
-RUN ./mvnw clean package -DskipTests -B
+RUN mvn clean package -DskipTests -B
 
 # Production stage
 FROM eclipse-temurin:21-jdk-alpine AS runtime

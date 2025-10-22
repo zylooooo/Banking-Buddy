@@ -1,0 +1,52 @@
+{"properties": [
+  {
+    "name": "app.security.enabled",
+    "type": "java.lang.String",
+    "description": "A description for 'app.security.enabled'"
+  },
+  {
+    "name": "app.mock.role",
+    "type": "java.lang.String",
+    "description": "A description for 'app.mock.role'"
+  },
+  {
+    "name": "aws.access-key-id",
+    "type": "java.lang.String",
+    "description": "A description for 'aws.access-key-id'"
+  },
+  {
+    "name": "aws.region",
+    "type": "java.lang.String",
+    "description": "A description for 'aws.region'"
+  },
+  {
+    "name": "aws.secret-access-key",
+    "type": "java.lang.String",
+    "description": "A description for 'aws.secret-access-key'"
+  },
+  {
+    "name": "aws.sqs.queue-url",
+    "type": "java.lang.String",
+    "description": "A description for 'aws.sqs.queue-url'"
+  },
+  {
+    "name": "aws.ses.source-email",
+    "type": "java.lang.String",
+    "description": "A description for 'aws.ses.source-email'"
+  },
+  {
+    "name": "audit.source-service",
+    "type": "java.lang.String",
+    "description": "A description for 'audit.source-service'"
+  },
+  {
+    "name": "audit.log-retention-days",
+    "type": "java.lang.String",
+    "description": "A description for 'audit.log-retention-days'"
+  },
+  {
+    "name": "audit.sqs.queue-url",
+    "type": "java.lang.String",
+    "description": "A description for 'audit.sqs.queue-url'"
+  }
+]}

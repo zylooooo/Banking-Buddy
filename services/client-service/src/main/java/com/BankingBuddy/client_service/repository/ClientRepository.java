@@ -37,4 +37,11 @@ public interface ClientRepository extends JpaRepository<Client, String> {
      * @return List of clients assigned to the agent
      */
     List<Client> findByAgentIdAndDeletedFalse(String agentId);
+
+    /**
+     * Find a client by client ID
+     * @param clientId the client ID to search for
+     * @return Optional containing the client if found
+     */
+    Optional<Client> findByClientId(String clientId);
 }
