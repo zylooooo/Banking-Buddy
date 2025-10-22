@@ -188,69 +188,69 @@ export default function UserManagementPage() {
                                         </td>
                                     </tr>
                                 ) : (
-                                    users.map((user) => (
-                                        <tr key={user.userId} className="border-b border-slate-700 hover:bg-slate-750">
-                                            <td className="p-4 text-white">
-                                                {user.firstName} {user.lastName}
-                                            </td>
-                                            <td className="p-4 text-slate-300">{user.email}</td>
-                                            <td className="p-4">
-                                                <span className={`px-2 py-1 text-xs rounded-full ${
-                                                    user.role === 'ROOT_ADMIN' || user.role === 'rootAdministrator'
-                                                        ? 'bg-purple-900 text-purple-300'
-                                                        : user.role === 'ADMIN'
-                                                        ? 'bg-blue-900 text-blue-300'
-                                                        : 'bg-green-900 text-green-300'
-                                                }`}>
-                                                    {user.role}
-                                                </span>
-                                            </td>
-                                            <td className="p-4">
-                                                <span className={`px-2 py-1 text-xs rounded-full ${
-                                                    user.isActive
-                                                        ? 'bg-green-900 text-green-300'
-                                                        : 'bg-red-900 text-red-300'
-                                                }`}>
-                                                    {user.isActive ? 'Active' : 'Disabled'}
-                                                </span>
-                                            </td>
-                                            <td className="p-4 text-slate-300">
-                                                {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
-                                            </td>
-                                            <td className="p-4">
-                                                <div className="flex gap-2 flex-wrap">
-                                                    {user.isActive ? (
-                                                        <button
-                                                            onClick={() => handleDisableUser(user.userId)}
-                                                            className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition"
-                                                            disabled={user.userId === currentUser?.sub}
-                                                        >
-                                                            Disable
-                                                        </button>
-                                                    ) : (
-                                                        <button
-                                                            onClick={() => handleEnableUser(user.userId)}
-                                                            className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition"
-                                                        >
-                                                            Enable
-                                                        </button>
-                                                    )}
-                                                    <button
-                                                        onClick={() => handleResetPassword(user.userId)}
-                                                        className="px-3 py-1 text-sm bg-yellow-600 text-white rounded hover:bg-yellow-700 transition"
-                                                        disabled={user.userId === currentUser?.sub}
-                                                    >
-                                                        Reset Password
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleSetupMFA(user.userId)}
-                                                        className="px-3 py-1 text-sm bg-accent text-white rounded hover:bg-sky-600 transition"
-                                                    >
-                                                        Setup MFA
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
+                                            users.map((user) => (
+                                                <tr key={user.id} className="border-b border-slate-700 hover:bg-slate-750">
+                                                    <td className="p-4 text-white">
+                                                        {user.firstName} {user.lastName}
+                                                    </td>
+                                                    <td className="p-4 text-slate-300">{user.email}</td>
+                                                    <td className="p-4">
+                                                        <span className={`px-2 py-1 text-xs rounded-full ${
+                                                            user.role === 'ROOT_ADMIN' || user.role === 'rootAdministrator'
+                                                                ? 'bg-purple-900 text-purple-300'
+                                                                : user.role === 'ADMIN'
+                                                                ? 'bg-blue-900 text-blue-300'
+                                                                : 'bg-slate-700 text-slate-300'
+                                                        }`}>
+                                                            {user.role}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-4">
+                                                        <span className={`px-2 py-1 text-xs rounded-full ${
+                                                            user.status === 'ACTIVE'
+                                                                ? 'bg-green-900 text-green-300'
+                                                                : 'bg-red-900 text-red-300'
+                                                        }`}>
+                                                            {user.status === 'ACTIVE' ? 'Active' : 'Disabled'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-4 text-slate-300">
+                                                        {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                                                    </td>
+                                                    <td className="p-4">
+                                                        <div className="flex gap-2 flex-wrap">
+                                                            {user.status === 'ACTIVE' ? (
+                                                                <button
+                                                                    onClick={() => handleDisableUser(user.id)}
+                                                                    className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition"
+                                                                    disabled={user.id === currentUser?.sub}
+                                                                >
+                                                                    Disable
+                                                                </button>
+                                                            ) : (
+                                                                <button
+                                                                    onClick={() => handleEnableUser(user.id)}
+                                                                    className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition"
+                                                                >
+                                                                    Enable
+                                                                </button>
+                                                            )}
+                                                            <button
+                                                                onClick={() => handleResetPassword(user.id)}
+                                                                className="px-3 py-1 text-sm bg-yellow-600 text-white rounded hover:bg-yellow-700 transition"
+                                                                disabled={user.id === currentUser?.sub}
+                                                            >
+                                                                Reset Password
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleSetupMFA(user.id)}
+                                                                className="px-3 py-1 text-sm bg-accent text-white rounded hover:bg-sky-600 transition"
+                                                            >
+                                                                Setup MFA
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
                                     ))
                                 )}
                             </tbody>
