@@ -31,8 +31,6 @@ module "iam" {
   rds_secret_arn           = module.secrets-manager.rds_secret_arn
   sftp_secret_arn          = module.secrets-manager.sftp_secret_arn
   crm_db_secret_arn        = module.secrets-manager.crm_db_secret_arn
-  # audit_dynamodb_table_arn removed to break circular dependency with cognito
-  # audit_dynamodb_table_arn = module.audit_logging.dynamodb_table_arn
 
   ses_email_arn         = module.ses.sender_email_arn
 

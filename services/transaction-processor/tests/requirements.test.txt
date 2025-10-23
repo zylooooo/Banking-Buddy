@@ -2,4 +2,3 @@ pytest==8.4.1
 pytest-mock==3.11.1
 testcontainers==3.7.1
 moto==4.2.7
-psycopg2-binary==2.9.7

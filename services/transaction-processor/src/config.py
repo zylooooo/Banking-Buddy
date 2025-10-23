@@ -38,6 +38,23 @@ def get_secret(secret_name: str) -> dict:
         raise e
 
 def load_config() -> Config:
+    # For local development, use environment variables directly
+    if os.getenv('RDS_SECRET_NAME') == 'dummy' or not os.getenv('RDS_SECRET_NAME'):
+        return Config(
+            SFTP_HOST=os.getenv('SFTP_HOST'),
+            SFTP_PORT=int(os.getenv('SFTP_PORT', '22')),
+            SFTP_USERNAME=os.getenv('SFTP_USERNAME', 'sftpuser'),
+            SFTP_PASSWORD=os.getenv('SFTP_PASSWORD', 'password123'),
+            SFTP_REMOTE_FILE=os.getenv('SFTP_REMOTE_FILE'),
+            SFTP_LOCAL_FILE=os.getenv('SFTP_LOCAL_FILE'),
+            DB_HOST=os.getenv('DB_HOST'),
+            DB_PORT=int(os.getenv('DB_PORT')),
+            DB_USERNAME=os.getenv('DB_USERNAME'),
+            DB_PASSWORD=os.getenv('DB_PASSWORD'),
+            DB_NAME=os.getenv('DB_NAME')
+        )
+
+
     # Get secret names from environment
     rds_secret_name = os.getenv('RDS_SECRET_NAME')
     sftp_secret_name = os.getenv('SFTP_SECRET_NAME')

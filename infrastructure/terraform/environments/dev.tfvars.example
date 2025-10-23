@@ -15,7 +15,7 @@ developer_ips = ["YOUR_IP_HERE/32"]
 # Secrets - DO NOT commit actual values
 rds_username      = "CHANGE_ME"
 rds_password      = "CHANGE_ME"
-rds_database_name = "transactions"
+rds_database_name = "crm_transactions"
 sftp_username     = "CHANGE_ME"
 sftp_password     = "CHANGE_ME"
 

@@ -81,7 +81,7 @@ variable "rds_password" {
 variable "rds_database_name" {
   description = "RDS database name"
   type        = string
-  default     = "transactions"
+  default     = "crm_transactions"
 }
 
 variable "sftp_username" {
