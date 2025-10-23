@@ -20,8 +20,8 @@ CLIENTS = [
 ]
 START_DATE = datetime.today() - timedelta(days=120)  # last ~4 months
 END_DATE = datetime.today()
-TXN_TYPES = [("Deposit", 0.6), ("Withdrawal", 0.4)]
-STATUSES = [("Completed", 0.75), ("Pending", 0.15), ("Failed", 0.10)]
+TXN_TYPES = [("DEPOSIT", 0.6), ("WITHDRAWAL", 0.4)]
+STATUSES = [("COMPLETED", 0.75), ("PENDING", 0.15), ("FAILED", 0.10)]
 MIN_AMT, MAX_AMT = 1.00, 10000.00  # amounts in absolute value
 
 random.seed(301)  # reproducible
