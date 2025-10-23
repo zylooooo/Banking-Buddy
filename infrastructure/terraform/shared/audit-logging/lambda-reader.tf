@@ -39,8 +39,8 @@ resource "aws_iam_role_policy" "lambda_reader_dynamodb" {
           "dynamodb:Scan"
         ]
         Resource = [
-          aws_dynamodb_table.audit_logs.arn,
-          "${aws_dynamodb_table.audit_logs.arn}/index/*"
+          var.dynamodb_table_arn,
+          "${var.dynamodb_table_arn}/index/*"
         ]
       }
     ]
@@ -75,7 +75,7 @@ resource "aws_lambda_function" "audit_reader" {
 
   environment {
     variables = {
-      DYNAMODB_TABLE_NAME  = aws_dynamodb_table.audit_logs.name
+      DYNAMODB_TABLE_NAME  = var.dynamodb_table_name
       AGENT_INDEX_NAME     = "AgentIndex"
       OPERATION_INDEX_NAME = "OperationIndex"
     }

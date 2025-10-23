@@ -21,16 +21,14 @@ variable "common_tags" {
   default     = {}
 }
 
-variable "dynamodb_read_capacity" {
-  description = "DynamoDB read capacity units"
-  type        = number
-  default     = 5
+variable "dynamodb_table_name" {
+  description = "Name of the DynamoDB table for audit logs (managed by separate dynamodb module)"
+  type        = string
 }
 
-variable "dynamodb_write_capacity" {
-  description = "DynamoDB write capacity units"
-  type        = number
-  default     = 5
+variable "dynamodb_table_arn" {
+  description = "ARN of the DynamoDB table for audit logs (managed by separate dynamodb module)"
+  type        = string
 }
 
 variable "log_retention_days" {

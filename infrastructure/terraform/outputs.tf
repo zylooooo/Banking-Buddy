@@ -64,7 +64,7 @@ output "user_service_alb_dns" {
 # Audit logging outputs
 output "audit_logs_dynamodb_table_name" {
   description = "Name of the audit logs DynamoDB table"
-  value       = module.audit_logging.dynamodb_table_name
+  value       = module.dynamodb.table_name
 }
 
 output "audit_dynamodb_write_policy_arn" {

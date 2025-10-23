@@ -59,8 +59,8 @@ resource "aws_iam_role_policy" "lambda_writer_dynamodb" {
           "dynamodb:PutItem"
         ]
         Resource = [
-          aws_dynamodb_table.audit_logs.arn,
-          "${aws_dynamodb_table.audit_logs.arn}/index/*"
+          var.dynamodb_table_arn,
+          "${var.dynamodb_table_arn}/index/*"
         ]
       }
     ]
@@ -95,7 +95,7 @@ resource "aws_lambda_function" "audit_writer" {
 
   environment {
     variables = {
-      DYNAMODB_TABLE_NAME = aws_dynamodb_table.audit_logs.name
+      DYNAMODB_TABLE_NAME = var.dynamodb_table_name
       MAX_RETRIES         = "3"
       LOG_RETENTION_DAYS  = tostring(var.log_retention_days)
     }
