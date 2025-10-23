@@ -99,8 +99,6 @@ module "audit_logging" {
   cognito_user_pool_client_id = module.cognito.user_pool_client_id
   aws_region                  = data.aws_region.current.name
   allowed_origins             = var.audit_api_allowed_origins
-
-  depends_on = [module.cognito]
 }
 
 # Call the transaction processor module

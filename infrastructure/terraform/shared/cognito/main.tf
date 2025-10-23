@@ -112,6 +112,11 @@ resource "aws_cognito_user_pool" "main" {
 resource "aws_cognito_user_pool_domain" "main" {
   domain       = "${var.name_prefix}-auth"
   user_pool_id = aws_cognito_user_pool.main.id
+
+  # CRITICAL: Prevent destruction to avoid user pool recreation
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 # Cognito User Pool Client (for application)
@@ -191,6 +196,11 @@ resource "aws_cognito_user_pool_ui_customization" "main" {
   client_id    = aws_cognito_user_pool_client.main.id
 
   css = file("${path.module}/hosted-ui.css")
+
+  # CRITICAL: Prevent destruction
+  lifecycle {
+    prevent_destroy = true
+  }
 
   depends_on = [aws_cognito_user_pool_domain.main]
 }

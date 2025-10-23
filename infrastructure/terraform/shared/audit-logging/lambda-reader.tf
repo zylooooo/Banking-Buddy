@@ -47,8 +47,23 @@ resource "aws_iam_role_policy" "lambda_reader_dynamodb" {
   })
 }
 
+# Trigger build when source code changes
+resource "null_resource" "audit_reader_package_builder" {
+  triggers = {
+    requirements    = filemd5("${path.module}/lambda/audit-reader/requirements.txt")
+    lambda_function = filemd5("${path.module}/lambda/audit-reader/lambda_function.py")
+    build_script    = filemd5("${path.module}/lambda/audit-reader/build.sh")
+  }
+
+  provisioner "local-exec" {
+    command     = "cd ${path.module}/lambda/audit-reader && bash build.sh"
+    working_dir = path.root
+  }
+}
+
 # Lambda Function - Audit Reader
 resource "aws_lambda_function" "audit_reader" {
+  depends_on       = [null_resource.audit_reader_package_builder]
   filename         = "${path.module}/lambda/audit-reader.zip"
   function_name    = "${var.name_prefix}-audit-reader"
   role             = aws_iam_role.lambda_reader.arn
