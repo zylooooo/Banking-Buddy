@@ -1,24 +1,34 @@
 import json
 from datetime import datetime
-from config import load_config
-from sftp_client import TransactionSFTPClient
-from database_client import DatabaseClient
+
+try:
+    from config import load_config
+    from sftp_client import TransactionSFTPClient
+    from database_client import DatabaseClient
+except ImportError:
+    from .config import load_config
+    from .sftp_client import TransactionSFTPClient
+    from .database_client import DatabaseClient
 
 def create_transactions_table(db_client):
     """Create transactions table if it doesn't exist"""
     try:
         # Table creation SQL
         create_table_sql = """
-        CREATE TABLE IF NOT EXISTS transactions (
-            id VARCHAR(255) PRIMARY KEY,
-            client_id VARCHAR(255) NOT NULL,
-            transaction VARCHAR(255) NOT NULL,
-            amount DECIMAL(10,2) NOT NULL,
-            date DATETIME NOT NULL,
-            status VARCHAR(50) NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            CREATE TABLE IF NOT EXISTS transactions (
+                id VARCHAR(50) PRIMARY KEY COMMENT 'Unique transaction ID',
+                client_id VARCHAR(50) NOT NULL COMMENT 'Unique client ID',
+                transaction ENUM('Deposit', 'Withdrawal'),
+                amount DECIMAL(15, 2) NOT NULL,
+                date DATE NOT NULL COMMENT 'The Transaction Date',
+                status ENUM('Completed', 'Pending', 'Failed') NOT NULL,
+
+                -- Indexes 
+                INDEX idx_client_id (client_id),
+                INDEX idx_date (date),
+                INDEX idx_status (status)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            COMMENT='Transaction table for CRM services consumption';
         """
         
         db_client.cursor.execute(create_table_sql)

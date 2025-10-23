@@ -1,10 +1,10 @@
 -- Transaction data storage for CRM services consumption
 
-CREATE DATABASE IF NOT EXISTS scrooge_crm
+CREATE DATABASE IF NOT EXISTS crm_transactions
 CHARACTER SET utf8mb4
 COLLATE utf8mb4_unicode_ci;
 
-USE scrooge_crm;
+USE crm_transactions;
 
 -- Core transactions table
 CREATE TABLE IF NOT EXISTS transactions (

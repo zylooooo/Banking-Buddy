@@ -32,8 +32,3 @@ variable "crm_db_secret_arn" {
   description = "ARN of the CRM database credentials secret"
   type        = string
 }
-
-variable "audit_dynamodb_table_arn" {
-  description = "ARN of the audit DynamoDB table"
-  type        = string
-}

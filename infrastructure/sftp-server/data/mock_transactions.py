@@ -4,7 +4,20 @@ from pathlib import Path
 
 # Configuration
 N = 20000             # number of rows to generate
-CLIENTS = 1000        # distinct clients
+CLIENTS = [
+    'CLT-cb9d7e84-a1d5-4d33-8051-afd6c4e2e442',
+    'CLT-3733f47b-6e7a-4642-8481-ec700881656a',
+    'CLT-c55bc2b7-368b-44fd-bcf7-f309410d71d4',
+    'CLT-e1c863a2-f3f0-42fa-afe6-7dc02ca6d816',
+    'CLT-82cf91f6-c766-44c6-b0d8-7b20eb42239e',
+    'CLT-aee57b8d-5e3e-4a2b-8c58-20f719ae4fd3',
+    'CLT-8aff96b7-a888-423f-a633-21859f32627a',
+    'CLT-d5b5e304-adbe-4b68-b262-84c2373e59ad',
+    'CLT-c40b11f9-3bed-4e80-a6da-1a529412785b',
+    'CLT-0c147535-9764-4efc-acce-81e64d9a2bcf',
+    'CLT-b3a05f1c-26d8-4651-8833-a6522f20da98',
+    'CLT-b6c29ff6-292a-4942-8b7d-90095181f8dd'
+]
 START_DATE = datetime.today() - timedelta(days=120)  # last ~4 months
 END_DATE = datetime.today()
 TXN_TYPES = [("Deposit", 0.6), ("Withdrawal", 0.4)]
@@ -43,7 +56,7 @@ with open(OUTPUT_FILE, 'w', newline='') as csvfile:
     
     for i in range(1, N + 1):
         tx_id = f"T{i:08d}"
-        client_id = f"CUS{random.randint(1, CLIENTS):06d}"
+        client_id = random.choice(CLIENTS)
         tx_type = pick_weighted(TXN_TYPES)
         status = pick_weighted(STATUSES)
         amount = round(random.uniform(MIN_AMT, MAX_AMT), 2)

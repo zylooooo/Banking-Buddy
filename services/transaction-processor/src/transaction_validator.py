@@ -1,13 +1,14 @@
 from datetime import datetime
 from typing import Dict, Any, Optional
+import re
 
 def validate_transaction_record(row: Dict[str, str], row_number: int) -> Optional[Dict[str, Any]]:
     """
     Validate a single transaction record based on business rules
     
     Business Rules:
-    - ID: Non-empty, unique identifier
-    - Client ID: String, unique identifier
+    - ID: Non-empty, unique identifier (T followed by 8 digits)
+    - Client ID: String, unique identifier (CLT-{UUID} format)
     - Transaction: Must be 'Deposit' or 'Withdrawal'
     - Amount: Must be positive number
     - Date: Must be valid date format (YYYY-MM-DD)
@@ -16,19 +17,19 @@ def validate_transaction_record(row: Dict[str, str], row_number: int) -> Optiona
     errors = []
     
     try:
-        # 1. ID validation (non-empty)
+        # 1. ID validation (T followed by 8 digits)
         transaction_id = row.get('id', '').strip()
         if not transaction_id:
             errors.append("ID is missing or empty")
+        elif not re.match(r'^T\d{8}$', transaction_id):
+            errors.append(f"ID must be in format T########, got: {transaction_id}")
         
-        # 2. Client ID validation (non-empty, unique identifier)
+        # 2. Client ID validation (CLT-{UUID} format)
         client_id_str = row.get('client_id', '').strip()
         if not client_id_str:
             errors.append("Client ID is missing or empty")
-        elif not client_id_str.startswith('CUS') or len(client_id_str) != 9:
-            errors.append(f"Client ID must be in format CUS#######, got: {client_id_str}")
-        elif not client_id_str[3:].isdigit():
-            errors.append(f"Client ID must have 6 digits after 'CUS', got: {client_id_str}")
+        elif not re.match(r'^CLT-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', client_id_str, re.IGNORECASE):
+            errors.append(f"Client ID must be in format CLT-{{UUID}}, got: {client_id_str}")
         
         # 3. Transaction type validation (Deposit or Withdrawal)
         transaction = row.get('transaction', '').strip()

@@ -1,5 +1,8 @@
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}  
+data "aws_dynamodb_table" "audit_table" {
+  name = "${var.name_prefix}-audit-logs"
+}
 
 # Lambda Execution Role
 resource "aws_iam_role" "lambda_execution" {
@@ -147,7 +150,7 @@ resource "aws_iam_role_policy" "elastic_beanstalk_audit_dynamodb" {
         Action = [
           "dynamodb:PutItem"
         ]
-        Resource = var.audit_dynamodb_table_arn
+        Resource = data.aws_dynamodb_table.audit_table.arn
       }
     ]
   })

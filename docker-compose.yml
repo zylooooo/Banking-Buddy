@@ -18,6 +18,39 @@ services:
     networks:
       - banking-buddy-network
   
+  # SFTP server for transaction data
+  sftp-server:
+    build:
+      context: ./infrastructure/sftp-server
+      dockerfile: Dockerfile
+    container_name: banking-buddy-sftp
+    restart: unless-stopped
+    ports:
+      - '2222:22'
+    volumes:
+      - ./infrastructure/sftp-server/data:/home/sftpuser/data
+    networks:
+      - banking-buddy-network
+
+  # Transaction processor (runs once to populate database)
+  transaction-processor:
+    build:
+      context: ./services/transaction-processor
+      dockerfile: Dockerfile
+    container_name: banking-buddy-transaction-processor
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      sftp-server:
+        condition: service_started
+    networks:
+      - banking-buddy-network
+    environment:
+      - DB_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    env_file:
+      - ./services/transaction-processor/.env.transaction-processor
+    restart: no
+  
   # User service
   user-service:
     build:
