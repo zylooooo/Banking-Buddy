@@ -58,6 +58,11 @@ resource "aws_dynamodb_table" "audit_logs" {
     enabled        = true
   }
 
+  # CRITICAL: Prevent accidental deletion of audit logs
+  lifecycle {
+    prevent_destroy = true
+  }
+
   tags = var.common_tags
 }
 
