@@ -97,6 +97,29 @@ services:
       retries: 10
       start_period: 30s
   
+  # Transaction service
+  transaction-service:
+    build:
+      context: ./services/transaction-service
+      dockerfile: Dockerfile
+    container_name: banking-buddy-transaction-service
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    env_file:
+      - ./services/transaction-service/.env.transaction-service
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    networks:
+      - banking-buddy-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 3s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+  
   # Frontend
   frontend:
     build:
