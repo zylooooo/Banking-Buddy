@@ -39,16 +39,31 @@ resource "aws_iam_role_policy" "lambda_reader_dynamodb" {
           "dynamodb:Scan"
         ]
         Resource = [
-          aws_dynamodb_table.audit_logs.arn,
-          "${aws_dynamodb_table.audit_logs.arn}/index/*"
+          var.dynamodb_table_arn,
+          "${var.dynamodb_table_arn}/index/*"
         ]
       }
     ]
   })
 }
 
+# Trigger build when source code changes
+resource "null_resource" "audit_reader_package_builder" {
+  triggers = {
+    requirements    = filemd5("${path.module}/lambda/audit-reader/requirements.txt")
+    lambda_function = filemd5("${path.module}/lambda/audit-reader/lambda_function.py")
+    build_script    = filemd5("${path.module}/lambda/audit-reader/build.sh")
+  }
+
+  provisioner "local-exec" {
+    command     = "cd ${path.module}/lambda/audit-reader && bash build.sh"
+    working_dir = path.root
+  }
+}
+
 # Lambda Function - Audit Reader
 resource "aws_lambda_function" "audit_reader" {
+  depends_on       = [null_resource.audit_reader_package_builder]
   filename         = "${path.module}/lambda/audit-reader.zip"
   function_name    = "${var.name_prefix}-audit-reader"
   role             = aws_iam_role.lambda_reader.arn
@@ -60,7 +75,7 @@ resource "aws_lambda_function" "audit_reader" {
 
   environment {
     variables = {
-      DYNAMODB_TABLE_NAME  = aws_dynamodb_table.audit_logs.name
+      DYNAMODB_TABLE_NAME  = var.dynamodb_table_name
       AGENT_INDEX_NAME     = "AgentIndex"
       OPERATION_INDEX_NAME = "OperationIndex"
     }

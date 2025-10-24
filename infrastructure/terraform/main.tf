@@ -31,8 +31,6 @@ module "iam" {
   rds_secret_arn           = module.secrets-manager.rds_secret_arn
   sftp_secret_arn          = module.secrets-manager.sftp_secret_arn
   crm_db_secret_arn        = module.secrets-manager.crm_db_secret_arn
-  # audit_dynamodb_table_arn removed to break circular dependency with cognito
-  # audit_dynamodb_table_arn = module.audit_logging.dynamodb_table_arn
 
   ses_email_arn         = module.ses.sender_email_arn
 
@@ -81,6 +79,16 @@ module "secrets-manager" {
   depends_on = [module.rds]
 }
 
+# Call the DynamoDB module (for audit logs)
+module "dynamodb" {
+  source = "./shared/dynamodb"
+
+  name_prefix    = local.name_prefix
+  read_capacity  = var.audit_dynamodb_read_capacity
+  write_capacity = var.audit_dynamodb_write_capacity
+  common_tags    = local.common_tags
+}
+
 # Call the audit logging module
 module "audit_logging" {
   source = "./shared/audit-logging"
@@ -90,9 +98,11 @@ module "audit_logging" {
   common_tags        = local.common_tags
   name_prefix        = local.name_prefix
 
-  dynamodb_read_capacity  = var.audit_dynamodb_read_capacity
-  dynamodb_write_capacity = var.audit_dynamodb_write_capacity
-  log_retention_days      = var.audit_log_retention_days
+  # DynamoDB table (managed by separate module)
+  dynamodb_table_name = module.dynamodb.table_name
+  dynamodb_table_arn  = module.dynamodb.table_arn
+
+  log_retention_days = var.audit_log_retention_days
 
   # API Gateway Cognito authorization
   cognito_user_pool_id        = module.cognito.user_pool_id
@@ -100,7 +110,7 @@ module "audit_logging" {
   aws_region                  = data.aws_region.current.name
   allowed_origins             = var.audit_api_allowed_origins
 
-  depends_on = [module.cognito]
+  depends_on = [module.dynamodb]
 }
 
 # Call the transaction processor module

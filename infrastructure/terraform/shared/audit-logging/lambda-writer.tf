@@ -59,16 +59,31 @@ resource "aws_iam_role_policy" "lambda_writer_dynamodb" {
           "dynamodb:PutItem"
         ]
         Resource = [
-          aws_dynamodb_table.audit_logs.arn,
-          "${aws_dynamodb_table.audit_logs.arn}/index/*"
+          var.dynamodb_table_arn,
+          "${var.dynamodb_table_arn}/index/*"
         ]
       }
     ]
   })
 }
 
+# Trigger build when source code changes
+resource "null_resource" "audit_writer_package_builder" {
+  triggers = {
+    requirements    = filemd5("${path.module}/lambda/audit-writer/requirements.txt")
+    lambda_function = filemd5("${path.module}/lambda/audit-writer/lambda_function.py")
+    build_script    = filemd5("${path.module}/lambda/audit-writer/build.sh")
+  }
+
+  provisioner "local-exec" {
+    command     = "cd ${path.module}/lambda/audit-writer && bash build.sh"
+    working_dir = path.root
+  }
+}
+
 # Lambda Function - Audit Writer
 resource "aws_lambda_function" "audit_writer" {
+  depends_on       = [null_resource.audit_writer_package_builder]
   filename         = "${path.module}/lambda/audit-writer.zip"
   function_name    = "${var.name_prefix}-audit-writer"
   role             = aws_iam_role.lambda_writer.arn
@@ -80,7 +95,7 @@ resource "aws_lambda_function" "audit_writer" {
 
   environment {
     variables = {
-      DYNAMODB_TABLE_NAME = aws_dynamodb_table.audit_logs.name
+      DYNAMODB_TABLE_NAME = var.dynamodb_table_name
       MAX_RETRIES         = "3"
       LOG_RETENTION_DAYS  = tostring(var.log_retention_days)
     }

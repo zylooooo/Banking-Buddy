@@ -1,11 +1,11 @@
 output "dynamodb_table_name" {
-  description = "Name of the audit logs DynamoDB table"
-  value       = aws_dynamodb_table.audit_logs.name
+  description = "Name of the audit logs DynamoDB table (passed through from dynamodb module)"
+  value       = var.dynamodb_table_name
 }
 
 output "dynamodb_table_arn" {
-  description = "ARN of the audit logs DynamoDB table"
-  value       = aws_dynamodb_table.audit_logs.arn
+  description = "ARN of the audit logs DynamoDB table (passed through from dynamodb module)"
+  value       = var.dynamodb_table_arn
 }
 
 output "audit_dynamodb_write_policy_arn" {

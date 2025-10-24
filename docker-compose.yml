@@ -18,6 +18,39 @@ services:
     networks:
       - banking-buddy-network
   
+  # SFTP server for transaction data
+  sftp-server:
+    build:
+      context: ./infrastructure/sftp-server
+      dockerfile: Dockerfile
+    container_name: banking-buddy-sftp
+    restart: unless-stopped
+    ports:
+      - '2222:22'
+    volumes:
+      - ./infrastructure/sftp-server/data:/home/sftpuser/data
+    networks:
+      - banking-buddy-network
+
+  # Transaction processor (runs once to populate database)
+  transaction-processor:
+    build:
+      context: ./services/transaction-processor
+      dockerfile: Dockerfile
+    container_name: banking-buddy-transaction-processor
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      sftp-server:
+        condition: service_started
+    networks:
+      - banking-buddy-network
+    environment:
+      - DB_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    env_file:
+      - ./services/transaction-processor/.env.transaction-processor
+    restart: no
+  
   # User service
   user-service:
     build:
@@ -59,6 +92,29 @@ services:
       - banking-buddy-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 3s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+  
+  # Transaction service
+  transaction-service:
+    build:
+      context: ./services/transaction-service
+      dockerfile: Dockerfile
+    container_name: banking-buddy-transaction-service
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    env_file:
+      - ./services/transaction-service/.env.transaction-service
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    networks:
+      - banking-buddy-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
       interval: 3s
       timeout: 10s
       retries: 10

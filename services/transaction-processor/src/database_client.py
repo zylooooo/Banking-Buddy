@@ -1,6 +1,5 @@
 import mysql.connector
-from typing import List, Dict, Any, Optional, Tuple
-from contextlib import contextmanager
+from typing import List, Dict, Any, Tuple
 
 class DatabaseClient:
     """
@@ -37,7 +36,47 @@ class DatabaseClient:
             print(f"Connected to MySQL database at {self.host}:{self.port}")
             return True
         except mysql.connector.Error as e:
-            print(f"Failed to connect to MySQL database: {e}")
+            if e.errno == 1049:
+                print(f"Database '{self.database}' not found. Attempting to create it...")
+                return self._create_database_and_connect()
+            else:
+                print(f"Failed to connect to MySQL database: {e}")
+                return False
+    
+    def _create_database_and_connect(self):
+        """Create database and table, then connect"""
+        try:
+            # Connect without specifying database
+            temp_connection = mysql.connector.connect(
+                user=self.username,
+                password=self.password,
+                host=self.host,
+                port=self.port
+            )
+            temp_cursor = temp_connection.cursor()
+
+            # Create database
+            temp_cursor.execute(f"CREATE DATABASE IF NOT EXISTS {self.database}")
+            temp_cursor.execute(f"USE {self.database}")
+
+            # Close temporary connection
+            temp_cursor.close()
+            temp_connection.close()
+
+            # Now connect to the specific database
+            self.connection = mysql.connector.connect(
+                user=self.username,
+                password=self.password,
+                host=self.host,
+                port=self.port,
+                database=self.database
+            )
+            self.cursor = self.connection.cursor()
+
+            print(f"Successfully created database '{self.database}' and connected to MySQL at {self.host}:{self.port}")
+            return True
+        except mysql.connector.Error as e:
+            print(f"Failed to create database and connect: {e}")
             return False
 
     def test_connection(self) -> bool:
