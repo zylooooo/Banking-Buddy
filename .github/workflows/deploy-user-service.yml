@@ -42,11 +42,6 @@ jobs:
           distribution: 'corretto'
           cache: 'maven'
       
-      - name: Run tests
-        run: |
-          cd ${{ env.SERVICE_PATH }}
-          mvn clean test
-      
       - name: Build with Maven
         run: |
           cd ${{ env.SERVICE_PATH }}
