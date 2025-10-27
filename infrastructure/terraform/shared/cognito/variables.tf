@@ -40,3 +40,8 @@ variable "cognito_sns_role_arn" {
   description = "ARN of the IAM role for Cognito to send SMS via SNS"
   type        = string
 }
+
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+}

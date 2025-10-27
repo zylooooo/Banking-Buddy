@@ -34,6 +34,9 @@ resource "aws_db_instance" "main" {
   storage_type          = "gp2"
   storage_encrypted     = true
 
+  # Support for multi-az deployment for high availability
+  multi_az = true
+
   # Create a default database for the Lambda to use
   db_name  = var.db_name
   username = var.db_username

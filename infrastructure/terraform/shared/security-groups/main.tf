@@ -144,6 +144,15 @@ resource "aws_security_group" "elastic_beanstalk" {
   vpc_id      = var.vpc_id
   description = "Security group for Elastic Beanstalk Instances"
 
+  # SSH access from developer IPs
+  ingress {
+    from_port = 22
+    to_port = 22
+    protocol = "tcp"
+    cidr_blocks = var.developer_ips
+    description = "SSH access from developer IPs"
+  }
+
   # Inbound from ALB
   ingress {
     from_port       = 8080
@@ -160,6 +169,15 @@ resource "aws_security_group" "elastic_beanstalk" {
     protocol    = "tcp"
     cidr_blocks = [var.vpc_cidr]
     description = "MySQL to RDS"
+  }
+
+  # Outbound to Redis
+  egress {
+    from_port = 6379
+    to_port = 6379
+    protocol = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+    description = "Redis access"
   }
 
   # Outbound to internet (for package downloads, AWS API calls)
@@ -194,4 +212,34 @@ resource "aws_security_group_rule" "rds_from_eb" {
   source_security_group_id = aws_security_group.elastic_beanstalk.id
   security_group_id        = aws_security_group.rds.id
   description              = "MySQL access from Elastic Beanstalk"
+}
+
+# ElastiCache (Redis) Security Group
+resource "aws_security_group" "redis" {
+  name_prefix = "${var.name_prefix}-redis-"
+  vpc_id      = var.vpc_id
+  description = "Security group for ElastiCache Redis"
+
+  # Access from Elastic Beanstalk instances
+  ingress {
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [aws_security_group.elastic_beanstalk.id]
+    description     = "Redis access from EB instances"
+  }
+
+  # Access from Lambda
+  ingress {
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [aws_security_group.lambda.id]
+    description     = "Redis access from Lambda"
+  }
+
+  tags = merge(var.common_tags, {
+    Name = "${var.name_prefix}-redis-sg"
+    Type = "ElastiCache Redis"
+  })
 }

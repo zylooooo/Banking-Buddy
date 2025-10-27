@@ -25,14 +25,15 @@ module "security_groups" {
 module "iam" {
   source = "./shared/iam"
 
-  common_tags              = local.common_tags
-  name_prefix              = local.name_prefix
-  s3_bucket_name           = module.s3.bucket_name
-  rds_secret_arn           = module.secrets-manager.rds_secret_arn
-  sftp_secret_arn          = module.secrets-manager.sftp_secret_arn
-  crm_db_secret_arn        = module.secrets-manager.crm_db_secret_arn
+  common_tags       = local.common_tags
+  name_prefix       = local.name_prefix
+  s3_bucket_name    = module.s3.bucket_name
+  rds_secret_arn    = module.secrets-manager.rds_secret_arn
+  sftp_secret_arn   = module.secrets-manager.sftp_secret_arn
+  crm_users_db_secret_arn = module.secrets-manager.crm_users_db_secret_arn
+  aws_region        = var.aws_region
 
-  ses_email_arn         = module.ses.sender_email_arn
+  ses_email_arn = module.ses.sender_email_arn
 
   depends_on = [module.secrets-manager, module.ses]
 }
@@ -73,8 +74,8 @@ module "secrets-manager" {
   rds_database_name = var.rds_database_name
   sftp_username     = var.sftp_username
   sftp_password     = var.sftp_password
-  crm_db_username   = var.crm_db_username
-  crm_db_password   = var.crm_db_password
+  crm_users_db_username   = var.crm_users_db_username
+  crm_users_db_password   = var.crm_users_db_password
 
   depends_on = [module.rds]
 }
@@ -107,7 +108,7 @@ module "audit_logging" {
   # API Gateway Cognito authorization
   cognito_user_pool_id        = module.cognito.user_pool_id
   cognito_user_pool_client_id = module.cognito.user_pool_client_id
-  aws_region                  = data.aws_region.current.name
+  aws_region                  = var.aws_region
   allowed_origins             = var.audit_api_allowed_origins
 
   depends_on = [module.dynamodb]
@@ -137,6 +138,7 @@ module "transaction-processor" {
   sftp_secret_name           = module.secrets-manager.sftp_secret_name
   ec2_key_pair_name          = var.ec2_key_pair_name
   audit_dynamodb_table_name  = module.audit_logging.dynamodb_table_name
+  aws_region                 = var.aws_region
 
   depends_on = [
     module.secrets-manager,
@@ -150,37 +152,110 @@ module "ses" {
 
   sender_email = var.ses_sender_email
   name_prefix  = local.name_prefix
+  aws_region   = var.aws_region
 }
 
 # Call the Cognito module
 module "cognito" {
   source = "./shared/cognito"
 
-  name_prefix      = local.name_prefix
-  ses_email_arn    = module.ses.sender_email_arn
-  ses_sender_email = module.ses.sender_email
+  name_prefix          = local.name_prefix
+  ses_email_arn        = module.ses.sender_email_arn
+  ses_sender_email     = module.ses.sender_email
   cognito_sns_role_arn = module.iam.cognito_sns_role_arn
-  callback_urls    = ["http://localhost:3000/callback"] # Will be updated after ALB is created
-  logout_urls      = ["http://localhost:3000"]          # Will be updated after ALB is created
-  common_tags      = local.common_tags
-  environment      = var.environment
+  callback_urls        = ["http://localhost:3000/callback"] # Will be updated after ALB is created
+  logout_urls          = ["http://localhost:3000"]          # Will be updated after ALB is created
+  common_tags          = local.common_tags
+  environment          = var.environment
+  aws_region           = var.aws_region
 
   depends_on = [module.ses, module.iam]
+}
+
+# Call the ElastiCache module
+module "elasticache" {
+  source = "./shared/elasticache"
+
+  name_prefix             = local.name_prefix
+  private_subnet_ids      = module.vpc.private_subnet_ids
+  redis_security_group_id = module.security_groups.redis_id
+  common_tags             = local.common_tags
+
+  depends_on = [module.security_groups]
 }
 
 # Call the user-service module
 module "user-service" {
   source = "./services/user-service"
 
+  name_prefix                = local.name_prefix
+  vpc_id                     = module.vpc.vpc_id
+  public_subnet_ids          = module.vpc.public_subnet_ids
+  private_subnet_ids         = module.vpc.private_subnet_ids
+  alb_security_group_id      = module.security_groups.alb_id
+  eb_security_group_id       = module.security_groups.elastic_beanstalk_id
+  eb_instance_profile_name   = module.iam.elastic_beanstalk_instance_profile_name
+  eb_service_role_arn        = module.iam.elastic_beanstalk_service_role_arn
+  rds_endpoint               = module.rds.rds_endpoint
+  rds_secret_name            = module.secrets-manager.rds_secret_name
+  crm_users_db_secret_name   = module.secrets-manager.crm_users_db_secret_name
+  aws_region                 = var.aws_region
+  cognito_user_pool_id       = module.cognito.user_pool_id
+  cognito_client_id          = module.cognito.user_pool_client_id
+  root_admin_email           = var.root_admin_email
+  audit_sqs_queue_url        = module.audit_logging.sqs_queue_url
+  redis_endpoint             = module.elasticache.redis_endpoint
+  ec2_key_pair_name          = var.ec2_key_pair_name
+  common_tags                = local.common_tags
+  
+  depends_on = [module.cognito, module.security_groups, module.elasticache]
+}
+
+# Call the WAF module
+module "waf" {
+  source = "./shared/waf"
+
+  name_prefix = local.name_prefix
+  common_tags = local.common_tags
+}
+
+# Call the ACM module for API Gateway certificate (only if custom domain is configured)
+module "acm" {
+  count  = var.root_domain_name != "" ? 1 : 0
+  source = "./shared/acm"
+
+  domain_name     = var.root_domain_name
+  route53_zone_id = var.route53_zone_id
+  name_prefix     = local.name_prefix
+  common_tags     = local.common_tags
+}
+
+# Call the API Gateway module
+module "api_gateway" {
+  source = "./shared/api-gateway"
+
   name_prefix           = local.name_prefix
-  vpc_id                = module.vpc.vpc_id
-  public_subnet_ids     = module.vpc.public_subnet_ids
-  alb_security_group_id = module.security_groups.alb_id
-  rds_endpoint          = module.rds.rds_endpoint
-  rds_secret_name       = module.secrets-manager.rds_secret_name
-  crm_db_username       = var.crm_db_username
-  crm_db_password       = var.crm_db_password
+  environment           = var.environment
+  cognito_user_pool_arn = module.cognito.user_pool_arn
+  user_service_endpoint = module.user-service.endpoint_url
+  api_domain_name       = var.api_domain_name
+  certificate_arn       = var.root_domain_name != "" ? module.acm[0].certificate_arn : null
+  waf_web_acl_arn       = module.waf.web_acl_arn
   common_tags           = local.common_tags
 
-  depends_on = [module.cognito, module.security_groups]
+  depends_on = [module.user-service, module.cognito, module.waf]
+}
+
+# Call the Route53 module (only if custom domain is configured)
+module "route53" {
+  count  = var.root_domain_name != "" ? 1 : 0
+  source = "./shared/route53"
+
+  domain_name             = var.root_domain_name
+  api_subdomain           = var.api_domain_name
+  api_gateway_domain_name = module.api_gateway.custom_domain_regional_domain_name
+  api_gateway_zone_id     = module.api_gateway.custom_domain_regional_zone_id
+  common_tags             = local.common_tags
+
+  depends_on = [module.api_gateway]
 }
