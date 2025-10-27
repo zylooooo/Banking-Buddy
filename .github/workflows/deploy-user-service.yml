@@ -93,8 +93,8 @@ jobs:
     # ✅ BEST PRACTICE #6: Timeout protection
     timeout-minutes: 30
     
-    # ✅ BEST PRACTICE #7: Only deploy on manual trigger AND successful build
-    if: always() && needs.build.result == 'success' && github.event_name == 'workflow_dispatch'
+    # Only deploy on manual workflow_dispatch trigger (not on push)
+    if: github.event_name == 'workflow_dispatch' && needs.build.result == 'success'
     environment: 
       name: ${{ github.event.inputs.environment || 'dev' }}
       # Environment protection handled in GitHub settings
