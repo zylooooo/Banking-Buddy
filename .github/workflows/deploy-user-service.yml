@@ -60,14 +60,18 @@ jobs:
           path: ${{ env.SERVICE_PATH }}/target/user-service-0.0.1-SNAPSHOT.jar
           retention-days: 7
 
-  # Job 2: Deploy (Manual trigger only via workflow_dispatch)
+  # Job 2: Deploy (Automated for dev, manual approval for staging/prod)
   deploy:
     name: Deploy to Elastic Beanstalk
     needs: build
     runs-on: ubuntu-latest
-    # Only deploy on manual workflow_dispatch trigger (NOT on automatic push)
-    if: github.event_name == 'workflow_dispatch'
-    environment: ${{ github.event.inputs.environment || 'dev' }}
+    # Uses GitHub Environments for manual approval on staging/prod
+    # Dev deployments are fully automated (no environment protection)
+    environment: 
+      name: ${{ github.event.inputs.environment || 'dev' }}
+    
+    env:
+      DEPLOY_ENV: ${{ github.event.inputs.environment || 'dev' }}
     
     steps:
       - name: Checkout code
@@ -83,7 +87,7 @@ jobs:
         run: |
           echo "Checking if Elastic Beanstalk environment exists..."
           ENV_STATUS=$(aws elasticbeanstalk describe-environments \
-            --environment-names banking-buddy-${{ github.event.inputs.environment || 'dev' }}-user-env \
+            --environment-names banking-buddy-${{ env.DEPLOY_ENV }}-user-env \
             --region ${{ env.AWS_REGION }} \
             --query 'Environments[0].Status' \
             --output text 2>/dev/null || echo "NotFound")
@@ -119,14 +123,14 @@ jobs:
           aws-access-key-id: ""  # Empty - using OIDC instead
           aws-secret-access-key: ""  # Empty - using OIDC instead
           aws-region: ${{ env.AWS_REGION }}
-          application-name: banking-buddy-${{ github.event.inputs.environment || 'dev' }}-user-service
-          environment-name: banking-buddy-${{ github.event.inputs.environment || 'dev' }}-user-env
+          application-name: banking-buddy-${{ env.DEPLOY_ENV }}-user-service
+          environment-name: banking-buddy-${{ env.DEPLOY_ENV }}-user-env
           deployment-package: ${{ env.SERVICE_PATH }}/target/user-service-0.0.1-SNAPSHOT.jar
       
       - name: Get environment URL
         run: |
           ENV_URL=$(aws elasticbeanstalk describe-environments \
-            --environment-names banking-buddy-${{ github.event.inputs.environment || 'dev' }}-user-env \
+            --environment-names banking-buddy-${{ env.DEPLOY_ENV }}-user-env \
             --region ${{ env.AWS_REGION }} \
             --query 'Environments[0].CNAME' \
             --output text)
