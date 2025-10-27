@@ -1,0 +1,55 @@
+name: 'Deploy to Elastic Beanstalk'
+description: 'Reusable action to deploy any service to AWS Elastic Beanstalk'
+
+inputs:
+  aws-access-key-id:
+    description: 'AWS Access Key ID'
+    required: true
+  aws-secret-access-key:
+    description: 'AWS Secret Access Key'
+    required: true
+  aws-region:
+    description: 'AWS Region'
+    required: true
+    default: 'ap-southeast-1'
+  application-name:
+    description: 'EB Application Name'
+    required: true
+  environment-name:
+    description: 'EB Environment Name'
+    required: true
+  deployment-package:
+    description: 'Path to JAR file to deploy'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Generate version label
+      id: version
+      shell: bash
+      run: |
+        TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+        VERSION_LABEL="${{ github.sha }}-${TIMESTAMP}"
+        echo "label=${VERSION_LABEL}" >> $GITHUB_OUTPUT
+        echo "Generated version: ${VERSION_LABEL}"
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ inputs.aws-access-key-id }}
+        aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
+        aws-region: ${{ inputs.aws-region }}
+    
+    - name: Deploy to Elastic Beanstalk
+      uses: einaregilsson/beanstalk-deploy@v22
+      with:
+        aws_access_key: ${{ inputs.aws-access-key-id }}
+        aws_secret_key: ${{ inputs.aws-secret-access-key }}
+        application_name: ${{ inputs.application-name }}
+        environment_name: ${{ inputs.environment-name }}
+        version_label: ${{ steps.version.outputs.label }}
+        region: ${{ inputs.aws-region }}
+        deployment_package: ${{ inputs.deployment-package }}
+        wait_for_environment_recovery: 300
+        wait_for_deployment: true

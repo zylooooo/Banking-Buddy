@@ -1,0 +1,165 @@
+name: Deploy User Service
+
+on:
+  push:
+    branches: [main, integration]
+    paths:
+      - 'services/user-service/**'
+      - '.github/workflows/deploy-user-service.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+env:
+  AWS_REGION: ap-southeast-1
+  SERVICE_PATH: services/user-service
+
+jobs:
+  # Job 1: Build (Runs automatically on push)
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    
+    outputs:
+      build-success: ${{ job.status }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'corretto'
+          cache: 'maven'
+      
+      - name: Run tests
+        run: |
+          cd ${{ env.SERVICE_PATH }}
+          mvn clean test
+      
+      - name: Build with Maven
+        run: |
+          cd ${{ env.SERVICE_PATH }}
+          mvn clean package -DskipTests
+      
+      - name: Verify JAR exists
+        run: |
+          if [ ! -f "${{ env.SERVICE_PATH }}/target/user-service-0.0.1-SNAPSHOT.jar" ]; then
+            echo "Error: JAR file not found!"
+            exit 1
+          fi
+          ls -lh ${{ env.SERVICE_PATH }}/target/*.jar
+          echo "Build completed successfully! ✅"
+      
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: user-service-jar
+          path: ${{ env.SERVICE_PATH }}/target/user-service-0.0.1-SNAPSHOT.jar
+          retention-days: 7
+      
+      - name: Build summary
+        run: |
+          echo "✅ Build completed successfully!"
+          echo "📦 JAR artifact uploaded"
+          echo "🎯 Ready for manual deployment"
+          echo ""
+          echo "To deploy:"
+          echo "1. Go to the 'Actions' tab in GitHub"
+          echo "2. Find 'Deploy User Service' workflow"
+          echo "3. Click 'Run workflow' on the latest run"
+          echo "4. Click 'Run workflow' button"
+
+  # Job 2: Deploy (Manual trigger only via workflow_dispatch)
+  deploy:
+    name: Deploy to Elastic Beanstalk
+    needs: build
+    runs-on: ubuntu-latest
+    # Only run when manually triggered OR when build succeeds on push
+    if: |
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event_name == 'push' && needs.build.result == 'success')
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Verify Elastic Beanstalk environment exists
+        run: |
+          echo "Checking if Elastic Beanstalk environment exists..."
+          ENV_STATUS=$(aws elasticbeanstalk describe-environments \
+            --environment-names banking-buddy-${{ github.event.inputs.environment || 'dev' }}-user-env \
+            --region ${{ env.AWS_REGION }} \
+            --query 'Environments[0].Status' \
+            --output text 2>/dev/null || echo "NotFound")
+          
+          if [ "$ENV_STATUS" = "NotFound" ] || [ -z "$ENV_STATUS" ] || [ "$ENV_STATUS" = "None" ]; then
+            echo "❌ Infrastructure does not exist."
+            echo "Please provision infrastructure first with: cd infrastructure/terraform && terraform apply"
+            exit 1
+          elif echo "$ENV_STATUS" | grep -q "Ready\|Updating"; then
+            echo "✅ Infrastructure exists and is ready: $ENV_STATUS"
+          else
+            echo "⚠️ Infrastructure exists but status is: $ENV_STATUS"
+            echo "Proceeding with deployment..."
+          fi
+      
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: user-service-jar
+          path: ${{ env.SERVICE_PATH }}/target/
+      
+      - name: Verify artifact downloaded
+        run: |
+          if [ ! -f "${{ env.SERVICE_PATH }}/target/user-service-0.0.1-SNAPSHOT.jar" ]; then
+            echo "Error: JAR file not found in artifacts!"
+            exit 1
+          fi
+          ls -lh ${{ env.SERVICE_PATH }}/target/*.jar
+      
+      - name: Deploy to Elastic Beanstalk
+        uses: ./.github/actions/deploy-to-eb
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          application-name: banking-buddy-${{ github.event.inputs.environment || 'dev' }}-user-service
+          environment-name: banking-buddy-${{ github.event.inputs.environment || 'dev' }}-user-env
+          deployment-package: ${{ env.SERVICE_PATH }}/target/user-service-0.0.1-SNAPSHOT.jar
+      
+      - name: Get environment URL
+        run: |
+          ENV_URL=$(aws elasticbeanstalk describe-environments \
+            --environment-names banking-buddy-${{ github.event.inputs.environment || 'dev' }}-user-env \
+            --region ${{ env.AWS_REGION }} \
+            --query 'Environments[0].CNAME' \
+            --output text)
+          echo "🚀 Deployment completed successfully!"
+          echo "📍 Environment URL: http://${ENV_URL}"
+          echo "🏥 Health check: http://${ENV_URL}/actuator/health"
+          echo ""
+          echo "Test the deployment:"
+          echo "curl http://${ENV_URL}/actuator/health"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
