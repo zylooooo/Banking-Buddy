@@ -22,6 +22,10 @@ env:
   AWS_REGION: ap-southeast-1
   SERVICE_PATH: services/user-service
 
+permissions:
+  id-token: write   # Required for OIDC authentication with AWS
+  contents: read    # Required to checkout code
+
 jobs:
   # Job 1: Build (Runs automatically on push)
   build:
