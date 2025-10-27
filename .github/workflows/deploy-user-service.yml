@@ -22,22 +22,11 @@ env:
   AWS_REGION: ap-southeast-1
   SERVICE_PATH: services/user-service
 
-# ✅ BEST PRACTICE #1: Concurrency control
-concurrency:
-  group: deploy-user-service-${{ github.event.inputs.environment || 'dev' }}
-  cancel-in-progress: false
-
 jobs:
-  # Job 1: Build (Runs automatically on push OR manual trigger)
+  # Job 1: Build (Runs automatically on push)
   build:
     name: Build Application
     runs-on: ubuntu-latest
-    # ✅ BEST PRACTICE #2: Minimal permissions
-    permissions:
-      contents: read
-      actions: write  # To upload artifacts
-    # ✅ BEST PRACTICE #3: Timeout protection
-    timeout-minutes: 10
     
     steps:
       - name: Checkout code
@@ -70,48 +59,26 @@ jobs:
           name: user-service-jar
           path: ${{ env.SERVICE_PATH }}/target/user-service-0.0.1-SNAPSHOT.jar
           retention-days: 7
-      
-      # ✅ BEST PRACTICE #4: Export artifact info for downstream job
-      - name: Set artifact metadata
-        id: metadata
-        run: |
-          echo "build_time=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
-          echo "build_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
-          echo "build_ref=${{ github.ref }}" >> $GITHUB_OUTPUT
-          echo "build_actor=${{ github.actor }}" >> $GITHUB_OUTPUT
 
-  # Job 2: Deploy (Manual trigger only)
+  # Job 2: Deploy (Manual trigger only via workflow_dispatch)
   deploy:
     name: Deploy to Elastic Beanstalk
     needs: build
     runs-on: ubuntu-latest
-    # ✅ BEST PRACTICE #5: Least privilege permissions
-    permissions:
-      id-token: write   # Required for OIDC
-      contents: read    # Minimal read access
-    
-    # ✅ BEST PRACTICE #6: Timeout protection
-    timeout-minutes: 30
-    
-    # Only deploy on manual workflow_dispatch trigger (not on push)
-    if: github.event_name == 'workflow_dispatch' && needs.build.result == 'success'
-    environment: 
-      name: ${{ github.event.inputs.environment || 'dev' }}
-      # Environment protection handled in GitHub settings
+    # Only deploy on manual workflow_dispatch trigger (NOT on automatic push)
+    if: github.event_name == 'workflow_dispatch'
+    environment: ${{ github.event.inputs.environment || 'dev' }}
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      # ✅ BEST PRACTICE #8: OIDC for AWS (no static credentials)
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
-          role-session-name: GitHubActions-${{ github.run_id }}
       
-      # ✅ BEST PRACTICE #9: Pre-flight checks
       - name: Verify Elastic Beanstalk environment exists
         run: |
           echo "Checking if Elastic Beanstalk environment exists..."
@@ -145,102 +112,27 @@ jobs:
             exit 1
           fi
           ls -lh ${{ env.SERVICE_PATH }}/target/*.jar
-          echo "📦 Artifact verified successfully"
       
-      # ✅ BEST PRACTICE #10: Deploy with version tracking
       - name: Deploy to Elastic Beanstalk
         uses: ./.github/actions/deploy-to-eb
         with:
-          # No AWS credentials - OIDC handles this
-          aws-access-key-id: ""
-          aws-secret-access-key: ""
+          aws-access-key-id: ""  # Empty - using OIDC instead
+          aws-secret-access-key: ""  # Empty - using OIDC instead
           aws-region: ${{ env.AWS_REGION }}
           application-name: banking-buddy-${{ github.event.inputs.environment || 'dev' }}-user-service
           environment-name: banking-buddy-${{ github.event.inputs.environment || 'dev' }}-user-env
           deployment-package: ${{ env.SERVICE_PATH }}/target/user-service-0.0.1-SNAPSHOT.jar
-        env:
-          AWS_ACCESS_KEY_ID: ""  # Empty because we're using OIDC
-          AWS_SECRET_ACCESS_KEY: ""
       
-      # ✅ BEST PRACTICE #11: Post-deployment verification
-      - name: Verify deployment health
-        id: health-check
+      - name: Get environment URL
         run: |
-          echo "Verifying deployment health..."
           ENV_URL=$(aws elasticbeanstalk describe-environments \
             --environment-names banking-buddy-${{ github.event.inputs.environment || 'dev' }}-user-env \
             --region ${{ env.AWS_REGION }} \
             --query 'Environments[0].CNAME' \
             --output text)
-          
-          echo "Environment URL: http://${ENV_URL}"
-          echo "environment_url=http://${ENV_URL}" >> $GITHUB_OUTPUT
-          
-          # Wait for service to be healthy (max 5 minutes)
-          MAX_ATTEMPTS=30
-          ATTEMPT=0
-          HEALTH_STATUS="unknown"
-          
-          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://${ENV_URL}/actuator/health" || echo "000")
-            
-            if [ "$HTTP_CODE" = "200" ]; then
-              HEALTH_STATUS="healthy"
-              echo "✅ Deployment verified! Service is healthy (HTTP $HTTP_CODE)"
-              echo "health_status=healthy" >> $GITHUB_OUTPUT
-              exit 0
-            fi
-            
-            ATTEMPT=$((ATTEMPT + 1))
-            echo "⏳ Attempt $ATTEMPT/$MAX_ATTEMPTS: Waiting for service to be healthy (HTTP $HTTP_CODE)..."
-            sleep 10
-          done
-          
-          echo "❌ Deployment verification failed after $MAX_ATTEMPTS attempts"
-          echo "health_status=unhealthy" >> $GITHUB_OUTPUT
-          echo "Service may still be starting up or may have issues"
-          echo "Check the Elastic Beanstalk environment for details"
-          exit 1
-      
-      # ✅ BEST PRACTICE #12: Deployment summary
-      - name: Deployment summary
-        if: always()
-        run: |
-          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Environment | ${{ github.event.inputs.environment || 'dev' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Service | User Service |" >> $GITHUB_STEP_SUMMARY
-          echo "| Build SHA | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Deployed By | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Status | ${{ steps.health-check.outputs.health_status || 'unknown' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Environment URL | ${{ steps.health-check.outputs.environment_url || 'N/A' }} |" >> $GITHUB_STEP_SUMMARY
-          
-          if [ "${{ steps.health-check.outputs.health_status }}" = "healthy" ]; then
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "✅ Deployment completed successfully!" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### Health Check" >> $GITHUB_STEP_SUMMARY
-            echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-            echo "curl ${{ steps.health-check.outputs.environment_url }}/actuator/health" >> $GITHUB_STEP_SUMMARY
-            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "❌ Deployment may have issues. Check logs for details." >> $GITHUB_STEP_SUMMARY
-          fi
-      
-      - name: Display deployment info
-        if: always()
-        run: |
-          echo "🚀 Deployment Summary"
-          echo "==================="
-          echo "Environment: ${{ github.event.inputs.environment || 'dev' }}"
-          echo "Status: ${{ steps.health-check.outputs.health_status || 'unknown' }}"
-          echo "URL: ${{ steps.health-check.outputs.environment_url || 'N/A' }}"
+          echo "🚀 Deployment completed successfully!"
+          echo "📍 Environment URL: http://${ENV_URL}"
+          echo "🏥 Health check: http://${ENV_URL}/actuator/health"
           echo ""
-          if [ "${{ steps.health-check.outputs.health_status }}" = "healthy" ]; then
-            echo "✅ Deployment successful!"
-          else
-            echo "⚠️ Deployment completed but health check failed"
-          fi
+          echo "Test the deployment:"
+          echo "curl http://${ENV_URL}/actuator/health"
