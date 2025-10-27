@@ -38,3 +38,8 @@ output "elastic_beanstalk_service_role_arn" {
   description = "ARN of the Elastic Beanstalk service role"
   value       = aws_iam_role.elastic_beanstalk_service.arn
 }
+
+output "github_actions_role_arn" {
+  description = "ARN of the GitHub Actions IAM Role for CI/CD"
+  value       = aws_iam_role.github_actions.arn
+}

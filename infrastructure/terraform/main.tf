@@ -32,6 +32,8 @@ module "iam" {
   sftp_secret_arn   = module.secrets-manager.sftp_secret_arn
   crm_users_db_secret_arn = module.secrets-manager.crm_users_db_secret_arn
   aws_region        = var.aws_region
+  github_org        = var.github_org
+  github_repo       = var.github_repo
 
   ses_email_arn = module.ses.sender_email_arn
 

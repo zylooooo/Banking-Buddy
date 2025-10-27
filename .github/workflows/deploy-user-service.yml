@@ -27,9 +27,8 @@ jobs:
   build:
     name: Build Application
     runs-on: ubuntu-latest
-    
-    outputs:
-      build-success: ${{ job.status }}
+    permissions:
+      contents: read  # Minimal permissions for build
     
     steps:
       - name: Checkout code
@@ -73,29 +72,34 @@ jobs:
           echo "1. Go to the 'Actions' tab in GitHub"
           echo "2. Find 'Deploy User Service' workflow"
           echo "3. Click 'Run workflow' on the latest run"
-          echo "4. Click 'Run workflow' button"
+          echo "4. Select environment and click 'Run workflow' button"
 
-  # Job 2: Deploy (Manual trigger only via workflow_dispatch)
+  # Job 2: Deploy (Manual trigger only)
   deploy:
     name: Deploy to Elastic Beanstalk
     needs: build
     runs-on: ubuntu-latest
-    # Only run when manually triggered OR when build succeeds on push
-    if: |
-      (github.event_name == 'workflow_dispatch') ||
-      (github.event_name == 'push' && needs.build.result == 'success')
+    permissions:
+      id-token: write   # Required for OIDC
+      contents: read    # Minimal read access
+      pull-requests: write  # Optional: for status comments
+    
+    # Only run on manual workflow_dispatch
+    # Remove automatic trigger on push
+    if: github.event_name == 'workflow_dispatch' && needs.build.result == 'success'
     environment: ${{ github.event.inputs.environment || 'dev' }}
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Configure AWS credentials
+      # SECURITY FIX #1: Use OIDC for AWS credentials
+      - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+          # No static credentials needed!
       
       - name: Verify Elastic Beanstalk environment exists
         run: |
@@ -134,12 +138,46 @@ jobs:
       - name: Deploy to Elastic Beanstalk
         uses: ./.github/actions/deploy-to-eb
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          # SECURITY FIX #2: Pass OIDC credentials (no static secrets)
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}  # Only if using fallback
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}  # Only if using fallback
           aws-region: ${{ env.AWS_REGION }}
           application-name: banking-buddy-${{ github.event.inputs.environment || 'dev' }}-user-service
           environment-name: banking-buddy-${{ github.event.inputs.environment || 'dev' }}-user-env
           deployment-package: ${{ env.SERVICE_PATH }}/target/user-service-0.0.1-SNAPSHOT.jar
+      
+      - name: Verify deployment health
+        run: |
+          echo "Verifying deployment health..."
+          ENV_URL=$(aws elasticbeanstalk describe-environments \
+            --environment-names banking-buddy-${{ github.event.inputs.environment || 'dev' }}-user-env \
+            --region ${{ env.AWS_REGION }} \
+            --query 'Environments[0].CNAME' \
+            --output text)
+          
+          echo "Environment URL: http://${ENV_URL}"
+          
+          # Wait for service to be healthy (max 5 minutes)
+          MAX_ATTEMPTS=30
+          ATTEMPT=0
+          
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://${ENV_URL}/actuator/health" || echo "000")
+            
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✅ Deployment verified! Service is healthy (HTTP $HTTP_CODE)"
+              exit 0
+            fi
+            
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "⏳ Attempt $ATTEMPT/$MAX_ATTEMPTS: Waiting for service to be healthy (HTTP $HTTP_CODE)..."
+            sleep 10
+          done
+          
+          echo "❌ Deployment verification failed after $MAX_ATTEMPTS attempts"
+          echo "Service may still be starting up or may have issues"
+          echo "Check the Elastic Beanstalk environment for details"
+          exit 1
       
       - name: Get environment URL
         run: |
@@ -154,7 +192,3 @@ jobs:
           echo ""
           echo "Test the deployment:"
           echo "curl http://${ENV_URL}/actuator/health"
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}

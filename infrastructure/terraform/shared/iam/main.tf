@@ -446,3 +446,93 @@ resource "aws_iam_role_policy" "cognito_sns" {
     ]
   })
 }
+
+# GitHub Actions IAM Role for CI/CD Deployment
+resource "aws_iam_role" "github_actions" {
+  name = "${var.name_prefix}-github-actions"
+  
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/token.actions.githubusercontent.com"
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+          }
+          StringLike = {
+            "token.actions.githubusercontent.com:sub" = "repo:${var.github_org}/${var.github_repo}:*"
+          }
+        }
+      }
+    ]
+  })
+  
+  tags = var.common_tags
+}
+
+# Custom policy for GitHub Actions (Elastic Beanstalk + CloudWatch)
+resource "aws_iam_role_policy" "github_actions_deploy" {
+  name = "${var.name_prefix}-github-actions-deploy"
+  role = aws_iam_role.github_actions.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "elasticbeanstalk:*",
+          "ec2:DescribeInstanceStatus",
+          "ec2:DescribeInstances",
+          "ec2:DescribeSecurityGroups",
+          "ec2:DescribeSubnets",
+          "ec2:DescribeVpcs",
+          "autoscaling:DescribeAutoScalingGroups",
+          "autoscaling:DescribeLaunchConfigurations",
+          "elasticloadbalancing:DescribeLoadBalancers",
+          "elasticloadbalancing:DescribeTargetHealth"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:*"
+        ]
+        Resource = [
+          "arn:aws:s3:::elasticbeanstalk-*",
+          "arn:aws:s3:::elasticbeanstalk-*/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:DescribeLogStreams",
+          "logs:GetLogEvents",
+          "logs:FilterLogEvents",
+          "logs:DescribeLogGroups"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "cloudwatch:GetMetricStatistics",
+          "cloudwatch:ListMetrics"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# Attach CloudWatch read-only for deployment verification
+resource "aws_iam_role_policy_attachment" "github_actions_cloudwatch" {
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess"
+  role       = aws_iam_role.github_actions.name
+}
