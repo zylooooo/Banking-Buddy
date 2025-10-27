@@ -36,19 +36,9 @@ runs:
         echo "label=${VERSION_LABEL}" >> $GITHUB_OUTPUT
         echo "Generated version: ${VERSION_LABEL}"
     
-    # ✅ Only configure AWS credentials if provided (for backward compatibility)
-    - name: Configure AWS credentials (if provided)
-      if: ${{ inputs.aws-access-key-id != '' && inputs.aws-access-key-id != null }}
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ inputs.aws-access-key-id }}
-        aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
-        aws-region: ${{ inputs.aws-region }}
-    
     - name: Deploy to Elastic Beanstalk
       uses: einaregilsson/beanstalk-deploy@v22
       with:
-        # Pass empty strings if using OIDC
         aws_access_key: ${{ inputs.aws-access-key-id }}
         aws_secret_key: ${{ inputs.aws-secret-access-key }}
         application_name: ${{ inputs.application-name }}
