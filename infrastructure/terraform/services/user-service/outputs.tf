@@ -1,19 +1,19 @@
 output "alb_dns_name" {
-  description = "DNS name of the Application Load Balancer"
-  value       = aws_lb.main.dns_name
+  description = "DNS name of the EB-managed ALB"
+  value       = aws_elastic_beanstalk_environment.user_service.cname
 }
 
-output "alb_zone_id" {
-  description = "Zone ID of the Application Load Balancer"
-  value       = aws_lb.main.zone_id
+output "environment_name" {
+  description = "Name of the EB environment"
+  value       = aws_elastic_beanstalk_environment.user_service.name
 }
 
-output "target_group_arn" {
-  description = "ARN of the target group"
-  value       = aws_lb_target_group.main.arn
+output "application_name" {
+  description = "Name of the EB application"
+  value       = aws_elastic_beanstalk_application.user_service.name
 }
 
-output "target_group_name" {
-  description = "Name of the target group"
-  value       = aws_lb_target_group.main.name
+output "endpoint_url" {
+  description = "Full endpoint URL"
+  value       = "http://${aws_elastic_beanstalk_environment.user_service.cname}"
 }

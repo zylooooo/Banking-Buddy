@@ -23,5 +23,5 @@ sftp_password     = "CHANGE_ME"
 ses_sender_email = "noreply@example.com"
 
 # CRM Database Configuration
-crm_db_username = "CHANGE_ME"
-crm_db_password = "CHANGE_ME"
+crm_users_db_username = "CHANGE_ME"
+crm_users_db_password = "CHANGE_ME"

@@ -27,10 +27,10 @@ mysql -h $RDS_HOST -P $RDS_PORT -u $RDS_USERNAME -p$RDS_PASSWORD << EOF
 CREATE DATABASE IF NOT EXISTS crm_users;
 
 -- Create dedicated user for CRM database
-CREATE USER IF NOT EXISTS '${crm_db_username}'@'%' IDENTIFIED BY '${crm_db_password}';
+CREATE USER IF NOT EXISTS '${crm_users_db_username}'@'%' IDENTIFIED BY '${crm_users_db_password}';
 
 -- Grant privileges only on crm_users database
-GRANT ALL PRIVILEGES ON crm_users.* TO '${crm_db_username}'@'%';
+GRANT ALL PRIVILEGES ON crm_users.* TO '${crm_users_db_username}'@'%';
 
 -- Flush privileges
 FLUSH PRIVILEGES;

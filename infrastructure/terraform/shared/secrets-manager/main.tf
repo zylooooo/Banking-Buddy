@@ -18,7 +18,7 @@ resource "aws_secretsmanager_secret_version" "rds_credentials" {
     username = var.rds_username
     password = var.rds_password
     engine   = "mysql"
-    host     = var.rds_endpoint
+    host     = split(":", var.rds_endpoint)[0]
     port     = 3306
     dbname   = var.rds_database_name
   })
@@ -40,21 +40,21 @@ resource "aws_secretsmanager_secret_version" "sftp_credentials" {
   })
 }
 
-# CRM Database Credentials Secret
-resource "aws_secretsmanager_secret" "crm_db_credentials" {
-  name        = "${var.name_prefix}-crm-db-credentials-${random_string.secret_suffix.result}"
+# CRM users database credentials secret (for user-service)
+resource "aws_secretsmanager_secret" "crm_users_db_credentials" {
+  name        = "${var.name_prefix}-crm-users-db-credentials-${random_string.secret_suffix.result}"
   description = "CRM users database credentials"
 
   tags = var.common_tags
 }
 
-resource "aws_secretsmanager_secret_version" "crm_db_credentials" {
-  secret_id = aws_secretsmanager_secret.crm_db_credentials.id
+resource "aws_secretsmanager_secret_version" "crm_users_db_credentials" {
+  secret_id = aws_secretsmanager_secret.crm_users_db_credentials.id
   secret_string = jsonencode({
-    username = var.crm_db_username
-    password = var.crm_db_password
+    username = var.crm_users_db_username
+    password = var.crm_users_db_password
     engine   = "mysql"
-    host     = var.rds_endpoint
+    host     = split(":", var.rds_endpoint)[0]
     port     = 3306
     dbname   = "crm_users"
   })

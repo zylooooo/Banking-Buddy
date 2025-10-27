@@ -97,3 +97,48 @@ output "cognito_domain" {
   description = "Cognito domain name"
   value       = module.cognito.user_pool_domain
 }
+
+# ElastiCache Outputs
+output "redis_endpoint" {
+  description = "Redis primary endpoint"
+  value       = module.elasticache.redis_endpoint
+}
+
+output "redis_reader_endpoint" {
+  description = "Redis reader endpoint"
+  value       = module.elasticache.redis_reader_endpoint
+}
+
+# User Service Outputs
+output "user_service_endpoint" {
+  description = "Full endpoint URL for User Service"
+  value       = module.user-service.endpoint_url
+}
+
+# API Gateway Outputs
+output "api_gateway_endpoint" {
+  description = "API Gateway default endpoint"
+  value       = module.api_gateway.api_gateway_endpoint
+}
+
+output "api_custom_domain" {
+  description = "Custom domain for API (empty if not configured)"
+  value       = module.api_gateway.custom_domain_name
+}
+
+output "api_full_endpoint" {
+  description = "Full API endpoint (custom domain if configured, otherwise default)"
+  value       = var.root_domain_name != "" ? module.api_gateway.full_api_endpoint : module.api_gateway.api_gateway_endpoint
+}
+
+# WAF Outputs
+output "waf_web_acl_id" {
+  description = "WAF Web ACL ID"
+  value       = module.waf.web_acl_id
+}
+
+# Route53 Outputs (only available if custom domain is configured)
+output "route53_api_record" {
+  description = "Route53 API record name (null if custom domain not configured)"
+  value       = var.root_domain_name != "" ? module.route53[0].api_record_name : null
+}

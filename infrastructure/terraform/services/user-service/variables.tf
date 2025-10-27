@@ -9,12 +9,32 @@ variable "vpc_id" {
 }
 
 variable "public_subnet_ids" {
-  description = "IDs of the public subnets"
+  description = "IDs of the public subnets for ALB"
+  type        = list(string)
+}
+
+variable "private_subnet_ids" {
+  description = "IDs of the private subnets for EC2 instances"
   type        = list(string)
 }
 
 variable "alb_security_group_id" {
   description = "ID of the ALB security group"
+  type        = string
+}
+
+variable "eb_security_group_id" {
+  description = "ID of the Elastic Beanstalk security group"
+  type        = string
+}
+
+variable "eb_instance_profile_name" {
+  description = "Name of the EB instance profile"
+  type        = string
+}
+
+variable "eb_service_role_arn" {
+  description = "ARN of the Elastic Beanstalk service role"
   type        = string
 }
 
@@ -28,19 +48,48 @@ variable "rds_secret_name" {
   type        = string
 }
 
-variable "crm_db_username" {
-  description = "Username for CRM database"
+variable "crm_users_db_secret_name" {
+  description = "Name of the CRM users database credentials secret"
   type        = string
 }
 
-variable "crm_db_password" {
-  description = "Password for CRM database"
+variable "aws_region" {
+  description = "AWS region"
   type        = string
-  sensitive   = true
+}
+
+variable "cognito_user_pool_id" {
+  description = "Cognito User Pool ID"
+  type        = string
+}
+
+variable "cognito_client_id" {
+  description = "Cognito Client ID"
+  type        = string
+}
+
+variable "root_admin_email" {
+  description = "Root admin email"
+  type        = string
+}
+
+variable "audit_sqs_queue_url" {
+  description = "Audit SQS queue URL"
+  type        = string
+}
+
+variable "redis_endpoint" {
+  description = "Redis endpoint"
+  type        = string
 }
 
 variable "common_tags" {
   description = "Common tags to apply to resources"
   type        = map(string)
   default     = {}
+}
+
+variable "ec2_key_pair_name" {
+  description = "EC2 key pair name for SSH access to EB instances"
+  type        = string
 }
