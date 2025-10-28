@@ -97,7 +97,7 @@ export default function DashboardPage() {
                         <p className="text-slate-400 text-sm">Manage client profiles, verify identities, and create accounts</p>
                     </Link>
 
-                    {['ADMIN', 'ROOT_ADMIN'].includes(user.role) && (
+                    {['admin', 'rootAdministrator'].includes(user.role) && (
                         <>
                             <Link
                                 to="/users"

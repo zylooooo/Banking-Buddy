@@ -41,7 +41,7 @@ export default function AuditLogPage() {
                 ]);
 
                 setClients(clientsResponse.data.data || []);
-                setAgents(usersResponse.data.data?.filter(user => user.role === 'AGENT') || []);
+                setAgents(usersResponse.data.data?.filter(user => user.role === 'agent') || []);
 
                 // Load audit logs
                 await loadLogs();
@@ -59,7 +59,7 @@ export default function AuditLogPage() {
     const loadLogs = async () => {
         try {
             let response;
-            if (currentUser?.role === 'AGENT') {
+            if (currentUser?.role === 'agent') {
                 // Agents can only see their own logs
                 response = await auditApi.getLogsByAgentId(currentUser.sub);
             } else {
@@ -166,7 +166,7 @@ export default function AuditLogPage() {
                 )}
 
                 {/* Filters - Only show for admin users */}
-                {(currentUser?.role === 'ADMIN' || currentUser?.role === 'ROOT_ADMIN') && (
+                {(currentUser?.role === 'admin' || currentUser?.role === 'rootAdministrator') && (
                     <div className="mb-6 bg-slate-800 border border-slate-700 rounded-lg p-6">
                         <h3 className="text-lg font-semibold text-white mb-4">Filter Logs</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

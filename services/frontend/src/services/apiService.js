@@ -67,21 +67,34 @@ export const clientApi = {
     deleteAccount: (accountId) => clientApiClient.delete(`/accounts/${accountId}`),
 };
 
-// Transaction Service API endpoints (port 8082 or client service)
+// Transaction Service API endpoints (port 8082)
+const TRANSACTION_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api').replace('8080', '8082');
+
+const transactionApiClient = axios.create({
+    baseURL: TRANSACTION_API_BASE_URL,
+    headers: { 'Content-Type': 'application/json' }
+});
+
+transactionApiClient.interceptors.request.use(async (config) => {
+    const token = await getIdToken();
+    if (token) {
+        config.headers['x-amzn-oidc-data'] = token;
+    }
+    return config;
+});
+
 export const transactionApi = {
-    getAllTransactions: (filters = {}) => {
-        const params = new URLSearchParams();
-        Object.keys(filters).forEach(key => {
-            if (filters[key]) {
-                params.append(key, filters[key]);
-            }
-        });
-        return clientApiClient.get(`/transactions?${params.toString()}`);
-    },
-    getTransactionById: (transactionId) => clientApiClient.get(`/transactions/${transactionId}`),
-    getTransactionsByClientId: (clientId) => clientApiClient.get(`/clients/${clientId}/transactions`),
-    syncFromSFTP: () => clientApiClient.post('/transactions/sync-sftp'),
-    getTransactionStats: () => clientApiClient.get('/transactions/stats'),
+    // GET /api/transactions/all?page=0&limit=10
+    getAllTransactions: (page = 0, limit = 10) =>
+        transactionApiClient.get(`/transactions/all`, { params: { page, limit } }),
+
+    // GET /api/transactions?clientId=CLIENT_ID&page=0&limit=10
+    getTransactionsByClientId: (clientId, page = 0, limit = 10) =>
+        transactionApiClient.get(`/transactions`, { params: { clientId, page, limit } }),
+
+    // GET /api/transactions/search?...searchParams
+    searchTransactions: (searchParams = {}) =>
+        transactionApiClient.get(`/transactions/search`, { params: searchParams }),
 };
 
 // Communication API endpoints

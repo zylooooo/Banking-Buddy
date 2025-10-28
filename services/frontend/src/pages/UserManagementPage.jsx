@@ -26,7 +26,7 @@ export default function UserManagementPage() {
                 setCurrentUser(cognitoUser);
 
                 // Check if user has admin privileges
-                if (!cognitoUser || !['ADMIN', 'ROOT_ADMIN', 'rootAdministrator'].includes(cognitoUser.role)) {
+                if (!cognitoUser || !['admin', 'rootAdministrator'].includes(cognitoUser.role)) {
                     setError('Access denied. Admin privileges required.');
                     setLoading(false);
                     return;
@@ -138,7 +138,7 @@ export default function UserManagementPage() {
                         <h2 className="text-2xl font-bold text-white">User Management</h2>
                         <p className="text-slate-400">Manage system users and their permissions</p>
                     </div>
-                    {(currentUser?.role === 'ROOT_ADMIN' || currentUser?.role === 'rootAdministrator') && (
+                        {(currentUser?.role === 'rootAdministrator' || currentUser?.role === 'admin') && (
                         <button
                             onClick={() => setShowCreateForm(true)}
                             className="px-4 py-2 bg-primary text-white rounded-md hover:bg-blue-700 transition"
@@ -160,7 +160,7 @@ export default function UserManagementPage() {
                     </div>
                 )}
 
-                {showCreateForm && (currentUser?.role === 'ROOT_ADMIN' || currentUser?.role === 'rootAdministrator') && (
+                {showCreateForm && (currentUser?.role === 'rootAdministrator') && (
                     <CreateUserForm
                         onSubmit={handleCreateUser}
                         onCancel={() => setShowCreateForm(false)}
@@ -196,9 +196,9 @@ export default function UserManagementPage() {
                                                     <td className="p-4 text-slate-300">{user.email}</td>
                                                     <td className="p-4">
                                                         <span className={`px-2 py-1 text-xs rounded-full ${
-                                                            user.role === 'ROOT_ADMIN' || user.role === 'rootAdministrator'
+                                                            user.role === 'rootAdministrator'
                                                                 ? 'bg-purple-900 text-purple-300'
-                                                                : user.role === 'ADMIN'
+                                                                : user.role === 'admin'
                                                                 ? 'bg-blue-900 text-blue-300'
                                                                 : 'bg-slate-700 text-slate-300'
                                                         }`}>
@@ -268,7 +268,7 @@ function CreateUserForm({ onSubmit, onCancel }) {
         firstName: '',
         lastName: '',
         email: '',
-        role: 'AGENT'
+    role: 'agent'
     });
 
     const handleSubmit = (e) => {
@@ -337,9 +337,9 @@ function CreateUserForm({ onSubmit, onCancel }) {
                         required
                         className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                     >
-                        <option value="AGENT">Agent</option>
-                        <option value="ADMIN">Admin</option>
-                        <option value="ROOT_ADMIN">Root Admin</option>
+                        <option value="agent">Agent</option>
+                        <option value="admin">Admin</option>
+                        <option value="rootAdministrator">Root Admin</option>
                     </select>
                 </div>
                 <div className="md:col-span-2 flex gap-3 pt-4">

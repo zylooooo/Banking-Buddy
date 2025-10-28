@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isAuthenticated, getUserFromToken } from '../services/authService';
-import { transactionApi, clientApi } from '../services/apiService';
+import { transactionApi } from '../services/apiService';
 import Header from '../components/Header';
 import Navigation from '../components/Navigation';
 
@@ -36,9 +36,8 @@ export default function TransactionManagementPage() {
                 const cognitoUser = await getUserFromToken();
                 setCurrentUser(cognitoUser);
 
-                // Load clients for filter dropdown
-                const clientsResponse = await clientApi.getAllClients();
-                setClients(clientsResponse.data.data || []);
+                // If you need to show clients for filtering, use a dedicated client list API from transaction-service if available, or remove this if not needed.
+                setClients([]); // Placeholder: remove or replace with correct API if needed
 
                 // Load transactions
                 await loadTransactions();
@@ -53,10 +52,25 @@ export default function TransactionManagementPage() {
         loadData();
     }, [navigate]);
 
+
+    // Use pagination and clientId filter for transaction-service
     const loadTransactions = async () => {
         try {
-            const response = await transactionApi.getAllTransactions(filters);
-            setTransactions(response.data.data || []);
+            let response;
+            if (filters.clientId) {
+                // Fetch transactions for a specific client from transaction-service
+                response = await transactionApi.getTransactionsByClientId(filters.clientId, 0, 10);
+            } else if (
+                filters.transactionType || filters.status || filters.dateFrom || filters.dateTo || filters.minAmount || filters.maxAmount
+            ) {
+                // Use search endpoint for advanced filters from transaction-service
+                const searchParams = { ...filters };
+                response = await transactionApi.searchTransactions(searchParams);
+            } else {
+                // Fetch all transactions (paginated) from transaction-service
+                response = await transactionApi.getAllTransactions(0, 10);
+            }
+            setTransactions(response.data.data?.content || []);
         } catch (err) {
             setError('Failed to load transactions');
         }
@@ -144,7 +158,7 @@ export default function TransactionManagementPage() {
                         <h2 className="text-2xl font-bold text-white">Transaction Management</h2>
                         <p className="text-slate-400">View and manage bank account transactions</p>
                     </div>
-                    {(currentUser?.role === 'ADMIN' || currentUser?.role === 'ROOT_ADMIN' || currentUser?.role === 'rootAdministrator') && (
+                    {(currentUser?.role === 'admin' || currentUser?.role === 'rootAdministrator') && (
                         <button
                             onClick={() => setShowSyncModal(true)}
                             className="px-4 py-2 bg-accent text-white rounded-md hover:bg-sky-600 transition"
