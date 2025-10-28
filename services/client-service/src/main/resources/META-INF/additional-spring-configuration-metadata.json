@@ -63,5 +63,15 @@
     "name": "app.audit.sqs-queue-url",
     "type": "java.lang.String",
     "description": "A description for 'app.audit.sqs-queue-url'"
+  },
+  {
+    "name": "audit.source.service",
+    "type": "java.lang.String",
+    "description": "A description for 'audit.source.service'"
+  },
+  {
+    "name": "audit.log.retention.days",
+    "type": "java.lang.String",
+    "description": "A description for 'audit.log.retention.days'"
   }
 ]}
