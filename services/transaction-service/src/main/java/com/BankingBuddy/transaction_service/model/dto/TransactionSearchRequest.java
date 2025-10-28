@@ -9,6 +9,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -19,7 +20,7 @@ import java.time.LocalDateTime;
 @AtLeastOneFilter
 public class TransactionSearchRequest {
     
-    private String clientId;
+    private List<String> clientIds;
     
     private TransactionTypes transaction;
     

@@ -7,12 +7,14 @@ import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class TransactionSpecification {
     
-    public static Specification<Transaction> hasClientId(String clientId) {
+    public static Specification<Transaction> hasClientIdsIn(List<String> clientIds) {
         return (root, query, criteriaBuilder) -> 
-            clientId == null ? null : criteriaBuilder.equal(root.get("clientId"), clientId);
+            clientIds == null || clientIds.isEmpty() ? null : 
+                root.get("clientId").in(clientIds);
     }
     
     public static Specification<Transaction> hasTransactionType(TransactionTypes transaction) {
