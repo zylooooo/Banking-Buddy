@@ -181,11 +181,11 @@ export default function ClientDetailPage() {
                                 <div>
                                     <label className="block text-sm font-medium text-slate-400">Status</label>
                                     <span className={`px-2 py-1 text-xs rounded-full ${
-                                        client.isVerified
+                                        client.verified
                                             ? 'bg-green-900 text-green-300'
                                             : 'bg-yellow-900 text-yellow-300'
                                     }`}>
-                                        {client.isVerified ? 'Verified' : 'Pending Verification'}
+                                        {client.verified ? 'Verified' : 'Pending Verification'}
                                     </span>
                                 </div>
                             </div>

@@ -160,7 +160,7 @@ export default function UserManagementPage() {
                     </div>
                 )}
 
-                {showCreateForm && (currentUser?.role === 'rootAdministrator') && (
+                {showCreateForm && (currentUser?.role === 'rootAdministrator' || currentUser?.role === 'admin') && (
                     <CreateUserForm
                         onSubmit={handleCreateUser}
                         onCancel={() => setShowCreateForm(false)}

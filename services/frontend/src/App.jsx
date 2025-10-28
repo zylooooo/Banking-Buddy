@@ -9,7 +9,6 @@ import ClientDetailPage from './pages/ClientDetailPage';
 import UserManagementPage from './pages/UserManagementPage';
 import AccountManagementPage from './pages/AccountManagementPage';
 import TransactionManagementPage from './pages/TransactionManagementPage';
-import AuditLogPage from './pages/AuditLogPage';
 import CommunicationPage from './pages/CommunicationPage';
 import { isAuthenticated } from './services/authService';
 
@@ -116,14 +115,6 @@ function App() {
           element={
             <ProtectedRoute>
               <TransactionManagementPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/audit-logs"
-          element={
-            <ProtectedRoute>
-              <AuditLogPage />
             </ProtectedRoute>
           }
         />

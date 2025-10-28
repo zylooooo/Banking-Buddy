@@ -61,8 +61,8 @@ export default function ClientManagementPage() {
     const handleVerifyClient = async (clientId) => {
         try {
             await clientApi.verifyClient(clientId);
-            // Refresh clients list
-            const response = await clientApi.getAllClients();
+            // Refresh clients list with cache busting
+            const response = await clientApi.getAllClients(Date.now());
             setClients(response.data.data);
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to verify client');
@@ -157,11 +157,11 @@ export default function ClientManagementPage() {
                                             <td className="p-4 text-slate-300">{client.phoneNumber}</td>
                                             <td className="p-4">
                                                 <span className={`px-2 py-1 text-xs rounded-full ${
-                                                    client.isVerified
+                                                    client.verified
                                                         ? 'bg-green-900 text-green-300'
                                                         : 'bg-yellow-900 text-yellow-300'
                                                 }`}>
-                                                    {client.isVerified ? 'Verified' : 'Pending'}
+                                                    {client.verified ? 'Verified' : 'Pending'}
                                                 </span>
                                             </td>
                                             <td className="p-4">
@@ -172,7 +172,7 @@ export default function ClientManagementPage() {
                                                     >
                                                         View
                                                     </button>
-                                                    {!client.isVerified && (
+                                                    {!client.verified && (
                                                         <button
                                                             onClick={() => handleVerifyClient(client.clientId)}
                                                             className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition"

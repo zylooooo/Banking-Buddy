@@ -82,23 +82,22 @@ export default function DashboardPage() {
 
                 {/* Quick Action Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                    <Link
-                        to="/clients"
-                        className="bg-slate-800 border border-slate-700 rounded-lg p-6 hover:bg-slate-750 transition-colors group"
-                    >
-                        <div className="flex items-center mb-4">
-                            <div className="p-3 bg-blue-900 rounded-lg group-hover:bg-blue-800 transition-colors">
-                                <svg className="w-6 h-6 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                </svg>
-                            </div>
-                            <h3 className="ml-4 text-lg font-semibold text-white">Client Management</h3>
-                        </div>
-                        <p className="text-slate-400 text-sm">Manage client profiles, verify identities, and create accounts</p>
-                    </Link>
-
-                    {['admin', 'rootAdministrator'].includes(user.role) && (
+                    {['admin', 'rootAdministrator'].includes(user.role) ? (
                         <>
+                            <Link
+                                to="/users"
+                                className="bg-slate-800 border border-slate-700 rounded-lg p-6 hover:bg-slate-750 transition-colors group"
+                            >
+                                <div className="flex items-center mb-4">
+                                    <div className="p-3 bg-blue-900 rounded-lg group-hover:bg-blue-800 transition-colors">
+                                        <svg className="w-6 h-6 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                                        </svg>
+                                    </div>
+                                    <h3 className="ml-4 text-lg font-semibold text-white">Create New Account</h3>
+                                </div>
+                                <p className="text-slate-400 text-sm">Add a new user to the system</p>
+                            </Link>
                             <Link
                                 to="/users"
                                 className="bg-slate-800 border border-slate-700 rounded-lg p-6 hover:bg-slate-750 transition-colors group"
@@ -109,26 +108,40 @@ export default function DashboardPage() {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
                                         </svg>
                                     </div>
-                                    <h3 className="ml-4 text-lg font-semibold text-white">User Management</h3>
+                                    <h3 className="ml-4 text-lg font-semibold text-white">Manage Accounts</h3>
                                 </div>
-                                <p className="text-slate-400 text-sm">Create and manage system users and their permissions</p>
+                                <p className="text-slate-400 text-sm">View, edit, and manage all accounts</p>
                             </Link>
-
                             <Link
-                                to="/accounts"
+                                to="/transactions"
                                 className="bg-slate-800 border border-slate-700 rounded-lg p-6 hover:bg-slate-750 transition-colors group"
                             >
                                 <div className="flex items-center mb-4">
                                     <div className="p-3 bg-purple-900 rounded-lg group-hover:bg-purple-800 transition-colors">
                                         <svg className="w-6 h-6 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                         </svg>
                                     </div>
-                                    <h3 className="ml-4 text-lg font-semibold text-white">Account Overview</h3>
+                                    <h3 className="ml-4 text-lg font-semibold text-white">View Transactions</h3>
                                 </div>
-                                <p className="text-slate-400 text-sm">Monitor all client accounts and account statistics</p>
+                                <p className="text-slate-400 text-sm">Review all transaction history</p>
                             </Link>
                         </>
+                    ) : (
+                        <Link
+                            to="/clients"
+                            className="bg-slate-800 border border-slate-700 rounded-lg p-6 hover:bg-slate-750 transition-colors group"
+                        >
+                            <div className="flex items-center mb-4">
+                                <div className="p-3 bg-blue-900 rounded-lg group-hover:bg-blue-800 transition-colors">
+                                    <svg className="w-6 h-6 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    </svg>
+                                </div>
+                                <h3 className="ml-4 text-lg font-semibold text-white">Client Management</h3>
+                            </div>
+                            <p className="text-slate-400 text-sm">Manage client profiles, verify identities, and create accounts</p>
+                        </Link>
                     )}
                 </div>
 

@@ -54,7 +54,12 @@ clientApiClient.interceptors.request.use(async (config) => {
 
 export const clientApi = {
     // Client Management
-    getAllClients: () => clientApiClient.get('/clients'),
+    getAllClients: (cacheBust) => {
+        if (cacheBust) {
+            return clientApiClient.get(`/clients?t=${cacheBust}`);
+        }
+        return clientApiClient.get('/clients');
+    },
     getClientById: (clientId) => clientApiClient.get(`/clients/${clientId}`),
     createClient: (clientData) => clientApiClient.post('/clients', clientData),
     updateClient: (clientId, clientData) => clientApiClient.put(`/clients/${clientId}`, clientData),
