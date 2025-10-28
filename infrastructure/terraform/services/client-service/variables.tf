@@ -73,3 +73,18 @@ variable "ec2_key_pair_name" {
   description = "EC2 key pair name for SSH access to EB instances"
   type        = string
 }
+
+variable "ses_source_email" {
+  description = "SES source email"
+  type = string
+}
+
+variable "ses_source_service" {
+  description = "SES source service"
+  type = string
+}
+
+variable "audit_log_retention_days" {
+  description = "Audit log retention days"
+  type = number
+}

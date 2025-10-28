@@ -279,5 +279,23 @@ resource "aws_elastic_beanstalk_environment" "client_service" {
     value     = "aws"
   }
 
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "SES_SOURCE_EMAIL"
+    value     = var.ses_source_email
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "AUDIT_SOURCE_SERVICE"
+    value     = var.ses_source_service
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name = "AUDIT_LOG_RETENTION_DAYS"
+    value = var.audit_log_retention_days
+  }
+
   tags = var.common_tags
 }

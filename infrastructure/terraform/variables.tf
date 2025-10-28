@@ -224,3 +224,9 @@ variable "crm_clients_db_password" {
   type = string
   sensitive = true
 }
+
+variable "ses_source_service" {
+  description = "SES source service"
+  type = string
+  default = "client-service"
+}

@@ -261,6 +261,9 @@ module "client-service" {
   audit_sqs_queue_url        = module.audit_logging.sqs_queue_url
   redis_endpoint             = module.elasticache.redis_endpoint
   ec2_key_pair_name          = var.ec2_key_pair_name
+  audit_log_retention_days   = var.audit_log_retention_days
+  ses_source_email           = var.ses_sender_email
+  ses_source_service         = var.ses_source_service
   common_tags                = local.common_tags
 
   depends_on = [module.security_groups, module.elasticache]
