@@ -22,3 +22,8 @@ output "elastic_beanstalk_id" {
   description = "ID of the Elastic Beanstalk security group"
   value       = aws_security_group.elastic_beanstalk.id
 }
+
+output "redis_id" {
+  description = "ID of the Redis security group"
+  value       = aws_security_group.redis.id
+}

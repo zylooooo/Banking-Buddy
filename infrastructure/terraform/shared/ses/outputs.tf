@@ -15,7 +15,7 @@ output "configuration_set_name" {
 
 output "ses_smtp_endpoint" {
   description = "SES SMTP endpoint for the region"
-  value       = "email-smtp.${data.aws_region.current.name}.amazonaws.com"
+  value       = "email-smtp.${var.aws_region}.amazonaws.com"
 }
 
 data "aws_region" "current" {}

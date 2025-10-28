@@ -1,0 +1,12 @@
+src/
+.git/
+.gitignore
+README.md
+HELP.md
+mvnw
+mvnw.cmd
+pom.xml
+Dockerfile
+.idea/
+.vscode/
+*.iml

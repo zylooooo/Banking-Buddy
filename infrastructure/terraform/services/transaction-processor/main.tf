@@ -50,11 +50,11 @@ resource "aws_instance" "sftp_server" {
   vpc_security_group_ids      = [var.sftp_security_group_id]
   associate_public_ip_address = true
 
-  user_data = base64encode(templatefile("${path.module}/sftp-setup.sh", {
+  user_data = templatefile("${path.module}/sftp-setup.sh", {
     s3_bucket_name   = var.s3_bucket_name
     sftp_secret_name = data.aws_secretsmanager_secret.sftp_credentials.name
-    aws_region       = data.aws_region.current.name
-  }))
+    aws_region       = var.aws_region
+  })
 
   depends_on = [
     aws_s3_object.transactions_data,

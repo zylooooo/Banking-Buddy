@@ -1,6 +1,6 @@
-CREATE DATABASE IF NOT EXISTS crm_users;
-
-USE crm_users;
+-- Note: Database 'crm_users' is automatically created by MySQL JDBC driver
+-- via the connection parameter: createDatabaseIfNotExist=true
+-- Flyway is already connected to this database
 
 CREATE TABLE IF NOT EXISTS users (
     id VARCHAR(255) PRIMARY KEY COMMENT 'Cognito sub (UUID)',
@@ -19,5 +19,5 @@ CREATE TABLE IF NOT EXISTS users (
     INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Root admin seed (cretaed during first deployment)
+-- Root admin seed (created during first deployment)
 -- Root admin ID should be added after first Cognito user creation

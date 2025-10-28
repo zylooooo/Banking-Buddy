@@ -24,6 +24,6 @@ public class AwsProperties {
     
     @Data
     public static class Secrets {
-        private String crmDbSecretName;
+        private String crmUsersDbSecretName;
     }
 }

@@ -42,14 +42,14 @@ variable "sftp_password" {
   sensitive   = true
 }
 
-variable "crm_db_username" {
-  description = "CRM database username"
+variable "crm_users_db_username" {
+  description = "CRM users database username"
   type        = string
   sensitive   = true
 }
 
-variable "crm_db_password" {
-  description = "CRM database password"
+variable "crm_users_db_password" {
+  description = "CRM users database password"
   type        = string
   sensitive   = true
 }

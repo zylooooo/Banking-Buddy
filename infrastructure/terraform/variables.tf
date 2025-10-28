@@ -111,15 +111,15 @@ variable "ses_sender_email" {
 }
 
 # CRM Database Configuration
-variable "crm_db_username" {
-  description = "CRM database username"
+variable "crm_users_db_username" {
+  description = "CRM users database username"
   type        = string
-  default     = "crm_user"
+  default     = "crm_services_user"
   sensitive   = true
 }
 
-variable "crm_db_password" {
-  description = "CRM database password"
+variable "crm_users_db_password" {
+  description = "CRM users database password"
   type        = string
   sensitive   = true
 }
@@ -148,4 +148,53 @@ variable "audit_api_allowed_origins" {
   description = "Allowed CORS origins for audit API Gateway"
   type        = list(string)
   default     = ["*"]
+}
+
+variable "root_admin_email" {
+  description = "Root admin email for initialization"
+  type        = string
+  sensitive   = true
+}
+
+variable "redis_node_type" {
+  description = "ElastiCache Redis node type"
+  type        = string
+  default     = "cache.t3.micro"
+}
+
+variable "redis_num_cache_clusters" {
+  description = "Number of cache nodes in the cluster"
+  type        = number
+  default     = 2
+}
+
+# Domain configuration for API Gateway (Optional - leave empty to use default API Gateway endpoint)
+variable "root_domain_name" {
+  description = "Root domain name (e.g., bankingbuddy.com). Leave empty to skip custom domain setup."
+  type        = string
+  default     = ""
+}
+
+variable "api_domain_name" {
+  description = "Full API domain name (e.g., api.bankingbuddy.com). Leave empty to skip custom domain setup."
+  type        = string
+  default     = ""
+}
+
+variable "route53_zone_id" {
+  description = "Route53 hosted zone ID for the domain. Leave empty to skip custom domain setup."
+  type        = string
+  default     = ""
+}
+
+variable "github_org" {
+  description = "GitHub organization or username"
+  type        = string
+  default     = ""
+}
+
+variable "github_repo" {
+  description = "GitHub repository name"
+  type        = string
+  default     = ""
 }
