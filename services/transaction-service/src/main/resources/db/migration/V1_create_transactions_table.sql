@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     client_id VARCHAR(50) NOT NULL COMMENT 'Unique client ID',
     transaction ENUM('Deposit', 'Withdrawal'),
     amount DECIMAL(15, 2) NOT NULL,
-    date DATE NOT NULL COMMENT 'The Transaction Date',
+    date DATETIME(6) NOT NULL COMMENT 'The Transaction Date',
     status ENUM('Completed', 'Pending', 'Failed') NOT NULL,
 
     -- Indexes 
