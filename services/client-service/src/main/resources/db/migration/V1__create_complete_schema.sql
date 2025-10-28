@@ -2,7 +2,7 @@
 -- Based on CLIENT_SERVICE_SPECIFICATION.md
 
 -- Create clients table
-CREATE TABLE clients (
+CREATE TABLE IF NOT EXISTS clients (
     -- Primary Key
     client_id VARCHAR(255) PRIMARY KEY COMMENT 'UUID format: CLT-{UUID}',
     
@@ -59,7 +59,7 @@ CREATE TABLE clients (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create accounts table
-CREATE TABLE accounts (
+CREATE TABLE IF NOT EXISTS accounts (
     -- Primary Key
     account_id VARCHAR(255) PRIMARY KEY COMMENT 'UUID format: ACC-{UUID}',
     
