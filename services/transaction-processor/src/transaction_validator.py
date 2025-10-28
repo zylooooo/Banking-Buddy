@@ -36,7 +36,7 @@ def validate_transaction_record(row: Dict[str, str], row_number: int) -> Optiona
         if not transaction:
             errors.append("Transaction type is missing or empty")
         elif transaction.lower() not in ['deposit', 'withdrawal']:
-            transaction = transaction.upper()
+            transaction = transaction.capitalize()
             errors.append(f"Transaction type must be 'DEPOSIT' or 'WITHDRAWAL', got: {transaction}")
         
         # 4. Amount validation (positive number)
@@ -67,7 +67,7 @@ def validate_transaction_record(row: Dict[str, str], row_number: int) -> Optiona
         if not status:
             errors.append("Status is missing or empty")
         elif status.lower() not in ['completed', 'pending', 'failed']:
-            status = status.upper()
+            status = status.capitalize()
             errors.append(f"Status must be 'COMPLETED', 'PENDING', or 'FAILED', got: {status}")
         
         # If there are validation errors, log them and return None
