@@ -53,3 +53,15 @@ variable "crm_users_db_password" {
   type        = string
   sensitive   = true
 }
+
+variable "crm_transactions_db_username" {
+  description = "CRM transactions database username"
+  type        = string
+  sensitive   = true
+}
+
+variable "crm_transactions_db_password" {
+  description = "CRM transactions database password"
+  type        = string
+  sensitive   = true
+}

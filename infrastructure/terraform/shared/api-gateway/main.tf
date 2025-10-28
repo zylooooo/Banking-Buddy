@@ -13,7 +13,7 @@ resource "aws_api_gateway_rest_api" "main" {
 # Custom domain name for API Gateway
 resource "aws_api_gateway_domain_name" "main" {
   count = var.certificate_arn != null ? 1 : 0
-  
+
   domain_name              = var.api_domain_name
   regional_certificate_arn = var.certificate_arn
 
@@ -42,16 +42,28 @@ resource "aws_api_gateway_deployment" "main" {
       aws_api_gateway_resource.api.id,
       aws_api_gateway_resource.users.id,
       aws_api_gateway_resource.users_proxy.id,
+      aws_api_gateway_resource.transactions.id,
+      aws_api_gateway_resource.transactions_proxy.id,
       aws_api_gateway_method.users_options.id,
       aws_api_gateway_method.users_any.id,
+      aws_api_gateway_method.transactions_options.id,
+      aws_api_gateway_method.transactions_any.id,
       aws_api_gateway_method.users_proxy_options.id,
       aws_api_gateway_method.users_proxy_any.id,
+      aws_api_gateway_method.transactions_proxy_options.id,
+      aws_api_gateway_method.transactions_proxy_any.id,
       aws_api_gateway_integration.users_any.id,
+      aws_api_gateway_integration.transactions_any.id,
       aws_api_gateway_integration.users_proxy_any.id,
+      aws_api_gateway_integration.transactions_proxy_any.id,
       aws_api_gateway_method_response.users_any.id,
+      aws_api_gateway_method_response.transactions_any.id,
       aws_api_gateway_method_response.users_proxy_any.id,
+      aws_api_gateway_method_response.transactions_proxy_any.id,
       aws_api_gateway_integration_response.users_any.id,
+      aws_api_gateway_integration_response.transactions_any.id,
       aws_api_gateway_integration_response.users_proxy_any.id,
+      aws_api_gateway_integration_response.transactions_proxy_any.id,
     ]))
   }
 
@@ -61,13 +73,21 @@ resource "aws_api_gateway_deployment" "main" {
 
   depends_on = [
     aws_api_gateway_method.users_any,
+    aws_api_gateway_method.transactions_any,
     aws_api_gateway_method.users_proxy_any,
+    aws_api_gateway_method.transactions_proxy_any,
     aws_api_gateway_integration.users_any,
+    aws_api_gateway_integration.transactions_any,
     aws_api_gateway_integration.users_proxy_any,
+    aws_api_gateway_integration.transactions_proxy_any,
     aws_api_gateway_method_response.users_any,
+    aws_api_gateway_method_response.transactions_any,
     aws_api_gateway_method_response.users_proxy_any,
+    aws_api_gateway_method_response.transactions_proxy_any,
     aws_api_gateway_integration_response.users_any,
+    aws_api_gateway_integration_response.transactions_any,
     aws_api_gateway_integration_response.users_proxy_any,
+    aws_api_gateway_integration_response.transactions_proxy_any,
   ]
 }
 

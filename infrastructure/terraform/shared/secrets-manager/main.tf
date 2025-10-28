@@ -59,3 +59,21 @@ resource "aws_secretsmanager_secret_version" "crm_users_db_credentials" {
     dbname   = "crm_users"
   })
 }
+
+resource "aws_secretsmanager_secret" "crm_transactions_db_credentials" {
+  name        = "${var.name_prefix}-crm-transactions-db-credentials-${random_string.secret_suffix.result}"
+  description = "CRM transactions database credentials"
+  tags        = var.common_tags
+}
+
+resource "aws_secretsmanager_secret_version" "crm_transactions_db_credentials" {
+  secret_id = aws_secretsmanager_secret.crm_transactions_db_credentials.id
+  secret_string = jsonencode({
+    username = var.crm_transactions_db_username
+    password = var.crm_transactions_db_password
+    engine   = "mysql"
+    host     = split(":", var.rds_endpoint)[0]
+    port     = 3306
+    dbname   = "crm_transactions"
+  })
+}

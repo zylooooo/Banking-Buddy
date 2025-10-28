@@ -320,7 +320,8 @@ resource "aws_iam_role_policy" "elastic_beanstalk_secrets" {
         ]
         Resource = [
           var.rds_secret_arn,
-          var.crm_users_db_secret_arn
+          var.crm_users_db_secret_arn,
+          var.crm_transactions_db_secret_arn
         ]
       }
     ]

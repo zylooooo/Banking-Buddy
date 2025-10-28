@@ -11,6 +11,7 @@ public class AppProperties {
     
     private Security security = new Security();
     private RootAdmin rootAdmin = new RootAdmin();
+    private Audit audit = new Audit();
     
     @Data
     public static class Security {
@@ -20,5 +21,10 @@ public class AppProperties {
     @Data
     public static class RootAdmin {
         private String email = "admin@bankingbuddy.com";
+    }
+    
+    @Data
+    public static class Audit {
+        private String sqsQueueUrl;
     }
 }

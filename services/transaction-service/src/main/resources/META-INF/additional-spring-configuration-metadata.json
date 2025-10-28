@@ -28,5 +28,20 @@
     "name": "app.cors.allowed-origins",
     "type": "java.lang.String",
     "description": "A description for 'app.cors.allowed-origins'"
+  },
+  {
+    "name": "aws.cognito.user-pool-id",
+    "type": "java.lang.String",
+    "description": "A description for 'aws.cognito.user-pool-id'"
+  },
+  {
+    "name": "aws.cognito.client-id",
+    "type": "java.lang.String",
+    "description": "A description for 'aws.cognito.client-id'"
+  },
+  {
+    "name": "aws.secrets.crm-transactions-db-secret-name",
+    "type": "java.lang.String",
+    "description": "A description for 'aws.secrets.crm-transactions-db-secret-name'"
   }
 ]}
