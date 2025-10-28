@@ -1,6 +1,5 @@
 package com.BankingBuddy.client_service.config;
 
-import com.BankingBuddy.client_service.security.UserRole;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -10,7 +9,7 @@ import org.springframework.stereotype.Component;
 @Data
 public class AppProperties {
     private Security security = new Security();
-    private Mock mock = new Mock();
+    private Audit audit = new Audit();
     
     @Data
     public static class Security {
@@ -18,7 +17,7 @@ public class AppProperties {
     }
     
     @Data
-    public static class Mock {
-        private UserRole role = UserRole.AGENT; // Default mock role
+    public static class Audit {
+        private String sqsQueueUrl;
     }
 }

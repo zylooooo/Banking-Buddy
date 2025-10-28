@@ -18,6 +18,16 @@ variable "user_service_endpoint" {
   type        = string
 }
 
+variable "transaction_service_endpoint" {
+  description = "HTTP endpoint of the transaction service (without trailing slash)"
+  type        = string
+}
+
+variable "client_service_endpoint" {
+  description = "HTTP endpoint of the client service (without trailing slash)"
+  type        = string
+}
+
 variable "api_domain_name" {
   description = "Custom domain name for API (e.g., api.bankingbuddy.com)"
   type        = string

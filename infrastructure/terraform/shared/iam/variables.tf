@@ -33,6 +33,16 @@ variable "crm_users_db_secret_arn" {
   type        = string
 }
 
+variable "crm_transactions_db_secret_arn" {
+  description = "ARN of the CRM transactions database credentials secret"
+  type        = string
+}
+
+variable "crm_clients_db_secret_arn" {
+  description = "ARN of CRM clients database credentials secret"
+  type        = string
+}
+
 variable "audit_dynamodb_table_arn" {
   description = "ARN of the audit DynamoDB table (empty string to skip policy creation and break circular dependency)"
   type        = string

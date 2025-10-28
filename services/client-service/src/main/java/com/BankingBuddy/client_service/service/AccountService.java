@@ -47,13 +47,13 @@ public class AccountService {
     private final SqsClient sqsClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
     
-    @Value("${audit.sqs.queue.url}")
+    @Value("${audit.sqs.queue-url}")
     private String auditQueueUrl;
     
-    @Value("${audit.source.service}")
+    @Value("${audit.source-service}")
     private String sourceService;
     
-    @Value("${audit.log.retention.days:30}")
+    @Value("${audit.log-retention-days:30}")
     private long logRetentionDays;
 
     /**

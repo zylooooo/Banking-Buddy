@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, String>, JpaSpecificationExecutor<Transaction> {
 
@@ -16,4 +17,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, String
     
     @NonNull
     Page<Transaction> findByClientId(@NonNull String clientId, @NonNull Pageable pageable);
+
+    @NonNull
+    Page<Transaction> findByClientIdIn(@NonNull List<String> clientIds, @NonNull Pageable pageable);
 }

@@ -320,7 +320,9 @@ resource "aws_iam_role_policy" "elastic_beanstalk_secrets" {
         ]
         Resource = [
           var.rds_secret_arn,
-          var.crm_users_db_secret_arn
+          var.crm_users_db_secret_arn,
+          var.crm_transactions_db_secret_arn,
+          var.crm_clients_db_secret_arn
         ]
       }
     ]
@@ -374,11 +376,14 @@ resource "aws_iam_role_policy" "elastic_beanstalk_cognito" {
         Action = [
           "cognito-idp:AdminCreateUser",
           "cognito-idp:AdminDisableUser",
+          "cognito-idp:AdminEnableUser",
           "cognito-idp:AdminUpdateUserAttributes",
           "cognito-idp:AdminUserGlobalSignOut",
           "cognito-idp:AdminInitiateAuth",
           "cognito-idp:ForgotPassword",
-          "cognito-idp:ConfirmForgotPassword"
+          "cognito-idp:ConfirmForgotPassword",
+          "cognito-idp:AdminResetUserPassword",
+          "cognito-idp:AdminSetUserMFAPreference"
         ]
         Resource = "arn:aws:cognito-idp:${var.aws_region}:${data.aws_caller_identity.current.account_id}:userpool/*"
       }

@@ -64,8 +64,8 @@ public class TransactionService {
         // Build dynamic query using the new approach
         Specification<Transaction> spec = Specification.allOf(); // This replaces Specification.where(null)
 
-        if (searchRequest.getClientId() != null) {
-            spec = spec.and(TransactionSpecification.hasClientId(searchRequest.getClientId()));
+        if (searchRequest.getClientIds() != null) {
+            spec = spec.and(TransactionSpecification.hasClientIdsIn(searchRequest.getClientIds()));
         }
         if (searchRequest.getTransaction() != null) {
             spec = spec.and(TransactionSpecification.hasTransactionType(searchRequest.getTransaction()));

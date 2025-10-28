@@ -25,15 +25,17 @@ module "security_groups" {
 module "iam" {
   source = "./shared/iam"
 
-  common_tags       = local.common_tags
-  name_prefix       = local.name_prefix
-  s3_bucket_name    = module.s3.bucket_name
-  rds_secret_arn    = module.secrets-manager.rds_secret_arn
-  sftp_secret_arn   = module.secrets-manager.sftp_secret_arn
-  crm_users_db_secret_arn = module.secrets-manager.crm_users_db_secret_arn
-  aws_region        = var.aws_region
-  github_org        = var.github_org
-  github_repo       = var.github_repo
+  common_tags                    = local.common_tags
+  name_prefix                    = local.name_prefix
+  s3_bucket_name                 = module.s3.bucket_name
+  rds_secret_arn                 = module.secrets-manager.rds_secret_arn
+  sftp_secret_arn                = module.secrets-manager.sftp_secret_arn
+  crm_users_db_secret_arn        = module.secrets-manager.crm_users_db_secret_arn
+  crm_transactions_db_secret_arn = module.secrets-manager.crm_transactions_db_secret_arn
+  crm_clients_db_secret_arn      = module.secrets-manager.crm_clients_db_secret_arn
+  aws_region                     = var.aws_region
+  github_org                     = var.github_org
+  github_repo                    = var.github_repo
 
   ses_email_arn = module.ses.sender_email_arn
 
@@ -68,16 +70,20 @@ module "s3" {
 module "secrets-manager" {
   source = "./shared/secrets-manager"
 
-  common_tags       = local.common_tags
-  name_prefix       = local.name_prefix
-  rds_username      = var.rds_username
-  rds_password      = var.rds_password
-  rds_endpoint      = module.rds.rds_endpoint
-  rds_database_name = var.rds_database_name
-  sftp_username     = var.sftp_username
-  sftp_password     = var.sftp_password
-  crm_users_db_username   = var.crm_users_db_username
-  crm_users_db_password   = var.crm_users_db_password
+  common_tags                  = local.common_tags
+  name_prefix                  = local.name_prefix
+  rds_username                 = var.rds_username
+  rds_password                 = var.rds_password
+  rds_endpoint                 = module.rds.rds_endpoint
+  rds_database_name            = var.rds_database_name
+  sftp_username                = var.sftp_username
+  sftp_password                = var.sftp_password
+  crm_users_db_username        = var.crm_users_db_username
+  crm_users_db_password        = var.crm_users_db_password
+  crm_transactions_db_username = var.crm_transactions_db_username
+  crm_transactions_db_password = var.crm_transactions_db_password
+  crm_clients_db_username      = var.crm_clients_db_username
+  crm_clients_db_password      = var.crm_clients_db_password
 
   depends_on = [module.rds]
 }
@@ -190,6 +196,57 @@ module "elasticache" {
 module "user-service" {
   source = "./services/user-service"
 
+  name_prefix              = local.name_prefix
+  vpc_id                   = module.vpc.vpc_id
+  public_subnet_ids        = module.vpc.public_subnet_ids
+  private_subnet_ids       = module.vpc.private_subnet_ids
+  alb_security_group_id    = module.security_groups.alb_id
+  eb_security_group_id     = module.security_groups.elastic_beanstalk_id
+  eb_instance_profile_name = module.iam.elastic_beanstalk_instance_profile_name
+  eb_service_role_arn      = module.iam.elastic_beanstalk_service_role_arn
+  rds_endpoint             = module.rds.rds_endpoint
+  rds_secret_name          = module.secrets-manager.rds_secret_name
+  crm_users_db_secret_name = module.secrets-manager.crm_users_db_secret_name
+  aws_region               = var.aws_region
+  cognito_user_pool_id     = module.cognito.user_pool_id
+  cognito_client_id        = module.cognito.user_pool_client_id
+  root_admin_email         = var.root_admin_email
+  audit_sqs_queue_url      = module.audit_logging.sqs_queue_url
+  redis_endpoint           = module.elasticache.redis_endpoint
+  ec2_key_pair_name        = var.ec2_key_pair_name
+  common_tags              = local.common_tags
+
+  depends_on = [module.cognito, module.security_groups, module.elasticache]
+}
+
+# Call the transaction service module
+module "transaction-service" {
+  source = "./services/transaction-service"
+
+  name_prefix                     = local.name_prefix
+  vpc_id                          = module.vpc.vpc_id
+  public_subnet_ids               = module.vpc.public_subnet_ids
+  private_subnet_ids              = module.vpc.private_subnet_ids
+  alb_security_group_id           = module.security_groups.alb_id
+  eb_security_group_id            = module.security_groups.elastic_beanstalk_id
+  eb_instance_profile_name        = module.iam.elastic_beanstalk_instance_profile_name
+  eb_service_role_arn             = module.iam.elastic_beanstalk_service_role_arn
+  rds_endpoint                    = module.rds.rds_endpoint
+  rds_secret_name                 = module.secrets-manager.rds_secret_name
+  crm_transactions_db_secret_name = module.secrets-manager.crm_transactions_db_secret_name
+  aws_region                      = var.aws_region
+  audit_sqs_queue_url             = module.audit_logging.sqs_queue_url
+  redis_endpoint                  = module.elasticache.redis_endpoint
+  ec2_key_pair_name               = var.ec2_key_pair_name
+  common_tags                     = local.common_tags
+
+  depends_on = [module.security_groups, module.elasticache]
+}
+
+# Call the client service module
+module "client-service" {
+  source = "./services/client-service"
+
   name_prefix                = local.name_prefix
   vpc_id                     = module.vpc.vpc_id
   public_subnet_ids          = module.vpc.public_subnet_ids
@@ -199,18 +256,17 @@ module "user-service" {
   eb_instance_profile_name   = module.iam.elastic_beanstalk_instance_profile_name
   eb_service_role_arn        = module.iam.elastic_beanstalk_service_role_arn
   rds_endpoint               = module.rds.rds_endpoint
-  rds_secret_name            = module.secrets-manager.rds_secret_name
-  crm_users_db_secret_name   = module.secrets-manager.crm_users_db_secret_name
+  crm_clients_db_secret_name = module.secrets-manager.crm_clients_db_secret_name
   aws_region                 = var.aws_region
-  cognito_user_pool_id       = module.cognito.user_pool_id
-  cognito_client_id          = module.cognito.user_pool_client_id
-  root_admin_email           = var.root_admin_email
   audit_sqs_queue_url        = module.audit_logging.sqs_queue_url
   redis_endpoint             = module.elasticache.redis_endpoint
   ec2_key_pair_name          = var.ec2_key_pair_name
+  audit_log_retention_days   = var.audit_log_retention_days
+  ses_source_email           = var.ses_sender_email
+  ses_source_service         = var.ses_source_service
   common_tags                = local.common_tags
-  
-  depends_on = [module.cognito, module.security_groups, module.elasticache]
+
+  depends_on = [module.security_groups, module.elasticache]
 }
 
 # Call the WAF module
@@ -236,16 +292,24 @@ module "acm" {
 module "api_gateway" {
   source = "./shared/api-gateway"
 
-  name_prefix           = local.name_prefix
-  environment           = var.environment
-  cognito_user_pool_arn = module.cognito.user_pool_arn
-  user_service_endpoint = module.user-service.endpoint_url
-  api_domain_name       = var.api_domain_name
-  certificate_arn       = var.root_domain_name != "" ? module.acm[0].certificate_arn : null
-  waf_web_acl_arn       = module.waf.web_acl_arn
-  common_tags           = local.common_tags
+  name_prefix                  = local.name_prefix
+  environment                  = var.environment
+  cognito_user_pool_arn        = module.cognito.user_pool_arn
+  user_service_endpoint        = module.user-service.endpoint_url
+  transaction_service_endpoint = module.transaction-service.endpoint_url
+  client_service_endpoint      = module.client-service.endpoint_url
+  api_domain_name              = var.api_domain_name
+  certificate_arn              = var.root_domain_name != "" ? module.acm[0].certificate_arn : null
+  waf_web_acl_arn              = module.waf.web_acl_arn
+  common_tags                  = local.common_tags
 
-  depends_on = [module.user-service, module.cognito, module.waf]
+  depends_on = [
+    module.user-service, 
+    module.transaction-service, 
+    module.client-service, 
+    module.cognito, 
+    module.waf
+  ]
 }
 
 # Call the Route53 module (only if custom domain is configured)
