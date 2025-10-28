@@ -211,3 +211,16 @@ variable "crm_transactions_db_password" {
   type        = string
   sensitive   = true
 }
+
+variable "crm_clients_db_username" {
+  description = "CRM clients database username"
+  type = string
+  default = "crm_clients_user"
+  sensitive = true
+}
+
+variable "crm_clients_db_password" {
+  description = "CRM clients database password"
+  type = string
+  sensitive = true
+}

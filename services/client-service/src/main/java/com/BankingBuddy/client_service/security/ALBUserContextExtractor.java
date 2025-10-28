@@ -1,7 +1,6 @@
 package com.BankingBuddy.client_service.security;
 
 import com.BankingBuddy.client_service.exception.UnauthorizedException;
-import com.BankingBuddy.client_service.config.AppProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,16 +18,8 @@ public class ALBUserContextExtractor {
     private static final String BEARER_PREFIX = "Bearer ";
     
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final AppProperties appProperties;
-
-    public ALBUserContextExtractor(AppProperties appProperties) {
-        this.appProperties = appProperties;
-    }
 
     public UserContext extractUserContext(HttpServletRequest request) {
-        if (!appProperties.getSecurity().isEnabled()) {
-            return createMockUserContext(); // For local development
-        }
 
         // Try ALB format first (production with ALB)
         String oidcDataHeader = request.getHeader(ALB_OIDC_DATA_HEADER);
@@ -142,20 +133,5 @@ public class ALBUserContextExtractor {
             log.error("Failed to build user context from claims", e);
             throw new UnauthorizedException("Invalid JWT claims");
         }
-    }
-
-    private UserContext createMockUserContext() {
-        // CONFIGURABLE mock role from environment variable or application.properties
-        UserRole mockRole = appProperties.getMock().getRole();
-        
-        log.info("Using mock user context with role: {}", mockRole);
-        
-        return UserContext.builder()
-                .userId("mock-user-" + mockRole.getValue())
-                .email("mock-" + mockRole.getValue() + "@example.com")
-                .username("mock-" + mockRole.getValue())
-                .role(mockRole)
-                .emailVerified(true)
-                .build();
     }
 }

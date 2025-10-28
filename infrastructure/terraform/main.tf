@@ -32,6 +32,7 @@ module "iam" {
   sftp_secret_arn                = module.secrets-manager.sftp_secret_arn
   crm_users_db_secret_arn        = module.secrets-manager.crm_users_db_secret_arn
   crm_transactions_db_secret_arn = module.secrets-manager.crm_transactions_db_secret_arn
+  crm_clients_db_secret_arn      = module.secrets-manager.crm_clients_db_secret_arn
   aws_region                     = var.aws_region
   github_org                     = var.github_org
   github_repo                    = var.github_repo
@@ -81,6 +82,8 @@ module "secrets-manager" {
   crm_users_db_password        = var.crm_users_db_password
   crm_transactions_db_username = var.crm_transactions_db_username
   crm_transactions_db_password = var.crm_transactions_db_password
+  crm_clients_db_username      = var.crm_clients_db_username
+  crm_clients_db_password      = var.crm_clients_db_password
 
   depends_on = [module.rds]
 }
@@ -240,6 +243,29 @@ module "transaction-service" {
   depends_on = [module.security_groups, module.elasticache]
 }
 
+# Call the client service module
+module "client-service" {
+  source = "./services/client-service"
+
+  name_prefix                = local.name_prefix
+  vpc_id                     = module.vpc.vpc_id
+  public_subnet_ids          = module.vpc.public_subnet_ids
+  private_subnet_ids         = module.vpc.private_subnet_ids
+  alb_security_group_id      = module.security_groups.alb_id
+  eb_security_group_id       = module.security_groups.elastic_beanstalk_id
+  eb_instance_profile_name   = module.iam.elastic_beanstalk_instance_profile_name
+  eb_service_role_arn        = module.iam.elastic_beanstalk_service_role_arn
+  rds_endpoint               = module.rds.rds_endpoint
+  crm_clients_db_secret_name = module.secrets-manager.crm_clients_db_secret_name
+  aws_region                 = var.aws_region
+  audit_sqs_queue_url        = module.audit_logging.sqs_queue_url
+  redis_endpoint             = module.elasticache.redis_endpoint
+  ec2_key_pair_name          = var.ec2_key_pair_name
+  common_tags                = local.common_tags
+
+  depends_on = [module.security_groups, module.elasticache]
+}
+
 # Call the WAF module
 module "waf" {
   source = "./shared/waf"
@@ -268,12 +294,19 @@ module "api_gateway" {
   cognito_user_pool_arn        = module.cognito.user_pool_arn
   user_service_endpoint        = module.user-service.endpoint_url
   transaction_service_endpoint = module.transaction-service.endpoint_url
+  client_service_endpoint      = module.client-service.endpoint_url
   api_domain_name              = var.api_domain_name
   certificate_arn              = var.root_domain_name != "" ? module.acm[0].certificate_arn : null
   waf_web_acl_arn              = module.waf.web_acl_arn
   common_tags                  = local.common_tags
 
-  depends_on = [module.user-service, module.transaction-service, module.cognito, module.waf]
+  depends_on = [
+    module.user-service, 
+    module.transaction-service, 
+    module.client-service, 
+    module.cognito, 
+    module.waf
+  ]
 }
 
 # Call the Route53 module (only if custom domain is configured)

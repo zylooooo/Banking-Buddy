@@ -48,5 +48,20 @@
     "name": "audit.sqs.queue-url",
     "type": "java.lang.String",
     "description": "A description for 'audit.sqs.queue-url'"
+  },
+  {
+    "name": "aws.secrets.crm-clients-db-secret-name",
+    "type": "java.lang.String",
+    "description": "A description for 'aws.secrets.crm-clients-db-secret-name'"
+  },
+  {
+    "name": "app.cors.allowed-origins",
+    "type": "java.lang.String",
+    "description": "A description for 'app.cors.allowed-origins'"
+  },
+  {
+    "name": "app.audit.sqs-queue-url",
+    "type": "java.lang.String",
+    "description": "A description for 'app.audit.sqs-queue-url'"
   }
 ]}

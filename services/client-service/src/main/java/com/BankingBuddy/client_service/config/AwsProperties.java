@@ -9,10 +9,16 @@ import org.springframework.stereotype.Component;
 @Data
 public class AwsProperties {
     private String region = "ap-southeast-1";
-    private String accessKeyId;
-    private String secretAccessKey;
+    private String accessKeyId; // For local dev only
+    private String secretAccessKey; // For local dev only
+    private Secrets secrets = new Secrets();
     private Sqs sqs = new Sqs();
     private Ses ses = new Ses();
+    
+    @Data
+    public static class Secrets {
+        private String crmClientsDbSecretName;
+    }
     
     @Data
     public static class Sqs {
