@@ -5,6 +5,8 @@ import { transactionApi } from '../services/apiService';
 import Header from '../components/Header';
 import Navigation from '../components/Navigation';
 
+import { clientApi } from '../services/apiService';
+
 export default function TransactionManagementPage() {
     const [currentUser, setCurrentUser] = useState(null);
     const [transactions, setTransactions] = useState([]);
@@ -36,8 +38,13 @@ export default function TransactionManagementPage() {
                 const cognitoUser = await getUserFromToken();
                 setCurrentUser(cognitoUser);
 
-                // If you need to show clients for filtering, use a dedicated client list API from transaction-service if available, or remove this if not needed.
-                setClients([]); // Placeholder: remove or replace with correct API if needed
+                // Fetch clients for filter dropdown
+                try {
+                    const clientsResponse = await clientApi.getAllClients();
+                    setClients(clientsResponse.data.data || []);
+                } catch (err) {
+                    setClients([]);
+                }
 
                 // Load transactions
                 await loadTransactions();
@@ -53,23 +60,31 @@ export default function TransactionManagementPage() {
     }, [navigate]);
 
 
-    // Use pagination and clientId filter for transaction-service
+    // Always use /api/transactions/search endpoint for loading transactions
     const loadTransactions = async () => {
         try {
-            let response;
-            if (filters.clientId) {
-                // Fetch transactions for a specific client from transaction-service
-                response = await transactionApi.getTransactionsByClientId(filters.clientId, 0, 10);
-            } else if (
-                filters.transactionType || filters.status || filters.dateFrom || filters.dateTo || filters.minAmount || filters.maxAmount
-            ) {
-                // Use search endpoint for advanced filters from transaction-service
-                const searchParams = { ...filters };
-                response = await transactionApi.searchTransactions(searchParams);
-            } else {
-                // Fetch all transactions (paginated) from transaction-service
-                response = await transactionApi.getAllTransactions(0, 10);
+            let searchParams = { ...filters };
+            if (currentUser?.role === 'AGENT') {
+                const clientsResponse = await clientApi.getAllClients();
+                const agentClients = (clientsResponse.data.data || []).filter(
+                    client => client.clientId && typeof client.clientId === 'string' && client.clientId.trim() !== ''
+                );
+                if (agentClients.length === 0) {
+                    setTransactions([]);
+                    return;
+                }
+                // Send a single search request with all clientIds
+                const clientIds = agentClients.map(client => client.clientId);
+                const params = { ...searchParams, clientIds };
+                const response = await transactionApi.searchTransactions(params);
+                setTransactions(response.data.data?.content || []);
+                return;
+            } else if (filters.clientId) {
+                // For non-AGENT, if clientId is set, use it as filter
+                searchParams.clientId = filters.clientId;
             }
+            // Always use search endpoint
+            const response = await transactionApi.searchTransactions(searchParams);
             setTransactions(response.data.data?.content || []);
         } catch (err) {
             setError('Failed to load transactions');

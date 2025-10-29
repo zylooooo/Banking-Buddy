@@ -30,7 +30,14 @@ export default function ClientManagementPage() {
 
                 // Use the existing getUserById endpoint with the user's own ID
                 const userResponse = await userApi.getUserById(cognitoUser.sub);
-                setCurrentUser(userResponse.data.data); // Backend returns { data: UserDTO, message: string }
+                const user = userResponse.data.data;
+                setCurrentUser(user); // Backend returns { data: UserDTO, message: string }
+
+                // Redirect admin and rootAdministrator away from Client Management
+                if (user.role === 'admin' || user.role === 'rootAdministrator') {
+                    navigate('/dashboard');
+                    return;
+                }
 
                 // Load clients
                 const response = await clientApi.getAllClients();
@@ -72,7 +79,8 @@ export default function ClientManagementPage() {
     const handleDeleteClient = async (clientId) => {
         if (window.confirm('Are you sure you want to delete this client?')) {
             try {
-                await clientApi.deleteClient(clientId);
+                console.log('Deleting client:', clientId);
+                await clientApi.deleteClient(clientId); // Should send DELETE /api/clients/{clientId}
                 // Refresh clients list
                 const response = await clientApi.getAllClients();
                 setClients(response.data.data);
@@ -217,6 +225,7 @@ function CreateClientForm({ onSubmit, onCancel }) {
     });
 
     const [validationErrors, setValidationErrors] = useState({});
+    const [submitError, setSubmitError] = useState(null);
 
     const validateField = (name, value) => {
         const errors = {};
@@ -241,7 +250,7 @@ function CreateClientForm({ onSubmit, onCancel }) {
                 } else {
                     const birthDate = new Date(value);
                     const today = new Date();
-                    const age = today.getFullYear() - birthDate.getFullYear();
+                    let age = today.getFullYear() - birthDate.getFullYear();
                     const monthDiff = today.getMonth() - birthDate.getMonth();
                     
                     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
@@ -330,9 +339,9 @@ function CreateClientForm({ onSubmit, onCancel }) {
         return errors;
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        
+        setSubmitError(null);
         // Validate all fields
         let allErrors = {};
         Object.keys(formData).forEach(key => {
@@ -344,7 +353,11 @@ function CreateClientForm({ onSubmit, onCancel }) {
 
         // If no errors, submit the form
         if (Object.keys(allErrors).length === 0) {
-            onSubmit(formData);
+            try {
+                await onSubmit(formData);
+            } catch (err) {
+                setSubmitError(err?.response?.data?.message || err?.message || 'Failed to create client');
+            }
         }
     };
 
@@ -366,6 +379,17 @@ function CreateClientForm({ onSubmit, onCancel }) {
     return (
         <div className="mb-6 bg-slate-800 border border-slate-700 rounded-lg p-6">
             <h3 className="text-lg font-semibold text-white mb-4">Create New Client</h3>
+            {submitError && (
+                <div className="mb-4 bg-red-900 border border-red-700 text-red-100 px-4 py-3 rounded-md">
+                    {submitError}
+                    <button
+                        onClick={() => setSubmitError(null)}
+                        className="float-right text-red-300 hover:text-red-100"
+                    >
+                        ×
+                    </button>
+                </div>
+            )}
             <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Personal Information */}
                 <div>

@@ -59,21 +59,17 @@ export default function Navigation({ user }) {
             ),
                 roles: ['admin', 'rootAdministrator']
         },
-        {
-            path: '/accounts',
-            label: 'Account Overview',
-            icon: (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-            ),
-                roles: ['ADMIN', 'ROOT_ADMIN', 'rootAdministrator']
-        }
+        // ...existing code...
     ];
 
-    const availableNavItems = navItems.filter(item => 
-        user && item.roles.includes(user.role)
-    );
+    const availableNavItems = navItems.filter(item => {
+        if (!user) return false;
+        // Remove Client Management for admin and rootAdministrator
+        if (item.path === '/clients' && (user.role === 'admin' || user.role === 'rootAdministrator')) {
+            return false;
+        }
+        return item.roles.includes(user.role);
+    });
 
     return (
         <nav className="fixed left-0 top-0 h-full w-64 bg-slate-800 border-r border-slate-700 z-40 overflow-y-auto">

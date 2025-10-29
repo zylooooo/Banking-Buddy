@@ -103,25 +103,5 @@ export const transactionApi = {
 };
 
 // Communication API endpoints
-export const communicationApi = {
-    sendClientEmail: (clientId, emailData) => clientApiClient.post(`/clients/${clientId}/communications/email`, emailData),
-    getCommunicationStatus: (communicationId) => clientApiClient.get(`/communications/${communicationId}/status`),
-    getCommunicationHistory: (clientId) => clientApiClient.get(`/clients/${clientId}/communications`),
-};
-
-// Audit Log API endpoints
-export const auditApi = {
-    getAllLogs: (filters = {}) => {
-        const params = new URLSearchParams();
-        Object.keys(filters).forEach(key => {
-            if (filters[key]) {
-                params.append(key, filters[key]);
-            }
-        });
-        return clientApiClient.get(`/audit-logs?${params.toString()}`);
-    },
-    getLogsByClientId: (clientId) => clientApiClient.get(`/audit-logs/client/${clientId}`),
-    getLogsByAgentId: (agentId) => clientApiClient.get(`/audit-logs/agent/${agentId}`),
-};
 
 export default apiClient;
