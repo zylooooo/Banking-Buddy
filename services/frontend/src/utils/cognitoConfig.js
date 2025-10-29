@@ -21,7 +21,8 @@ Amplify.configure({
                         'openid',
                         'email',
                         'phone',
-                        'profile'
+                        'profile',
+                        'aws.cognito.signin.user.admin'
                     ],
                     redirectSignIn: [config.redirectUri],
                     redirectSignOut: [config.logoutUri],
