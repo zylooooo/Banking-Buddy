@@ -5,12 +5,16 @@ import { userApi } from '../services/apiService';
 import Header from '../components/Header';
 import Navigation from '../components/Navigation';
 import UserCard from '../components/UserCard';
-import ApiTester from '../components/ApiTester';
+
+import axios from 'axios';
 
 export default function DashboardPage() {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [logs, setLogs] = useState([]);
+    const [logsLoading, setLogsLoading] = useState(true);
+    const [logsError, setLogsError] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -40,6 +44,34 @@ export default function DashboardPage() {
         };
 
         loadUser();
+    }, [navigate]);
+
+    useEffect(() => {
+        const loadLogs = async () => {
+            try {
+                // Get JWT token from localStorage for current user
+                const cognitoUser = await getUserFromToken();
+                let jwt = '';
+                if (cognitoUser && cognitoUser.sub) {
+                    const cognitoKeys = Object.keys(window.localStorage).filter(k => k.includes('CognitoIdentityServiceProvider') && k.includes(cognitoUser.sub) && k.endsWith('.idToken'));
+                    if (cognitoKeys.length > 0) {
+                        jwt = window.localStorage.getItem(cognitoKeys[cognitoKeys.length - 1]);
+                    }
+                }
+                // Fetch logs from external endpoint with Bearer token
+                const response = await axios.get('https://f827tiy8zj.execute-api.ap-southeast-1.amazonaws.com/api/v1/audit/logs', {
+                    headers: {
+                        Authorization: `Bearer ${jwt}`
+                    }
+                });
+                setLogs(response.data?.logs || []);
+                setLogsLoading(false);
+            } catch (err) {
+                setLogsError(err.response?.data?.message || err.message || 'Failed to load recent activities');
+                setLogsLoading(false);
+            }
+        };
+        loadLogs();
     }, [navigate]);
 
     if (loading) {
@@ -145,10 +177,44 @@ export default function DashboardPage() {
                     )}
                 </div>
 
-                {/* User Profile and API Testing */}
+                {/* Recent Activities Tab */}
+                <div className="mb-8">
+                    <h2 className="text-xl font-bold text-white mb-4">Recent Activities</h2>
+                    {logsLoading ? (
+                        <div className="p-6 text-center text-slate-400">Loading recent activities...</div>
+                    ) : logsError ? (
+                        <div className="mb-6 bg-red-900 border border-red-700 text-red-100 px-4 py-3 rounded-md">{logsError}</div>
+                    ) : logs.length === 0 ? (
+                        <div className="p-6 text-center text-slate-400">No recent activities found.</div>
+                    ) : (
+                        <div className="bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-slate-700">
+                                        <th className="text-left p-4 text-slate-300 font-medium">User</th>
+                                        <th className="text-left p-4 text-slate-300 font-medium">Date/Time</th>
+                                        <th className="text-left p-4 text-slate-300 font-medium">Operation</th>
+                                        <th className="text-left p-4 text-slate-300 font-medium">Client ID</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {logs.map((log, idx) => (
+                                        <tr key={idx} className="border-b border-slate-700 hover:bg-slate-750">
+                                            <td className="p-4 text-slate-300">{log.agent_id || log.user_id || '-'}</td>
+                                            <td className="p-4 text-slate-300 text-sm">{log.timestamp ? new Date(log.timestamp).toLocaleString('en-SG') : ''}</td>
+                                            <td className="p-4 text-slate-300">{log.crud_operation || '-'}</td>
+                                            <td className="p-4 text-slate-300">{log.client_id || '-'}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+
+                {/* User Profile */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <UserCard user={user} />
-                    <ApiTester />
                 </div>
                 </main>
             </div>

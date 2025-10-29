@@ -339,7 +339,6 @@ function CreateUserForm({ onSubmit, onCancel }) {
                     >
                         <option value="agent">Agent</option>
                         <option value="admin">Admin</option>
-                        <option value="rootAdministrator">Root Admin</option>
                     </select>
                 </div>
                 <div className="md:col-span-2 flex gap-3 pt-4">
