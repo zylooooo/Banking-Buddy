@@ -77,7 +77,11 @@ const TRANSACTION_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://l
 
 const transactionApiClient = axios.create({
     baseURL: TRANSACTION_API_BASE_URL,
-    headers: { 'Content-Type': 'application/json' }
+    headers: { 'Content-Type': 'application/json' },
+    // Configure params serializer for Spring's @ModelAttribute array binding
+    paramsSerializer: {
+        indexes: null // This makes axios send clientIds=id1&clientIds=id2 (repeated params)
+    }
 });
 
 transactionApiClient.interceptors.request.use(async (config) => {
@@ -98,6 +102,7 @@ export const transactionApi = {
         transactionApiClient.get(`/transactions`, { params: { clientId, page, limit } }),
 
     // GET /api/transactions/search?...searchParams
+    // Now arrays are automatically serialized correctly via paramsSerializer config
     searchTransactions: (searchParams = {}) =>
         transactionApiClient.get(`/transactions/search`, { params: searchParams }),
 };

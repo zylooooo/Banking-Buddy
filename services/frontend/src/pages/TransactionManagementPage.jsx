@@ -39,15 +39,19 @@ export default function TransactionManagementPage() {
                 setCurrentUser(cognitoUser);
 
                 // Fetch clients for filter dropdown
+                // For AGENT users, this will get their clients
+                let fetchedClients = [];
                 try {
                     const clientsResponse = await clientApi.getAllClients();
-                    setClients(clientsResponse.data.data || []);
+                    fetchedClients = clientsResponse.data.data || [];
+                    setClients(fetchedClients);
                 } catch (err) {
+                    // If getAllClients fails (e.g., non-AGENT user), set empty array
                     setClients([]);
                 }
 
-                // Load transactions
-                await loadTransactions();
+                // Load transactions - pass clients directly to avoid state timing issue
+                await loadTransactions(cognitoUser, fetchedClients);
                 setLoading(false);
             } catch (err) {
                 console.error('Failed to load data:', err);
@@ -61,33 +65,108 @@ export default function TransactionManagementPage() {
 
 
     // Always use /api/transactions/search endpoint for loading transactions
-    const loadTransactions = async () => {
+    const loadTransactions = async (user = currentUser, clientsData = clients) => {
         try {
-            let searchParams = { ...filters };
-            if (currentUser?.role === 'AGENT') {
-                const clientsResponse = await clientApi.getAllClients();
-                const agentClients = (clientsResponse.data.data || []).filter(
-                    client => client.clientId && typeof client.clientId === 'string' && client.clientId.trim() !== ''
-                );
+            setError(null); // Clear any previous errors
+            
+            // Check role case-insensitively (Cognito might return 'agent' or 'AGENT')
+            const userRole = user?.role?.toUpperCase();
+            
+            // For AGENT users: get all transactions from their clients
+            if (userRole === 'AGENT') {
+                // Use clients passed as parameter or from state (parameter takes precedence)
+                const clientsToUse = clientsData || clients || [];
+                
+                // Filter valid clients - check multiple possible field names
+                const agentClients = clientsToUse.filter(client => {
+                    // Check for clientId (from ClientSummaryDTO) or id (alternative)
+                    const id = client?.clientId || client?.id;
+                    return id && typeof id === 'string' && id.trim() !== '';
+                });
+                
+                // If agent has no clients, show empty state (not an error)
                 if (agentClients.length === 0) {
                     setTransactions([]);
+                    setError(null); // Ensure no error is shown
+                    return; // No API call made
+                }
+                
+                // Extract clientIds from the agent's clients - handle both clientId and id
+                const clientIds = agentClients.map(client => client.clientId || client.id).filter(Boolean);
+                
+                // Safety check: ensure we have at least one clientId before making API call
+                if (!clientIds || clientIds.length === 0) {
+                    setTransactions([]);
+                    setError(null);
                     return;
                 }
-                // Send a single search request with all clientIds
-                const clientIds = agentClients.map(client => client.clientId);
-                const params = { ...searchParams, clientIds };
-                const response = await transactionApi.searchTransactions(params);
+                
+                // Build search params - only include clientIds and valid filter values
+                const searchParams = {
+                    clientIds: clientIds, // Non-empty array - ensures validation passes
+                    // Only include other filters if they have meaningful values
+                    ...(filters.transactionType && { transaction: filters.transactionType }),
+                    ...(filters.status && { status: filters.status }),
+                    ...(filters.dateFrom && { startDate: filters.dateFrom }),
+                    ...(filters.dateTo && { endDate: filters.dateTo }),
+                    ...(filters.minAmount && parseFloat(filters.minAmount) > 0 && { minAmount: filters.minAmount }),
+                    ...(filters.maxAmount && parseFloat(filters.maxAmount) > 0 && { maxAmount: filters.maxAmount }),
+                };
+                
+                // Call the search endpoint with the constructed parameters
+                const response = await transactionApi.searchTransactions(searchParams);
                 setTransactions(response.data.data?.content || []);
-                return;
-            } else if (filters.clientId) {
-                // For non-AGENT, if clientId is set, use it as filter
-                searchParams.clientId = filters.clientId;
+                
+            } else {
+                // For non-AGENT users (admin, rootAdministrator)
+                // Build search params with only non-empty filter values
+                const searchParams = {};
+                
+                // Add filters only if they have values
+                if (filters.clientId) {
+                    searchParams.clientId = filters.clientId;
+                }
+                if (filters.transactionType) {
+                    searchParams.transaction = filters.transactionType;
+                }
+                if (filters.status) {
+                    searchParams.status = filters.status;
+                }
+                if (filters.dateFrom) {
+                    searchParams.startDate = filters.dateFrom;
+                }
+                if (filters.dateTo) {
+                    searchParams.endDate = filters.dateTo;
+                }
+                if (filters.minAmount && parseFloat(filters.minAmount) > 0) {
+                    searchParams.minAmount = filters.minAmount;
+                }
+                if (filters.maxAmount && parseFloat(filters.maxAmount) > 0) {
+                    searchParams.maxAmount = filters.maxAmount;
+                }
+                
+                // Backend requires at least one filter - don't call if none are set
+                const hasAtLeastOneFilter = Object.keys(searchParams).length > 0;
+                
+                if (!hasAtLeastOneFilter) {
+                    // For non-AGENT users with no filters, show empty state
+                    setTransactions([]);
+                    setError(null); // Don't show error, just empty state
+                    return;
+                }
+                
+                // Call the search endpoint
+                const response = await transactionApi.searchTransactions(searchParams);
+                setTransactions(response.data.data?.content || []);
             }
-            // Always use search endpoint
-            const response = await transactionApi.searchTransactions(searchParams);
-            setTransactions(response.data.data?.content || []);
         } catch (err) {
-            setError('Failed to load transactions');
+            console.error('Failed to load transactions:', err);
+            // Show user-friendly error message
+            const errorMessage = err.response?.data?.message || 
+                                err.response?.data?.error || 
+                                'Failed to load transactions';
+            setError(errorMessage);
+            setTransactions([]); // Clear transactions on error
         }
     };
 
