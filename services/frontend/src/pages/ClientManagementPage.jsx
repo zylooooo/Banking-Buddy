@@ -159,7 +159,7 @@ export default function ClientManagementPage() {
                                     clients.map((client) => (
                                         <tr key={client.clientId} className="border-b border-slate-700 hover:bg-slate-750">
                                             <td className="p-4 text-white">
-                                                {client.firstName} {client.lastName}
+                                                {client.fullName || `${client.firstName || ''} ${client.lastName || ''}`}
                                             </td>
                                             <td className="p-4 text-slate-300">{client.email}</td>
                                             <td className="p-4 text-slate-300">{client.phoneNumber}</td>

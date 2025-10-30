@@ -212,10 +212,7 @@ export default function DashboardPage() {
                     )}
                 </div>
 
-                {/* User Profile */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <UserCard user={user} />
-                </div>
+                {/* ...removed User Information tab... */}
                 </main>
             </div>
         </div>
