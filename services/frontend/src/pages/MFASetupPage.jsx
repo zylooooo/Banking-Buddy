@@ -63,7 +63,6 @@ export default function MFASetupPage() {
                 }
             });   
 
-            console.log('Phone number submitted, verification code sent');
             setStep('verifyCode');
         } catch (err) {
             console.error('Phone submission error:', err);
@@ -86,12 +85,8 @@ export default function MFASetupPage() {
                 confirmationCode: verificationCode
             });
 
-            console.log('Phone number verified successfully');
-
             // Enable SMS MFA as preferred method
             await updateMFAPreference({ sms: 'PREFERRED' });
-
-            console.log('SMS MFA enabled successfully');
 
             // Mark user as ACTIVE (onboarding complete with MFA)
             await markUserActive();
@@ -116,7 +111,6 @@ export default function MFASetupPage() {
 
             await userApi.setUpMFAForUser(cognitoUser.sub);
 
-            console.log('User marked as ACTIVE');
         } catch (err) {
             console.error('Mark active error:', err);
             throw err;

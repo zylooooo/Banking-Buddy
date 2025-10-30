@@ -35,7 +35,6 @@ export default function CommunicationPage() {
                     }
                 }
                 setJwtToken(jwt);
-                console.log('JWT sent in Authorization header:', jwt);
                 // Fetch logs from external endpoint with Bearer token
                 const response = await axios.get('https://f827tiy8zj.execute-api.ap-southeast-1.amazonaws.com/api/v1/audit/logs', {
                     headers: {

@@ -10,9 +10,6 @@ const apiClient = axios.create({
     headers: { 'Content-Type': 'application/json' }
 });
 
-console.log('API_BASE_URL:', API_BASE_URL); // Debug log
-console.log('isDevelopment:', isDevelopment); // Debug log
-
 apiClient.interceptors.request.use(async (config) => {
     const token = await getIdToken();
     if (token) {
@@ -41,8 +38,6 @@ const clientApiClient = axios.create({
     baseURL: CLIENT_API_BASE_URL,
     headers: { 'Content-Type': 'application/json' }
 });
-
-console.log('CLIENT_API_BASE_URL:', CLIENT_API_BASE_URL); // Debug log
 
 clientApiClient.interceptors.request.use(async (config) => {
     const token = await getIdToken();

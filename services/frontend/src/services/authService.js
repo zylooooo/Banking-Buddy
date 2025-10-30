@@ -32,7 +32,6 @@ export const getUserFromToken = async () => {
         // Get user info directly from ID token claims instead of calling fetchUserAttributes
         const session = await fetchAuthSession();
         if (!session.tokens || !session.tokens.idToken) {
-            console.log('No active session found');
             return null;
         }
         
