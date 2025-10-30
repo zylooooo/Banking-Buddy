@@ -290,7 +290,7 @@ export default function TransactionManagementPage() {
                                 <option value="">All Clients</option>
                                 {clients.map(client => (
                                     <option key={client.clientId} value={client.clientId}>
-                                        {client.firstName} {client.lastName}
+                                        {client.clientId} {client.firstName ? `- ${client.firstName} ${client.lastName}` : ''}
                                     </option>
                                 ))}
                             </select>
@@ -419,7 +419,8 @@ export default function TransactionManagementPage() {
                                                 {transaction.id}
                                             </td>
                                             <td className="p-4 text-slate-300">
-                                                {transaction.clientName || `Client ${transaction.clientId}`}
+                                                {transaction.clientId}
+                                                {transaction.clientName ? ` - ${transaction.clientName}` : ''}
                                             </td>
                                             <td className="p-4">
                                                 <span className={`px-2 py-1 text-xs rounded-full ${getTypeColor(transaction.transaction)}`}>
