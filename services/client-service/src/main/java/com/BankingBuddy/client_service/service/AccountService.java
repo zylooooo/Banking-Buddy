@@ -45,6 +45,7 @@ public class AccountService {
     private final AccountRepository accountRepository;
     private final ClientRepository clientRepository;
     private final SqsClient sqsClient;
+    private final EmailService emailService;
     private final ObjectMapper objectMapper = new ObjectMapper();
     
     @Value("${audit.sqs.queue-url}")
@@ -245,7 +246,12 @@ public class AccountService {
             // Non-blocking: audit failure should not affect account creation
         }
 
-        // 7. Convert to DTO and return
+        // 7. Send account creation email (async, non-blocking)
+        emailService.sendAccountCreationEmail(client, savedAccount);
+        log.info("Triggered async account creation email send for account {} to client {}", 
+                accountId, client.getClientId());
+
+        // 8. Convert to DTO and return
         return convertToAccountDTO(savedAccount);
     }
 
@@ -322,6 +328,14 @@ public class AccountService {
         } catch (Exception e) {
             log.error("Failed to publish DELETE audit log for account {}: {}", accountId, e.getMessage());
             // Non-blocking: audit failure should not affect deletion
+        }
+        
+        // 7. Send account deletion email to client (async, non-blocking)
+        Client client = clientRepository.findByClientIdAndDeletedFalse(account.getClientId()).orElse(null);
+        if (client != null) {
+            emailService.sendAccountDeletionEmail(client, account);
+            log.info("Triggered async account deletion email send for account {} to client {}", 
+                    accountId, client.getClientId());
         }
     }
 }

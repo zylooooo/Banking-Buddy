@@ -15,10 +15,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "clients", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_email_not_deleted", columnNames = {"email", "deleted"}),
-        @UniqueConstraint(name = "uk_phone_not_deleted", columnNames = {"phone_number", "deleted"})
-})
+@Table(name = "clients")
 @EntityListeners(AuditingEntityListener.class)
 @Data
 @Builder
