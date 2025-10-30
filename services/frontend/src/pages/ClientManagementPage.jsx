@@ -79,7 +79,6 @@ export default function ClientManagementPage() {
     const handleDeleteClient = async (clientId) => {
         if (window.confirm('Are you sure you want to delete this client?')) {
             try {
-                console.log('Deleting client:', clientId);
                 await clientApi.deleteClient(clientId); // Should send DELETE /api/clients/{clientId}
                 // Refresh clients list
                 const response = await clientApi.getAllClients();
