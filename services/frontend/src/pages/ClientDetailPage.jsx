@@ -4,6 +4,7 @@ import { isAuthenticated, getUserFromToken } from '../services/authService';
 import { clientApi } from '../services/apiService';
 import Header from '../components/Header';
 import Navigation from '../components/Navigation';
+import { formatPhoneNumber } from '../utils/phone';
 
 export default function ClientDetailPage() {
     const { clientId } = useParams();
@@ -202,7 +203,7 @@ export default function ClientDetailPage() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-400">Phone</label>
-                                    <p className="text-white">{client.phoneNumber}</p>
+                                    <p className="text-white">{formatPhoneNumber(client.phoneNumber, 'SG')}</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-400">Address</label>

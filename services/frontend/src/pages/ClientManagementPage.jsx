@@ -4,6 +4,7 @@ import { isAuthenticated, getUserFromToken } from '../services/authService';
 import { clientApi, userApi } from '../services/apiService';
 import Header from '../components/Header';
 import Navigation from '../components/Navigation';
+import { formatPhoneNumber } from '../utils/phone';
 
 export default function ClientManagementPage() {
     const [currentUser, setCurrentUser] = useState(null);
@@ -171,7 +172,7 @@ export default function ClientManagementPage() {
                                                 {client.fullName || `${client.firstName || ''} ${client.lastName || ''}`}
                                             </td>
                                             <td className="p-4 text-slate-300">{client.email}</td>
-                                            <td className="p-4 text-slate-300">{client.phoneNumber}</td>
+                                            <td className="p-4 text-slate-300">{formatPhoneNumber(client.phoneNumber, 'SG')}</td>
                                             <td className="p-4">
                                                 <span className={`px-2 py-1 text-xs rounded-full ${
                                                     client.verified

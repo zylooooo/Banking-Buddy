@@ -18,6 +18,7 @@
     "aws-amplify": "^6.15.7",
     "axios": "^1.12.2",
     "jwt-decode": "^4.0.0",
+    "libphonenumber-js": "^1.12.25",
     "oidc-client-ts": "^3.3.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
