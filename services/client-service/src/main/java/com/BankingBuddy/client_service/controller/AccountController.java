@@ -105,4 +105,16 @@ public class AccountController {
 
         return ResponseEntity.ok(response);
     }
+
+    // Controller to get accounts by client client ID
+    @GetMapping("/{clientId}")
+    public ResponseEntity<ApiResponse<List<AccountDTO>>> getAccountsByClientId(
+        @PathVariable String clientId,
+        @RequestAttribute("userContext") UserContext userContext
+    ) {
+        log.info("GET /api/accounts/{} called by user: {} (role: {})", clientId, userContext.getUserId(), userContext.getRole());
+        List<AccountDTO> accounts = accountService.getAccountsByClientId(clientId, userContext);
+        ApiResponse<List<AccountDTO>> response = ApiResponse.success(accounts, "Accounts retrieved successfully");
+        return ResponseEntity.ok(response);
+    }
 }

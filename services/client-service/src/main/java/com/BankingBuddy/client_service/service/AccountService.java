@@ -324,4 +324,31 @@ public class AccountService {
             // Non-blocking: audit failure should not affect deletion
         }
     }
+
+    public List<AccountDTO> getAccountsByClientId(String clientId, UserContext userContext) {
+        log.info("Getting accounts by client ID: {}", clientId);
+
+        // Authorization check - only Agents can find accounts by client ID
+        if (userContext.getRole() != UserRole.AGENT) {
+            log.error("Unauthorized role attempting to get accounts by client ID: {}", userContext.getRole());
+            throw new ForbiddenException("Only Agents can get accounts by client ID");
+        }
+
+        // Fetch client and verify that it belongs to the agent
+        Client client = clientRepository.findByClientId(clientId)
+            .orElseThrow(() -> {
+                log.warn("Client not found {}", clientId);
+                return new ClientNotFoundException("Client not found");
+            });
+
+        // Authorization check - only the agent who created the client can get the accounts
+        if (!client.getAgentId().equals(userContext.getUserId())) {
+            throw new ForbiddenException("You are not authorized to get accounts for this client");
+        }
+
+        List<Account> accounts = accountRepository.findByClientId(clientId);
+        return accounts.stream()
+            .map(this::convertToAccountDTO)
+            .collect(Collectors.toList());
+    }
 }

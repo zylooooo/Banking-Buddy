@@ -27,6 +27,11 @@ public interface AccountRepository extends JpaRepository<Account, String> {
     Optional<Account> findByAccountIdAndDeletedFalse(String accountId);
 
     /**
+     * Find all accounts by client ID
+     * @return List of accounts owned by the client
+     */
+    List<Account> findByClientId(String clientId);
+    /**
      * Find all accounts with client information (for GET /api/accounts)
      * This query joins accounts with clients to get client details
      */
