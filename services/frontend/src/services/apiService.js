@@ -68,6 +68,8 @@ export const clientApi = {
     
     // Account Management
     getAllAccounts: () => clientApiClient.get('/accounts'),
+    // GET /api/accounts/{clientId} - fetch accounts for a specific client
+    getAccountsByClientId: (clientId) => clientApiClient.get(`/accounts/${clientId}`),
     createAccount: (accountData) => clientApiClient.post('/accounts', accountData),
     deleteAccount: (accountId) => clientApiClient.delete(`/accounts/${accountId}`),
 };

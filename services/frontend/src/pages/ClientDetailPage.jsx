@@ -10,6 +10,7 @@ export default function ClientDetailPage() {
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
     const [client, setClient] = useState(null);
+    const [accounts, setAccounts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
@@ -37,7 +38,13 @@ export default function ClientDetailPage() {
                     throw new Error(response.data?.message || 'Client not found');
                 }
 
-                // ...existing code...
+                // Fetch accounts for this client using clientId API
+                const accountsRes = await clientApi.getAccountsByClientId(clientId);
+                if (accountsRes.data && accountsRes.data.success && Array.isArray(accountsRes.data.data)) {
+                    setAccounts(accountsRes.data.data);
+                } else {
+                    setAccounts([]);
+                }
             } catch (err) {
                 setError(err.response?.data?.message || err.message || 'Error fetching client details');
                 setClient(null);
@@ -65,9 +72,11 @@ export default function ClientDetailPage() {
                 ...accountData,
                 clientId: clientId
             });
-            // Refresh client data to show new account
-            const response = await clientApi.getClientById(clientId);
-            setClient(response.data.data);
+            // Refresh accounts list
+            const accountsRes = await clientApi.getAccountsByClientId(clientId);
+            if (accountsRes.data && accountsRes.data.success && Array.isArray(accountsRes.data.data)) {
+                setAccounts(accountsRes.data.data);
+            }
             setShowCreateAccount(false);
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to create account');
@@ -78,9 +87,11 @@ export default function ClientDetailPage() {
         if (window.confirm('Are you sure you want to delete this account?')) {
             try {
                 await clientApi.deleteAccount(accountId);
-                // Refresh client data
-                const response = await clientApi.getClientById(clientId);
-                setClient(response.data.data);
+                // Refresh accounts list
+                const accountsRes = await clientApi.getAccountsByClientId(clientId);
+                if (accountsRes.data && accountsRes.data.success && Array.isArray(accountsRes.data.data)) {
+                    setAccounts(accountsRes.data.data);
+                }
             } catch (err) {
                 setError(err.response?.data?.message || 'Failed to delete account');
             }
@@ -235,8 +246,8 @@ export default function ClientDetailPage() {
                         )}
 
                         <div className="space-y-3">
-                            {client.accounts && client.accounts.length > 0 ? (
-                                client.accounts.map((account) => (
+                            {accounts && accounts.length > 0 ? (
+                                accounts.map((account) => (
                                     <div key={account.accountId} className="bg-slate-700 p-4 rounded-lg">
                                         <div className="flex justify-between items-start">
                                             <div>
