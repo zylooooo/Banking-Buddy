@@ -163,7 +163,16 @@ public class ClientService {
         // 7. Publish audit log (non-blocking, fire-and-forget)
         publishAuditLog(savedClient, userContext);
 
-        // 8. Convert to DTO and return
+        // 8. Send creation email (async, non-blocking)
+        try {
+            emailService.sendClientCreationEmail(savedClient);
+            log.info("Triggered async client creation email send for client {}", clientId);
+        } catch (Exception e) {
+            log.error("Failed to trigger creation email for client {}: {}", clientId, e.getMessage(), e);
+            // Continue - email failure should not stop creation
+        }
+
+        // 9. Convert to DTO and return
         return convertToDTO(savedClient);
     }
 
@@ -488,6 +497,16 @@ public class ClientService {
             // Publish audit logs for each changed field (non-blocking)
             publishUpdateAuditLog(clientId, userContext, changes);
 
+            // Send update email (async, non-blocking)
+            try {
+                emailService.sendClientUpdateEmail(savedClient, changes);
+                log.info("Triggered async client update email send for client {} with {} changes", 
+                        clientId, changes.size());
+            } catch (Exception e) {
+                log.error("Failed to trigger update email for client {}: {}", clientId, e.getMessage(), e);
+                // Continue - email failure should not stop update
+            }
+
             return convertToDTO(savedClient);
         } else {
             log.info("No changes detected for client {}", clientId);
@@ -590,5 +609,15 @@ public class ClientService {
         
         log.info("Client {} and {} associated account(s) soft deleted successfully", 
             clientId, clientAccounts.size());
+        
+        // Send deletion email (async, non-blocking)
+        try {
+            emailService.sendClientDeletionEmail(client, clientAccounts);
+            log.info("Triggered async client deletion email send for client {} with {} accounts", 
+                    clientId, clientAccounts.size());
+        } catch (Exception e) {
+            log.error("Failed to trigger deletion email for client {}: {}", clientId, e.getMessage(), e);
+            // Continue - email failure should not stop deletion
+        }
     }
 }

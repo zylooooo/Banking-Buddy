@@ -30,6 +30,11 @@ CREATE TABLE IF NOT EXISTS clients (
     verified BOOLEAN NOT NULL DEFAULT FALSE,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     
+    -- Generated columns for conditional unique constraints
+    -- These are NULL for deleted clients, allowing multiple soft-deleted records with same email/phone
+    email_if_active VARCHAR(255) AS (IF(deleted = FALSE, email, NULL)) STORED,
+    phone_if_active VARCHAR(15) AS (IF(deleted = FALSE, phone_number, NULL)) STORED,
+    
     -- Audit Fields
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -42,9 +47,10 @@ CREATE TABLE IF NOT EXISTS clients (
     INDEX idx_verified (verified),
     INDEX idx_agent_deleted (agent_id, deleted),
     
-    -- Unique Constraints (excluding soft-deleted)
-    UNIQUE KEY uk_email_not_deleted (email, deleted),
-    UNIQUE KEY uk_phone_not_deleted (phone_number, deleted),
+    -- Unique constraints on generated columns (enforces uniqueness only for active clients)
+    -- NULL values are ignored by UNIQUE constraints, so soft-deleted clients can have duplicate emails/phones
+    UNIQUE KEY uk_email_active (email_if_active),
+    UNIQUE KEY uk_phone_active (phone_if_active),
     
     -- Check Constraints (Note: Age validation handled at application layer due to MySQL CHECK constraint limitations with CURDATE())
     CONSTRAINT chk_first_name_length CHECK (CHAR_LENGTH(first_name) >= 2 AND CHAR_LENGTH(first_name) <= 50),
