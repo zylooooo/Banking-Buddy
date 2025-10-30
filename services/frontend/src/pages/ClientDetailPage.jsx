@@ -8,7 +8,7 @@ import Navigation from '../components/Navigation';
 export default function ClientDetailPage() {
     const { clientId } = useParams();
     const navigate = useNavigate();
-    const [user, setUser] = useState(null);
+    const [currentUser, setCurrentUser] = useState(null);
     const [client, setClient] = useState(null);
     const [accounts, setAccounts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -28,7 +28,7 @@ export default function ClientDetailPage() {
                 }
 
                 const cognitoUser = await getUserFromToken();
-                setUser(cognitoUser);
+                setCurrentUser(cognitoUser);
 
                 // Fetch client details by ID
                 const response = await clientApi.getClientById(clientId);
@@ -142,9 +142,9 @@ export default function ClientDetailPage() {
 
     return (
         <div className="min-h-screen bg-slate-900">
-            <Navigation user={user} />
+            <Navigation user={currentUser} />
             <div className="ml-64">
-                <Header user={user} />
+                <Header user={currentUser} />
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="mb-6 flex justify-between items-center">
