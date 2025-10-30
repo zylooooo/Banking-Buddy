@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { isAuthenticated, getUserFromToken } from '../services/authService';
 import { clientApi, userApi } from '../services/apiService';
 import Header from '../components/Header';
@@ -18,6 +18,7 @@ export default function ClientManagementPage() {
     const [totalPages, setTotalPages] = useState(0);
     const [totalElements, setTotalElements] = useState(0);
     const navigate = useNavigate();
+    const location = useLocation();
 
     useEffect(() => {
         const loadData = async () => {
@@ -68,6 +69,15 @@ export default function ClientManagementPage() {
 
         loadData();
     }, [navigate, page]);
+
+    // Open create client form if navigation state is set, and clear state after opening
+    useEffect(() => {
+        if (location.state && location.state.openCreateForm) {
+            setShowCreateForm(true);
+            // Clear navigation state so it doesn't persist on refresh
+            navigate(location.pathname, { replace: true, state: {} });
+        }
+    }, [location, navigate]);
 
     const handleCreateClient = async (clientData) => {
         try {

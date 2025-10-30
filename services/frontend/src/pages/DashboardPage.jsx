@@ -112,13 +112,14 @@ export default function DashboardPage() {
                     <p className="text-slate-400">Welcome to Banking Buddy CRM System</p>
                 </div>
 
-                {/* Quick Action Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {/* Quick Action Cards for agent role */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     {['admin', 'rootAdministrator'].includes(user.role) ? (
                         <>
-                            <Link
-                                to="/users"
-                                className="bg-slate-800 border border-slate-700 rounded-lg p-6 hover:bg-slate-750 transition-colors group"
+                            {/* Create New Accounts Tab */}
+                            <button
+                                onClick={() => navigate('/users', { state: { openCreateForm: true } })}
+                                className="bg-slate-800 border border-blue-700 rounded-lg p-6 hover:bg-blue-900 transition-colors group w-full text-left"
                             >
                                 <div className="flex items-center mb-4">
                                     <div className="p-3 bg-blue-900 rounded-lg group-hover:bg-blue-800 transition-colors">
@@ -126,27 +127,29 @@ export default function DashboardPage() {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
                                         </svg>
                                     </div>
-                                    <h3 className="ml-4 text-lg font-semibold text-white">Create New Account</h3>
+                                    <h3 className="ml-4 text-lg font-semibold text-white">Create New Accounts</h3>
                                 </div>
                                 <p className="text-slate-400 text-sm">Add a new user to the system</p>
-                            </Link>
+                            </button>
+                            {/* Manage Accounts Tab */}
                             <Link
                                 to="/users"
-                                className="bg-slate-800 border border-slate-700 rounded-lg p-6 hover:bg-slate-750 transition-colors group"
+                                className="bg-slate-800 border border-green-700 rounded-lg p-6 hover:bg-green-900 transition-colors group"
                             >
                                 <div className="flex items-center mb-4">
                                     <div className="p-3 bg-green-900 rounded-lg group-hover:bg-green-800 transition-colors">
                                         <svg className="w-6 h-6 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                         </svg>
                                     </div>
                                     <h3 className="ml-4 text-lg font-semibold text-white">Manage Accounts</h3>
                                 </div>
                                 <p className="text-slate-400 text-sm">View, edit, and manage all accounts</p>
                             </Link>
+                            {/* View Transactions Tab */}
                             <Link
                                 to="/transactions"
-                                className="bg-slate-800 border border-slate-700 rounded-lg p-6 hover:bg-slate-750 transition-colors group"
+                                className="bg-slate-800 border border-purple-700 rounded-lg p-6 hover:bg-purple-900 transition-colors group"
                             >
                                 <div className="flex items-center mb-4">
                                     <div className="p-3 bg-purple-900 rounded-lg group-hover:bg-purple-800 transition-colors">
@@ -156,24 +159,57 @@ export default function DashboardPage() {
                                     </div>
                                     <h3 className="ml-4 text-lg font-semibold text-white">View Transactions</h3>
                                 </div>
-                                <p className="text-slate-400 text-sm">Review all transaction history</p>
+                                <p className="text-slate-400 text-sm">Go to transactions page</p>
                             </Link>
                         </>
                     ) : (
-                        <Link
-                            to="/clients"
-                            className="bg-slate-800 border border-slate-700 rounded-lg p-6 hover:bg-slate-750 transition-colors group"
-                        >
-                            <div className="flex items-center mb-4">
-                                <div className="p-3 bg-blue-900 rounded-lg group-hover:bg-blue-800 transition-colors">
-                                    <svg className="w-6 h-6 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                    </svg>
+                        <>
+                            {/* Create Client Profile Tab */}
+                            <button
+                                onClick={() => navigate('/clients', { state: { openCreateForm: true } })}
+                                className="bg-slate-800 border border-blue-700 rounded-lg p-6 hover:bg-blue-900 transition-colors group w-full text-left"
+                            >
+                                <div className="flex items-center mb-4">
+                                    <div className="p-3 bg-blue-900 rounded-lg group-hover:bg-blue-800 transition-colors">
+                                        <svg className="w-6 h-6 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                                        </svg>
+                                    </div>
+                                    <h3 className="ml-4 text-lg font-semibold text-white">Create Client Profile</h3>
                                 </div>
-                                <h3 className="ml-4 text-lg font-semibold text-white">Client Management</h3>
-                            </div>
-                            <p className="text-slate-400 text-sm">Manage client profiles, verify identities, and create accounts</p>
-                        </Link>
+                                <p className="text-slate-400 text-sm">Open the client creation form</p>
+                            </button>
+                            {/* Manage Profiles Tab */}
+                            <Link
+                                to="/clients"
+                                className="bg-slate-800 border border-green-700 rounded-lg p-6 hover:bg-green-900 transition-colors group"
+                            >
+                                <div className="flex items-center mb-4">
+                                    <div className="p-3 bg-green-900 rounded-lg group-hover:bg-green-800 transition-colors">
+                                        <svg className="w-6 h-6 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                        </svg>
+                                    </div>
+                                    <h3 className="ml-4 text-lg font-semibold text-white">Manage Profiles</h3>
+                                </div>
+                                <p className="text-slate-400 text-sm">Go to client management page</p>
+                            </Link>
+                            {/* View Transactions Tab */}
+                            <Link
+                                to="/transactions"
+                                className="bg-slate-800 border border-purple-700 rounded-lg p-6 hover:bg-purple-900 transition-colors group"
+                            >
+                                <div className="flex items-center mb-4">
+                                    <div className="p-3 bg-purple-900 rounded-lg group-hover:bg-purple-800 transition-colors">
+                                        <svg className="w-6 h-6 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                        </svg>
+                                    </div>
+                                    <h3 className="ml-4 text-lg font-semibold text-white">View Transactions</h3>
+                                </div>
+                                <p className="text-slate-400 text-sm">Go to transactions page</p>
+                            </Link>
+                        </>
                     )}
                 </div>
 
