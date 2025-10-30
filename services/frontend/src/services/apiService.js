@@ -49,11 +49,12 @@ clientApiClient.interceptors.request.use(async (config) => {
 
 export const clientApi = {
     // Client Management
-    getAllClients: (cacheBust) => {
+    getAllClients: (page = 0, limit = 10, cacheBust) => {
+        const params = { page, limit };
         if (cacheBust) {
-            return clientApiClient.get(`/clients?t=${cacheBust}`);
+            return clientApiClient.get(`/clients`, { params: { ...params, t: cacheBust } });
         }
-        return clientApiClient.get('/clients');
+        return clientApiClient.get('/clients', { params });
     },
     getClientById: (clientId) => clientApiClient.get(`/clients/${clientId}`),
     createClient: (clientData) => clientApiClient.post('/clients', clientData),

@@ -12,6 +12,11 @@ export default function ClientManagementPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [showCreateForm, setShowCreateForm] = useState(false);
+    // Pagination state
+    const [page, setPage] = useState(0);
+    const LIMIT = 10;
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -40,9 +45,19 @@ export default function ClientManagementPage() {
                     return;
                 }
 
-                // Load clients
-                const response = await clientApi.getAllClients();
-                setClients(response.data.data);
+                // Load clients (paginated)
+                const response = await clientApi.getAllClients(page, LIMIT);
+                const pageData = response.data.data;
+                if (Array.isArray(pageData)) {
+                    // Backward compatibility (if backend temporarily returns list)
+                    setClients(pageData);
+                    setTotalPages(1);
+                    setTotalElements(pageData.length);
+                } else {
+                    setClients(pageData?.content || []);
+                    setTotalPages(pageData?.totalPages || 0);
+                    setTotalElements(pageData?.totalElements || 0);
+                }
                 setLoading(false);
             } catch (err) {
                 console.error('Failed to load data:', err);
@@ -52,14 +67,18 @@ export default function ClientManagementPage() {
         };
 
         loadData();
-    }, [navigate]);
+    }, [navigate, page]);
 
     const handleCreateClient = async (clientData) => {
         try {
             await clientApi.createClient(clientData);
-            // Refresh clients list
-            const response = await clientApi.getAllClients();
-            setClients(response.data.data);
+            // After creating, reset to first page and refresh
+            setPage(0);
+            const response = await clientApi.getAllClients(0, LIMIT, Date.now());
+            const pageData = response.data.data;
+            setClients(pageData?.content || pageData || []);
+            setTotalPages(pageData?.totalPages || 0);
+            setTotalElements(pageData?.totalElements || (Array.isArray(pageData) ? pageData.length : 0));
             setShowCreateForm(false);
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to create client');
@@ -69,9 +88,12 @@ export default function ClientManagementPage() {
     const handleVerifyClient = async (clientId) => {
         try {
             await clientApi.verifyClient(clientId);
-            // Refresh clients list with cache busting
-            const response = await clientApi.getAllClients(Date.now());
-            setClients(response.data.data);
+            // Refresh current page with cache busting
+            const response = await clientApi.getAllClients(page, LIMIT, Date.now());
+            const pageData = response.data.data;
+            setClients(pageData?.content || pageData || []);
+            setTotalPages(pageData?.totalPages || totalPages);
+            setTotalElements(pageData?.totalElements || totalElements);
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to verify client');
         }
@@ -80,10 +102,15 @@ export default function ClientManagementPage() {
     const handleDeleteClient = async (clientId) => {
         if (window.confirm('Are you sure you want to delete this client?')) {
             try {
-                await clientApi.deleteClient(clientId); // Should send DELETE /api/clients/{clientId}
-                // Refresh clients list
-                const response = await clientApi.getAllClients();
-                setClients(response.data.data);
+                await clientApi.deleteClient(clientId);
+                // If last item on page was deleted and page becomes empty, go to previous page if possible
+                const newPage = Math.max(page - (clients.length === 1 && page > 0 ? 1 : 0), 0);
+                setPage(newPage);
+                const response = await clientApi.getAllClients(newPage, LIMIT, Date.now());
+                const pageData = response.data.data;
+                setClients(pageData?.content || pageData || []);
+                setTotalPages(pageData?.totalPages || totalPages);
+                setTotalElements(pageData?.totalElements || totalElements);
             } catch (err) {
                 setError(err.response?.data?.message || 'Failed to delete client');
             }
@@ -201,6 +228,28 @@ export default function ClientManagementPage() {
                                 )}
                             </tbody>
                         </table>
+                        <div className="flex items-center justify-between p-4 border-t border-slate-700">
+                            <div className="text-slate-400 text-sm">
+                                Showing page {page + 1} of {Math.max(totalPages, 1)} ({totalElements} total)
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setPage((p) => Math.max(p - 1, 0))}
+                                    disabled={page === 0}
+                                    className={`px-3 py-1 text-sm rounded ${page === 0 ? 'bg-slate-700 text-slate-500' : 'bg-slate-600 text-white hover:bg-slate-500'}`}
+                                >
+                                    Previous
+                                </button>
+                                {/* Page size fixed to 10 per backend clamp; selector removed */}
+                                <button
+                                    onClick={() => setPage((p) => Math.min(p + 1, Math.max(totalPages - 1, 0)))}
+                                    disabled={page >= totalPages - 1}
+                                    className={`px-3 py-1 text-sm rounded ${page >= totalPages - 1 ? 'bg-slate-700 text-slate-500' : 'bg-slate-600 text-white hover:bg-slate-500'}`}
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 </main>

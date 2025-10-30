@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Page;
 
 @RestController
 @RequestMapping("/api/clients")
@@ -22,6 +23,15 @@ import org.springframework.web.bind.annotation.*;
 public class ClientController {
 
     private final ClientService clientService;
+
+    // Helper function to validate limit
+    private int validateLimit(int limit, String userId) {
+        if (limit < 0 || limit > 10) {
+            log.warn("User {} provided invalid limit: {}, defaulting to 10", userId, limit);
+            return 10;
+        }
+        return Math.min(limit, 10); 
+    }
 
     /**
      * Create a new client profile
@@ -55,11 +65,16 @@ public class ClientController {
      * @return ResponseEntity with list of client summaries
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<java.util.List<com.BankingBuddy.client_service.model.dto.ClientSummaryDTO>>> getAllClients(
+    public ResponseEntity<ApiResponse<Page<ClientDTO>>> getAllClients(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int limit,
             @RequestAttribute("userContext") UserContext userContext) {
+        
+        limit = validateLimit(limit, userContext.getUserId());
+        page = Math.max(page, 0);
 
-        log.info("GET /api/clients called by user: {} (role: {})", 
-                userContext.getUserId(), userContext.getRole());
+        log.info("GET /api/clients called by user: {} (role: {}) with page: {} and limit: {}", 
+                userContext.getUserId(), userContext.getRole(), page, limit);
 
         // Authorization check - only AGENT can access
         if (userContext.getRole() != com.BankingBuddy.client_service.security.UserRole.AGENT) {
@@ -68,10 +83,9 @@ public class ClientController {
                     "Only AGENT role can access client list");
         }
 
-        java.util.List<com.BankingBuddy.client_service.model.dto.ClientSummaryDTO> clients = 
-                clientService.getAllClientsForAgent(userContext);
+        Page<ClientDTO> clients = clientService.getAllClientsForAgent(page, limit, userContext);
 
-        ApiResponse<java.util.List<com.BankingBuddy.client_service.model.dto.ClientSummaryDTO>> response = 
+        ApiResponse<Page<ClientDTO>> response = 
                 ApiResponse.success(clients, "Clients retrieved successfully");
 
         return ResponseEntity.ok(response);

@@ -21,6 +21,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.lang.NonNull;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
@@ -242,13 +247,15 @@ public class ClientService {
 
     /**
      * Get all clients for the authenticated agent
-     * Returns ClientSummaryDTO list for "Manage Profiles" page
+     * Returns ClientDTO page for "Manage Profiles" page
      * No audit logs per specification (bulk reads not logged)
      * 
      * @param userContext the authenticated user context
      * @return list of client summaries
      */
-    public List<ClientSummaryDTO> getAllClientsForAgent(
+    public Page<ClientDTO> getAllClientsForAgent(
+            int page,
+            int limit,
             UserContext userContext) {
         log.info("Retrieving all clients for agent: {}", userContext.getUserId());
 
@@ -257,18 +264,12 @@ public class ClientService {
             log.error("Unauthorized role attempting to list clients: {}", userContext.getRole());
             throw new ForbiddenException("Only AGENT role can list client profiles");
         }
-        
-        List<Client> clients = clientRepository.findByAgentIdAndDeletedFalse(userContext.getUserId());
 
-        return clients.stream()
-                .map(client -> ClientSummaryDTO.builder()
-                        .clientId(client.getClientId())
-                        .fullName(client.getFirstName() + " " + client.getLastName())
-                        .verified(client.getVerified())
-                        .email(client.getEmail())
-                        .phoneNumber(client.getPhoneNumber())
-                        .build())
-                .collect(Collectors.toList());
+        Pageable pageable = PageRequest.of(page, limit, Sort.by("createdAt").descending());
+        Page<Client> clients = clientRepository.findByAgentIdAndDeletedFalse(userContext.getUserId(), pageable);
+        log.info("Successfully fetched {} clients for agent {}", clients.getTotalElements(), userContext.getUserId());
+
+        return clients.map(this::convertToDTO);
     }
 
     /**
