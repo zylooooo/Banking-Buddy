@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { isAuthenticated, getUserFromToken } from '../services/authService';
 import { userApi } from '../services/apiService';
 import Header from '../components/Header';
@@ -13,6 +13,7 @@ export default function UserManagementPage() {
     const [error, setError] = useState(null);
     const [showCreateForm, setShowCreateForm] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
 
     useEffect(() => {
         const loadData = async () => {
@@ -46,6 +47,15 @@ export default function UserManagementPage() {
 
         loadData();
     }, [navigate]);
+
+    // Open create user form if navigation state is set, and clear state after opening (match ClientManagementPage pattern)
+    useEffect(() => {
+        if (location.state && location.state.openCreateForm) {
+            setShowCreateForm(true);
+            // Clear navigation state so it doesn't persist on refresh
+            navigate(location.pathname, { replace: true, state: {} });
+        }
+    }, [location, navigate]);
 
     const handleCreateUser = async (userData) => {
         try {
