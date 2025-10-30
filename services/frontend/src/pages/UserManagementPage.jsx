@@ -4,6 +4,7 @@ import { isAuthenticated, getUserFromToken } from '../services/authService';
 import { userApi } from '../services/apiService';
 import Header from '../components/Header';
 import Navigation from '../components/Navigation';
+import { formatRole } from '../utils/roleLabels';
 
 export default function UserManagementPage() {
     const [currentUser, setCurrentUser] = useState(null);
@@ -202,7 +203,7 @@ export default function UserManagementPage() {
                                                                 ? 'bg-blue-900 text-blue-300'
                                                                 : 'bg-slate-700 text-slate-300'
                                                         }`}>
-                                                            {user.role}
+                                                            {formatRole(user.role)}
                                                         </span>
                                                     </td>
                                                     <td className="p-4">

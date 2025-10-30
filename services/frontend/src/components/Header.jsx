@@ -1,5 +1,6 @@
 import React from 'react';
 import { logout } from '../services/authService';
+import { formatRole } from '../utils/roleLabels';
 
 export default function Header({ user }) {
     const handleLogout = async () => {
@@ -24,7 +25,7 @@ export default function Header({ user }) {
                                 <p className="text-sm font-medium text-white">
                                     {user.firstName} {user.lastName}
                                 </p>
-                                <p className="text-xs text-slate-400">{user.role}</p>
+                                <p className="text-xs text-slate-400">{formatRole(user.role)}</p>
                             </div>
                             <button
                                 onClick={handleLogout}

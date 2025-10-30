@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatRole } from '../utils/roleLabels';
 
 export default function UserCard({ user }) {
     const roleColors = {
@@ -26,7 +27,7 @@ export default function UserCard({ user }) {
                 <div>
                     <label className="text-sm font-medium text-slate-400">Role</label>
                     <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${roleColors[user.role] || 'bg-slate-700 text-slate-300 border border-slate-600'}`}>
-                        {user.role}
+                        {formatRole(user.role)}
                     </span>
                 </div>
             </div>

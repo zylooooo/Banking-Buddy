@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { formatRole } from '../utils/roleLabels';
 
 export default function Navigation({ user }) {
     const location = useLocation();
@@ -108,7 +109,7 @@ export default function Navigation({ user }) {
                             <p className="text-sm font-medium text-white truncate">
                                 {user.firstName} {user.lastName}
                             </p>
-                            <p className="text-xs text-slate-400 truncate">{user.role}</p>
+                            <p className="text-xs text-slate-400 truncate">{formatRole(user.role)}</p>
                         </div>
                     </div>
                 </div>
