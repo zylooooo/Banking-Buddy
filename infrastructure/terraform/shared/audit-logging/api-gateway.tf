@@ -45,6 +45,15 @@ resource "aws_apigatewayv2_route" "get_audit_logs" {
   authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
 }
 
+# Route for GET /api/v1/audit/logs/client/{client_id}
+resource "aws_apigatewayv2_route" "get_client_audit_logs" {
+  api_id             = aws_apigatewayv2_api.audit_logs_api.id
+  route_key          = "GET /api/v1/audit/logs/client/{client_id}"
+  target             = "integrations/${aws_apigatewayv2_integration.audit_reader.id}"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+}
+
 # Default Stage
 resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.audit_logs_api.id
