@@ -27,14 +27,21 @@ export default function UserManagementPage() {
                 const cognitoUser = await getUserFromToken();
                 setCurrentUser(cognitoUser);
 
-                // Check if user has admin privileges
-                if (!cognitoUser || !['admin', 'rootAdministrator'].includes(cognitoUser.role)) {
-                    setError('Access denied. Admin privileges required.');
+                // Data load by role (agents can manage only themselves)
+                if (cognitoUser?.role === 'agent') {
+                    const response = await userApi.getUserById(cognitoUser.sub);
+                    setUsers([response.data.data]);
                     setLoading(false);
                     return;
                 }
 
-                // Load users
+                if (!['admin', 'rootAdministrator'].includes(cognitoUser.role)) {
+                    setError('Access denied.');
+                    setLoading(false);
+                    return;
+                }
+
+                // Load users (scope enforced by backend)
                 const response = await userApi.getAllUsers();
                 setUsers(response.data.data);
                 setLoading(false);
@@ -93,25 +100,7 @@ export default function UserManagementPage() {
         }
     };
 
-    const handleResetPassword = async (userId) => {
-        if (window.confirm('Are you sure you want to reset this user\'s password?')) {
-            try {
-                await userApi.resetPassword(userId);
-                alert('Password reset email sent successfully');
-            } catch (err) {
-                setError(err.response?.data?.message || 'Failed to reset password');
-            }
-        }
-    };
-
-    const handleSetupMFA = async (userId) => {
-        try {
-            await userApi.setUpMFAForUser(userId);
-            alert('MFA setup initiated for user');
-        } catch (err) {
-            setError(err.response?.data?.message || 'Failed to setup MFA');
-        }
-    };
+    // Reset Password and MFA setup actions removed from UI per new requirements
 
     if (loading) {
         return (
@@ -229,12 +218,22 @@ export default function UserManagementPage() {
                                                         {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                                                     </td>
                                                     <td className="p-4">
-                                                        <div className="flex gap-2 flex-wrap">
-                                                            {user.status === 'ACTIVE' ? (
+                                                        {(() => {
+                                                            const canToggle =
+                                                                currentUser?.role === 'rootAdministrator' ||
+                                                                (currentUser?.role === 'admin' && user.role === 'agent') ||
+                                                                (currentUser?.role === 'agent' && user.id === currentUser?.sub);
+
+                                                            if (!canToggle) return null;
+
+                                                            const preventSelfForNonAgents =
+                                                                currentUser?.role !== 'agent' && user.id === currentUser?.sub;
+
+                                                            return user.status === 'ACTIVE' ? (
                                                                 <button
                                                                     onClick={() => handleDisableUser(user.id)}
                                                                     className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition"
-                                                                    disabled={user.id === currentUser?.sub}
+                                                                    disabled={preventSelfForNonAgents}
                                                                 >
                                                                     Disable
                                                                 </button>
@@ -245,21 +244,8 @@ export default function UserManagementPage() {
                                                                 >
                                                                     Enable
                                                                 </button>
-                                                            )}
-                                                            <button
-                                                                onClick={() => handleResetPassword(user.id)}
-                                                                className="px-3 py-1 text-sm bg-yellow-600 text-white rounded hover:bg-yellow-700 transition"
-                                                                disabled={user.id === currentUser?.sub}
-                                                            >
-                                                                Reset Password
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleSetupMFA(user.id)}
-                                                                className="px-3 py-1 text-sm bg-accent text-white rounded hover:bg-sky-600 transition"
-                                                            >
-                                                                Setup MFA
-                                                            </button>
-                                                        </div>
+                                                            );
+                                                        })()}
                                                     </td>
                                                 </tr>
                                     ))
