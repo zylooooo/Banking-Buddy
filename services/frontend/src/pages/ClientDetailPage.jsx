@@ -17,6 +17,8 @@ export default function ClientDetailPage() {
 
     useEffect(() => {
         const loadData = async () => {
+            setLoading(true);
+            setError(null);
             try {
                 const isAuth = await isAuthenticated();
                 if (!isAuth) {
@@ -27,17 +29,23 @@ export default function ClientDetailPage() {
                 const cognitoUser = await getUserFromToken();
                 setUser(cognitoUser);
 
-                // Load client details
+                // Fetch client details by ID
                 const response = await clientApi.getClientById(clientId);
-                setClient(response.data.data);
-                setLoading(false);
+                if (response.data && response.data.success && response.data.data) {
+                    setClient(response.data.data);
+                } else {
+                    throw new Error(response.data?.message || 'Client not found');
+                }
+
+                // ...existing code...
             } catch (err) {
-                console.error('Failed to load client data:', err);
-                setError(err.response?.data?.message || err.message || 'Failed to load client data');
+                setError(err.response?.data?.message || err.message || 'Error fetching client details');
+                setClient(null);
+                setAccounts([]);
+            } finally {
                 setLoading(false);
             }
         };
-
         loadData();
     }, [clientId, navigate]);
 
@@ -104,13 +112,28 @@ export default function ClientDetailPage() {
         );
     }
 
-    if (!client) return null;
+    if (!client && !loading && !error) {
+        return (
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+                <div className="bg-slate-800 border border-red-700 p-6 rounded-lg">
+                    <h2 className="text-xl font-semibold text-red-400 mb-2">Client Not Found</h2>
+                    <p className="text-slate-300 mb-4">The requested client does not exist or you do not have access.</p>
+                    <button
+                        onClick={() => navigate('/clients')}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                    >
+                        Back to Clients
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-slate-900">
-            <Navigation user={currentUser} />
+            <Navigation user={user} />
             <div className="ml-64">
-                <Header user={currentUser} />
+                <Header user={user} />
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="mb-6 flex justify-between items-center">
