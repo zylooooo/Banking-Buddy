@@ -14,6 +14,51 @@ import {
 
 import axios from 'axios';
 import { clientApi } from '../services/apiService';
+// Helper to batch fetch user names and client names
+async function fetchNamesFromLogs(logs, jwt) {
+    // Collate unique user IDs and client IDs
+    const userIds = Array.from(new Set(logs.map(l => l.agent_id || l.user_id).filter(Boolean)));
+    const clientIds = Array.from(new Set(logs.map(l => l.client_id).filter(Boolean)));
+
+    // Fetch user names
+    const userNameMap = {};
+    await Promise.all(userIds.map(async (uid) => {
+        try {
+            const resp = await axios.get(`/api/users/${uid}`, {
+                headers: { Authorization: `Bearer ${jwt}` }
+            });
+            // Combine firstName and lastName if available
+            const userData = resp.data?.data || {};
+            let fullName = '';
+            if (userData.firstName || userData.lastName) {
+                fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
+            }
+            userNameMap[uid] = fullName || userData.username || userData.name || uid;
+        } catch {
+            userNameMap[uid] = uid;
+        }
+    }));
+
+    // Fetch client names
+    const clientNameMap = {};
+    await Promise.all(clientIds.map(async (cid) => {
+        try {
+            const resp = await axios.get(`/api/clients/${cid}`, {
+                headers: { Authorization: `Bearer ${jwt}` }
+            });
+            const clientData = resp.data?.data || {};
+            let fullName = '';
+            if (clientData.firstName || clientData.lastName) {
+                fullName = `${clientData.firstName || ''} ${clientData.lastName || ''}`.trim();
+            }
+            clientNameMap[cid] = fullName || clientData.name || clientData.clientName || cid;
+        } catch {
+            clientNameMap[cid] = cid;
+        }
+    }));
+
+    return { userNameMap, clientNameMap };
+}
 
 export default function DashboardPage() {
     const [user, setUser] = useState(null);
@@ -22,6 +67,8 @@ export default function DashboardPage() {
     const [logs, setLogs] = useState([]);
     const [logsLoading, setLogsLoading] = useState(true);
     const [logsError, setLogsError] = useState(null);
+    const [userNameMap, setUserNameMap] = useState({});
+    const [clientNameMap, setClientNameMap] = useState({});
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -121,6 +168,16 @@ export default function DashboardPage() {
                 }
                 setLogs(fetchedLogs);
                 setLogsLoading(false);
+
+                // Fetch user/client names for logs
+                if (fetchedLogs.length > 0) {
+                    const { userNameMap, clientNameMap } = await fetchNamesFromLogs(fetchedLogs, jwt);
+                    setUserNameMap(userNameMap);
+                    setClientNameMap(clientNameMap);
+                } else {
+                    setUserNameMap({});
+                    setClientNameMap({});
+                }
             } catch (err) {
                 setLogsError(err.response?.data?.message || err.message || 'Failed to load recent activities');
                 setLogsLoading(false);
@@ -257,21 +314,25 @@ export default function DashboardPage() {
                             <table className="w-full">
                                 <thead>
                                     <tr className="border-b border-slate-700">
-                                        <th className="text-left p-4 text-slate-300 font-medium">User</th>
+                                        <th className="text-left p-4 text-slate-300 font-medium">User Name</th>
+                                        <th className="text-left p-4 text-slate-300 font-medium">Client Name</th>
                                         <th className="text-left p-4 text-slate-300 font-medium">Date/Time</th>
                                         <th className="text-left p-4 text-slate-300 font-medium">Operation</th>
-                                        <th className="text-left p-4 text-slate-300 font-medium">Client ID</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {logs.map((log, idx) => (
-                                        <tr key={idx} className="border-b border-slate-700 hover:bg-slate-750">
-                                            <td className="p-4 text-slate-300">{log.agent_id || log.user_id || '-'}</td>
-                                            <td className="p-4 text-slate-300 text-sm">{log.timestamp ? new Date(log.timestamp).toLocaleString('en-SG') : ''}</td>
-                                            <td className="p-4 text-slate-300">{log.crud_operation || '-'}</td>
-                                            <td className="p-4 text-slate-300">{log.client_id || '-'}</td>
-                                        </tr>
-                                    ))}
+                                    {logs.map((log, idx) => {
+                                        const uid = log.agent_id || log.user_id;
+                                        const cid = log.client_id;
+                                        return (
+                                            <tr key={idx} className="border-b border-slate-700 hover:bg-slate-750">
+                                                <td className="p-4 text-slate-300">{uid ? userNameMap[uid] || uid : '-'}</td>
+                                                <td className="p-4 text-slate-300">{cid ? clientNameMap[cid] || cid : '-'}</td>
+                                                <td className="p-4 text-slate-300 text-sm">{log.timestamp ? new Date(log.timestamp).toLocaleString('en-SG') : ''}</td>
+                                                <td className="p-4 text-slate-300">{log.crud_operation || '-'}</td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>

@@ -5,13 +5,59 @@ import axios from 'axios';
 import Header from '../components/Header';
 import Navigation from '../components/Navigation';
 
+// Helper to batch fetch agent and client names
+async function fetchNamesFromLogs(logs, jwt) {
+    // Collate unique agent IDs and client IDs
+    const agentIds = Array.from(new Set(logs.map(l => l.agent_id).filter(Boolean)));
+    const clientIds = Array.from(new Set(logs.map(l => l.client_id).filter(Boolean)));
+
+    // Fetch agent names
+    const agentNameMap = {};
+    await Promise.all(agentIds.map(async (aid) => {
+        try {
+            const resp = await axios.get(`/api/users/${aid}`, {
+                headers: { Authorization: `Bearer ${jwt}` }
+            });
+            const userData = resp.data?.data || {};
+            let fullName = '';
+            if (userData.firstName || userData.lastName) {
+                fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
+            }
+            agentNameMap[aid] = fullName || userData.username || userData.name || aid;
+        } catch {
+            agentNameMap[aid] = aid;
+        }
+    }));
+
+    // Fetch client names
+    const clientNameMap = {};
+    await Promise.all(clientIds.map(async (cid) => {
+        try {
+            const resp = await axios.get(`/api/clients/${cid}`, {
+                headers: { Authorization: `Bearer ${jwt}` }
+            });
+            const clientData = resp.data?.data || {};
+            let fullName = '';
+            if (clientData.firstName || clientData.lastName) {
+                fullName = `${clientData.firstName || ''} ${clientData.lastName || ''}`.trim();
+            }
+            clientNameMap[cid] = fullName || clientData.name || clientData.clientName || cid;
+        } catch {
+            clientNameMap[cid] = cid;
+        }
+    }));
+
+    return { agentNameMap, clientNameMap };
+}
+
 export default function CommunicationPage() {
     const [currentUser, setCurrentUser] = useState(null);
     const [logs, setLogs] = useState([]);
     const [jwtToken, setJwtToken] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    // Removed compose modal and client selection
+    const [agentNameMap, setAgentNameMap] = useState({});
+    const [clientNameMap, setClientNameMap] = useState({});
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -49,6 +95,16 @@ export default function CommunicationPage() {
                 });
                 setLogs(verificationLogs);
                 setLoading(false);
+
+                // Fetch agent/client names for logs
+                if (verificationLogs.length > 0) {
+                    const { agentNameMap, clientNameMap } = await fetchNamesFromLogs(verificationLogs, jwt);
+                    setAgentNameMap(agentNameMap);
+                    setClientNameMap(clientNameMap);
+                } else {
+                    setAgentNameMap({});
+                    setClientNameMap({});
+                }
             } catch (err) {
                 console.error('Failed to load logs:', err);
                 setError(err.response?.data?.message || err.message || 'Failed to load logs');
@@ -97,24 +153,28 @@ export default function CommunicationPage() {
                                     <thead>
                                         <tr className="border-b border-slate-700">
                                             <th className="text-left p-4 text-slate-300 font-medium">Date/Time</th>
-                                            <th className="text-left p-4 text-slate-300 font-medium">Client ID</th>
-                                            <th className="text-left p-4 text-slate-300 font-medium">Agent ID</th>
+                                            <th className="text-left p-4 text-slate-300 font-medium">Client Name</th>
+                                            <th className="text-left p-4 text-slate-300 font-medium">Agent Name</th>
                                             <th className="text-left p-4 text-slate-300 font-medium">Previous Status</th>
                                             <th className="text-left p-4 text-slate-300 font-medium">Current Status</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {logs.map((log, idx) => (
-                                            <tr key={idx} className="border-b border-slate-700 hover:bg-slate-750">
-                                                <td className="p-4 text-slate-300 text-sm">
-                                                    {log.timestamp ? new Date(log.timestamp).toLocaleString('en-SG') : ''}
-                                                </td>
-                                                <td className="p-4 text-slate-300">{log.client_id || '-'}</td>
-                                                <td className="p-4 text-slate-300">{log.agent_id || '-'}</td>
-                                                <td className="p-4 text-slate-300">{log.before_value || '-'}</td>
-                                                <td className="p-4 text-slate-300">{log.after_value || '-'}</td>
-                                            </tr>
-                                        ))}
+                                        {logs.map((log, idx) => {
+                                            const aid = log.agent_id;
+                                            const cid = log.client_id;
+                                            return (
+                                                <tr key={idx} className="border-b border-slate-700 hover:bg-slate-750">
+                                                    <td className="p-4 text-slate-300 text-sm">
+                                                        {log.timestamp ? new Date(log.timestamp).toLocaleString('en-SG') : ''}
+                                                    </td>
+                                                    <td className="p-4 text-slate-300">{cid ? clientNameMap[cid] || cid : '-'}</td>
+                                                    <td className="p-4 text-slate-300">{aid ? agentNameMap[aid] || aid : '-'}</td>
+                                                    <td className="p-4 text-slate-300">{log.before_value || '-'}</td>
+                                                    <td className="p-4 text-slate-300">{log.after_value || '-'}</td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             )}
