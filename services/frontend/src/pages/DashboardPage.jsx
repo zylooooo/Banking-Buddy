@@ -67,19 +67,49 @@ export default function DashboardPage() {
                 });
                 let fetchedLogs = response.data?.logs || [];
 
-                // Filter logs for non-root roles to only those related to their allowed clients
+                // Filter logs based on role
                 const current = await getUserFromToken();
                 if (current && current.role !== 'rootAdministrator') {
                     try {
-                        const clientsResp = await clientApi.getAllClients(0, 100);
-                        const clientIds = (clientsResp.data?.data || clientsResp.data?.clients || []).map(c => c.id || c.clientId);
-                        if (clientIds.length > 0) {
-                            fetchedLogs = fetchedLogs.filter(l => clientIds.includes(l.client_id));
-                        } else {
-                            fetchedLogs = [];
+                        if (current.role === 'agent') {
+                            // For agents: Filter by client IDs from their own clients
+                            const clientsResp = await clientApi.getAllClients(0, 100);
+                            const pageData = clientsResp.data?.data;
+                            
+                            // Handle paginated response (content property) or array response
+                            let clients = [];
+                            if (Array.isArray(pageData)) {
+                                clients = pageData;
+                            } else if (pageData?.content) {
+                                clients = pageData.content;
+                            } else if (clientsResp.data?.clients) {
+                                clients = clientsResp.data.clients;
+                            }
+                            
+                            const clientIds = clients.map(c => c.id || c.clientId);
+                            if (clientIds.length > 0) {
+                                fetchedLogs = fetchedLogs.filter(l => clientIds.includes(l.client_id));
+                            } else {
+                                fetchedLogs = [];
+                            }
+                        } else if (current.role === 'admin') {
+                            // For admins: Filter by agent IDs of agents they manage
+                            const usersResp = await userApi.getAllUsers();
+                            const managedAgents = (usersResp.data?.data || [])
+                                .filter(user => user.role === 'agent')
+                                .map(user => user.id);
+                            
+                            if (managedAgents.length > 0) {
+                                // Filter logs where agent_id is in the list of managed agents
+                                fetchedLogs = fetchedLogs.filter(l => managedAgents.includes(l.agent_id));
+                            } else {
+                                // Admin has no agents, so no logs to show
+                                fetchedLogs = [];
+                            }
                         }
                     } catch (e) {
-                        // If client fetch fails, fall back to empty for safety
+                        // If fetch fails, fall back to empty for safety
+                        console.error('Failed to filter logs:', e);
                         fetchedLogs = [];
                     }
                 }
@@ -133,7 +163,7 @@ export default function DashboardPage() {
 
                 {/* Quick Action Cards per role */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    {user.role === 'rootAdministrator' && (
+                    {(user.role === 'rootAdministrator' || user.role === 'admin') && (
                         <>
                             <button
                                 onClick={() => navigate('/users', { state: { openCreateForm: true } })}
@@ -162,38 +192,6 @@ export default function DashboardPage() {
                                     <h3 className="ml-4 text-lg font-semibold text-white">Manage Users</h3>
                                 </div>
                                 <p className="text-slate-400 text-sm">View and manage all admins</p>
-                            </Link>
-                        </>
-                    )}
-                    {user.role === 'admin' && (
-                        <>
-                            <button
-                                onClick={() => navigate('/clients', { state: { openCreateForm: true } })}
-                                className="bg-slate-800 border border-blue-700 rounded-lg p-6 hover:bg-blue-900 transition-colors group w-full text-left"
-                            >
-                                <div className="flex items-center mb-4">
-                                    <div className="p-3 bg-blue-900 rounded-lg group-hover:bg-blue-800 transition-colors">
-                                        <svg className="w-6 h-6 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                                        </svg>
-                                    </div>
-                                    <h3 className="ml-4 text-lg font-semibold text-white">Create Client Profile</h3>
-                                </div>
-                                <p className="text-slate-400 text-sm">Open the client creation form</p>
-                            </button>
-                            <Link
-                                to="/clients"
-                                className="bg-slate-800 border border-green-700 rounded-lg p-6 hover:bg-green-900 transition-colors group"
-                            >
-                                <div className="flex items-center mb-4">
-                                    <div className="p-3 bg-green-900 rounded-lg group-hover:bg-green-800 transition-colors">
-                                        <svg className="w-6 h-6 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                        </svg>
-                                    </div>
-                                    <h3 className="ml-4 text-lg font-semibold text-white">Manage Profiles</h3>
-                                </div>
-                                <p className="text-slate-400 text-sm">Go to client management page</p>
                             </Link>
                         </>
                     )}

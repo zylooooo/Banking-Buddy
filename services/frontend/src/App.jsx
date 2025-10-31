@@ -108,7 +108,7 @@ function App() {
           path="/clients"
           element={
             <ProtectedRoute>
-              <RoleRoute allowedRoles={['admin','agent']}>
+              <RoleRoute allowedRoles={['agent']}>
                 <ClientManagementPage />
               </RoleRoute>
             </ProtectedRoute>
@@ -126,7 +126,7 @@ function App() {
           path="/users"
           element={
             <ProtectedRoute>
-              <RoleRoute allowedRoles={['rootAdministrator']}>
+              <RoleRoute allowedRoles={['rootAdministrator', 'admin']}>
                 <UserManagementPage />
               </RoleRoute>
             </ProtectedRoute>
