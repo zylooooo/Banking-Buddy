@@ -1,6 +1,13 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { formatRole } from '../utils/roleLabels';
+import {
+    DashboardIcon,
+    ClientManagementIcon,
+    TransactionsIcon,
+    CommunicationsIcon,
+    UserManagementIcon
+} from './Icons';
 
 export default function Navigation({ user }) {
     const location = useLocation();
@@ -13,52 +20,32 @@ export default function Navigation({ user }) {
         {
             path: '/dashboard',
             label: 'Dashboard',
-            icon: (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2v10" />
-                </svg>
-            ),
-                roles: ['admin', 'rootAdministrator', 'agent']
+            icon: <DashboardIcon />,
+            roles: ['admin', 'rootAdministrator', 'agent']
         },
         {
             path: '/clients',
             label: 'Client Management',
-            icon: (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-            ),
-                roles: ['agent']
+            icon: <ClientManagementIcon />,
+            roles: ['agent']
         },
         {
             path: '/transactions',
             label: 'Transactions',
-            icon: (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z" />
-                </svg>
-            ),
-                roles: ['agent']
+            icon: <TransactionsIcon />,
+            roles: ['agent']
         },
         {
             path: '/communications',
             label: 'Communications',
-            icon: (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-            ),
-                roles: ['admin', 'rootAdministrator', 'agent']
+            icon: <CommunicationsIcon />,
+            roles: ['admin', 'rootAdministrator', 'agent']
         },
         {
             path: '/users',
             label: 'User Management',
-            icon: (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                </svg>
-            ),
-                roles: ['rootAdministrator', 'admin']
+            icon: <UserManagementIcon />,
+            roles: ['rootAdministrator', 'admin']
         },
         // ...existing code...
     ];
