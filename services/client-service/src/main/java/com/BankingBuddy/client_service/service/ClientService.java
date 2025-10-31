@@ -5,7 +5,6 @@ import com.BankingBuddy.client_service.exception.ClientNotFoundException;
 import com.BankingBuddy.client_service.exception.ForbiddenException;
 import com.BankingBuddy.client_service.exception.InvalidOperationException;
 import com.BankingBuddy.client_service.model.dto.ClientDTO;
-import com.BankingBuddy.client_service.model.dto.ClientSummaryDTO;
 import com.BankingBuddy.client_service.model.dto.CreateClientRequest;
 import com.BankingBuddy.client_service.model.dto.UpdateClientRequest;
 import com.BankingBuddy.client_service.model.entity.Account;
@@ -25,7 +24,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.lang.NonNull;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 

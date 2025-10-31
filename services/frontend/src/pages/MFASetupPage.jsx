@@ -1,16 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-    updateUserAttributes,
-    confirmUserAttribute,
-    updateMFAPreference
-} from 'aws-amplify/auth';
-import { getUserFromToken } from '../services/authService';
+import { getUserFromToken, getAccessToken } from '../services/authService';
 import { userApi } from '../services/apiService';
+import { updateMFAPreference } from 'aws-amplify/auth';
+import QRCode from 'qrcode';
 
 export default function MFASetupPage() {
-    const [step, setStep] = useState('prompt'); // 'prompt' | 'enterPhone' | 'verifyCode' | 'complete'
-    const [phoneNumber, setPhoneNumber] = useState('');
+    const [step, setStep] = useState('prompt'); // 'prompt' | 'scanQR' | 'verifyCode' | 'complete'
+    const [qrCode, setQrCode] = useState('');
+    const [secretKey, setSecretKey] = useState('');
     const [verificationCode, setVerificationCode] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -35,60 +33,86 @@ export default function MFASetupPage() {
         }
     };
 
-    // User chooses to set up MFA
-    const handleSetupMFA = () => {
-        setStep('enterPhone');
-        setError('');
-    };
-
-    // Submit phone number for verification
-    const handlePhoneSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError('');
-
+    // User chooses to set up TOTP - call backend to associate software token
+    const handleSetupTOTP = async () => {
         try {
-            // Validate Singapore phone number format
-            const phoneRegex = /^\+65[689]\d{7}$/;
-            if (!phoneRegex.test(phoneNumber)) {
-                throw new Error('Please enter a valid Singapore phone number (e.g., +6591234567)');
+            setLoading(true);
+            setError('');
+
+            // Get access token from Amplify session
+            const accessToken = await getAccessToken();
+            if (!accessToken) {
+                throw new Error('Not authenticated. Please log in again.');
             }
 
-            const cognitoUser = await getUserFromToken();
-            
-            // Amplify Auth function to set the preferred MFA for Cognito user
-            const result = await updateUserAttributes({
-                userAttributes: {
-                    phone_number: phoneNumber
-                }
-            });   
+            // Call backend to associate software token
+            const response = await userApi.associateTOTP(accessToken);
 
-            setStep('verifyCode');
+            // Extract data from API response structure
+            const data = response.data?.data || response.data;
+            const { secretCode, qrCodeUri } = data;
+
+            if (!secretCode || !qrCodeUri) {
+                throw new Error('Invalid response from server. Missing secret code or QR code URI.');
+            }
+
+            // Generate QR code image from URI
+            // Use a QR code library or service to convert URI to image
+            // For now, we'll use a simple approach with qrcode.js or online service
+            const qrCodeImageUrl = await generateQRCode(qrCodeUri);
+
+            setQrCode(qrCodeImageUrl);
+            setSecretKey(secretCode);
+            setStep('scanQR');
         } catch (err) {
-            console.error('Phone submission error:', err);
-            setError(err.message || 'Failed to send verification code. Please try again.');
+            console.error('TOTP setup error:', err);
+            setError(err.response?.data?.message || err.message || 'Failed to start TOTP setup. Please try again.');
         } finally {
             setLoading(false);
         }
     };
 
-    // Verify code and enable MFA
+    // Generate QR code image from URI
+    const generateQRCode = async (qrCodeUri) => {
+        try {
+            // Generate QR code as data URL (client-side, no external calls)
+            const qrCodeDataUrl = await QRCode.toDataURL(qrCodeUri, {
+                width: 200,
+                margin: 2,
+                color: {
+                    dark: '#000000',
+                    light: '#FFFFFF'
+                }
+            });
+            return qrCodeDataUrl;
+        } catch (err) {
+            console.error('Failed to generate QR code:', err);
+            throw new Error('Failed to generate QR code');
+        }
+    };
+
+    // Verify the TOTP code from authenticator app
     const handleVerifyCode = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
         try {
-            // Verify the phone number with the code
-            await confirmUserAttribute({
-                userAttributeKey: 'phone_number',
-                confirmationCode: verificationCode
+            // Get access token
+            const accessToken = await getAccessToken();
+            if (!accessToken) {
+                throw new Error('Not authenticated. Please log in again.');
+            }
+
+            // Verify the TOTP code via backend
+            await userApi.verifyTOTP(accessToken, verificationCode);
+
+            // Set TOTP as preferred MFA method via Amplify
+            await updateMFAPreference({
+                totp: 'PREFERRED'
             });
 
-            // Enable SMS MFA as preferred method
-            await updateMFAPreference({ sms: 'PREFERRED' });
-
-            // Mark user as ACTIVE (onboarding complete with MFA)
+            // Mark user as ACTIVE (onboarding complete with TOTP)
             await markUserActive();
 
             // Show success message
@@ -98,19 +122,17 @@ export default function MFASetupPage() {
             setTimeout(() => navigate('/dashboard'), 2000);
         } catch (err) {
             console.error('Verification error:', err);
-            setError('Invalid verification code. Please try again.');
+            setError(err.response?.data?.message || err.message || 'Invalid verification code. Please make sure you entered the current code from your authenticator app.');
         } finally {
             setLoading(false);
         }
     };
 
-    // Call backend to mark user status as ACTIVE, signifies onboarding complete
+    // Call backend to mark user status as ACTIVE
     const markUserActive = async () => {
         try {
             const cognitoUser = await getUserFromToken();
-
             await userApi.setUpMFAForUser(cognitoUser.sub);
-
         } catch (err) {
             console.error('Mark active error:', err);
             throw err;
@@ -123,7 +145,7 @@ export default function MFASetupPage() {
 
                 {/* STEP 1: Initial Prompt */}
                 {step === 'prompt' && (
-                    <>
+                    <div>
                         <div className="text-center mb-6">
                             <div className="mx-auto mb-4 w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
                                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -134,14 +156,16 @@ export default function MFASetupPage() {
                                 Secure Your Account
                             </h2>
                             <p className="text-sm sm:text-base text-slate-300">
-                                Would you like to add an extra layer of security with Two-Factor Authentication?
+                                Add an extra layer of security with Two-Factor Authentication using an authenticator app.
                             </p>
                         </div>
 
                         <div className="bg-slate-700 p-4 rounded-lg mb-6">
                             <h3 className="text-sm font-semibold text-white mb-2">What is 2FA?</h3>
+                            <p className="text-xs sm:text-sm text-slate-300 mb-2">
+                                When you sign in, you'll need to enter a verification code from your authenticator app (like Microsoft Authenticator or Google Authenticator).
+                            </p>
                             <p className="text-xs sm:text-sm text-slate-300">
-                                When you sign in, you'll receive a verification code via SMS to your mobile phone.
                                 This ensures that only you can access your account, even if someone knows your password.
                             </p>
                         </div>
@@ -154,7 +178,7 @@ export default function MFASetupPage() {
 
                         <div className="space-y-3">
                             <button
-                                onClick={handleSetupMFA}
+                                onClick={handleSetupTOTP}
                                 disabled={loading}
                                 className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                             >
@@ -168,16 +192,17 @@ export default function MFASetupPage() {
                                 {loading ? 'Processing...' : 'Skip for Now'}
                             </button>
                         </div>
-                    </>
+                    </div>
                 )}
 
-                {/* STEP 2: Enter Phone Number */}
-                {step === 'enterPhone' && (
+                {/* STEP 2: Scan QR Code */}
+                {step === 'scanQR' && (
                     <>
                         <div className="mb-6">
                             <button
                                 onClick={() => setStep('prompt')}
                                 className="text-slate-400 hover:text-slate-300 flex items-center text-sm mb-4"
+                                disabled={loading}
                             >
                                 <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -185,47 +210,61 @@ export default function MFASetupPage() {
                                 Back
                             </button>
                             <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">
-                                Enter Your Phone Number
+                                Scan QR Code
                             </h2>
-                            <p className="text-sm sm:text-base text-slate-300">
-                                We'll send a verification code to your Singapore mobile number.
+                            <p className="text-sm sm:text-base text-slate-300 mb-4">
+                                Open Microsoft Authenticator (or Google Authenticator) and scan this QR code:
                             </p>
                         </div>
 
-                        <form onSubmit={handlePhoneSubmit} className="space-y-4">
-                            <div>
-                                <label htmlFor="phone" className="block text-sm font-medium text-slate-300 mb-2">
-                                    Mobile Number
-                                </label>
-                                <input
-                                    id="phone"
-                                    type="tel"
-                                    value={phoneNumber}
-                                    onChange={(e) => setPhoneNumber(e.target.value)}
-                                    placeholder="+6591234567"
-                                    className="w-full px-4 py-3 bg-slate-700 text-white border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    required
-                                    disabled={loading}
-                                />
-                                <p className="mt-2 text-xs text-slate-400">
-                                    Format: +65 followed by 8 digits starting with 6, 8, or 9
-                                </p>
+                        {/* QR Code Display */}
+                        <div className="mb-6 flex justify-center">
+                            <div className="bg-white p-4 rounded-lg">
+                                {qrCode ? (
+                                    <img
+                                        src={qrCode}
+                                        alt="TOTP QR Code"
+                                        className="w-48 h-48"
+                                    />
+                                ) : (
+                                    <div className="w-48 h-48 flex items-center justify-center text-slate-400">
+                                        Loading QR code...
+                                    </div>
+                                )}
                             </div>
+                        </div>
 
-                            {error && (
-                                <div className="p-3 bg-red-900/50 border border-red-700 rounded-lg">
-                                    <p className="text-sm text-red-200">{error}</p>
-                                </div>
-                            )}
+                        {/* Manual Entry Option */}
+                        <div className="bg-slate-700 p-4 rounded-lg mb-6">
+                            <p className="text-xs text-slate-300 mb-2">
+                                Can't scan? Enter this code manually:
+                            </p>
+                            <div className="flex items-center justify-between">
+                                <code className="text-sm font-mono text-white bg-slate-800 px-3 py-2 rounded flex-1 break-all">
+                                    {secretKey}
+                                </code>
+                                <button
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(secretKey);
+                                    }}
+                                    className="ml-2 px-3 py-2 bg-slate-600 text-white rounded hover:bg-slate-500 whitespace-nowrap"
+                                >
+                                    Copy
+                                </button>
+                            </div>
+                        </div>
 
-                            <button
-                                type="submit"
-                                disabled={loading || !phoneNumber}
-                                className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {loading ? 'Sending Code...' : 'Send Verification Code'}
-                            </button>
-                        </form>
+                        <p className="text-xs text-slate-400 text-center mb-4">
+                            After scanning, click Continue and enter the 6-digit code from your app.
+                        </p>
+
+                        <button
+                            onClick={() => setStep('verifyCode')}
+                            disabled={loading || !qrCode}
+                            className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Continue
+                        </button>
                     </>
                 )}
 
@@ -234,7 +273,7 @@ export default function MFASetupPage() {
                     <>
                         <div className="mb-6">
                             <button
-                                onClick={() => setStep('enterPhone')}
+                                onClick={() => setStep('scanQR')}
                                 className="text-slate-400 hover:text-slate-300 flex items-center text-sm mb-4"
                                 disabled={loading}
                             >
@@ -247,10 +286,7 @@ export default function MFASetupPage() {
                                 Enter Verification Code
                             </h2>
                             <p className="text-sm sm:text-base text-slate-300 mb-4">
-                                We've sent a 6-digit code to <span className="font-semibold text-white">{phoneNumber}</span>
-                            </p>
-                            <p className="text-xs text-slate-400">
-                                Didn't receive the code? Go back and try again.
+                                Enter the 6-digit code from your authenticator app to verify setup.
                             </p>
                         </div>
 
@@ -270,6 +306,7 @@ export default function MFASetupPage() {
                                     required
                                     disabled={loading}
                                     autoComplete="one-time-code"
+                                    autoFocus
                                 />
                             </div>
 

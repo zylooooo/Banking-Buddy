@@ -59,6 +59,16 @@ export const getIdToken = async () => {
     }
 };
 
+export const getAccessToken = async () => {
+    try {
+        const session = await fetchAuthSession();
+        return session.tokens?.accessToken?.toString() || null;
+    } catch (error) {
+        console.error('Get access token failed:', error);
+        return null;
+    }
+};
+
 export const isAuthenticated = async () => {
     try {
         const session = await fetchAuthSession();
@@ -98,4 +108,8 @@ export const handleForgotPassword = async () => {
     }
 };
 
-export { updateUserAttributes, confirmUserAttribute, updateMFAPreference };
+export { 
+    updateUserAttributes, 
+    confirmUserAttribute, 
+    updateMFAPreference
+};

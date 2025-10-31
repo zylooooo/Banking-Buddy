@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Comparator;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.AssociateSoftwareTokenResponse;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.VerifySoftwareTokenResponse;
 
 @Service
 @Slf4j
@@ -269,12 +271,46 @@ public class UserService {
             throw new ForbiddenException("Cannot set up MFA for deleted users");
         }
 
+        // NOTE: At this point, TOTP should already be verified and set as preferred 
+        // via frontend Amplify SDK (updateMFAPreference). The frontend handles all MFA setup.
+        // This backend method only marks the user as ACTIVE (onboarding complete).
+        
+        // Optionally cleanup SMS MFA if user previously had it (for migration scenarios)
+        try {
+            cognitoService.removeSMSMFAPreference(userId);
+            log.debug("Cleaned up SMS MFA preference for user: {}", user.getEmail());
+        } catch (Exception e) {
+            log.debug("No SMS MFA to clean up for user {}: {}", userId, e.getMessage());
+            // Not an error - user may not have had SMS MFA
+        }
+
         // Update user's status
         user.setStatus(UserStatus.ACTIVE);
         user.setUpdatedBy(currentUser.getUserId());
         userRepository.save(user);
 
-        log.info("Complete MFA set up for user: {}", user.getEmail());
+        log.info("Completed MFA setup and activated user: {}", user.getEmail());
+    }
+    
+    /**
+     * Associate software token (TOTP) for the current user.
+     * Returns secret code and session token for QR code generation.
+     */
+    public AssociateSoftwareTokenResponse associateTOTP(String accessToken, UserContext currentUser) {
+        // Only allow users to set up TOTP for themselves
+        // Note: We can't validate userId from access token directly, 
+        // but Cognito will reject invalid access tokens
+        return cognitoService.associateSoftwareToken(accessToken);
+    }
+    
+    /**
+     * Verify software token (TOTP) code for the current user.
+     */
+    public VerifySoftwareTokenResponse verifyTOTP(String accessToken, String totpCode, UserContext currentUser) {
+        // Only allow users to verify TOTP for themselves
+        // Note: We can't validate userId from access token directly,
+        // but Cognito will reject invalid access tokens
+        return cognitoService.verifySoftwareToken(accessToken, totpCode);
     }
 
 }

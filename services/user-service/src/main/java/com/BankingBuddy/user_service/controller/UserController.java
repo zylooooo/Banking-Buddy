@@ -11,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.AssociateSoftwareTokenResponse;
 
 @RestController
 @RequestMapping("/api/users")
@@ -109,6 +111,59 @@ public class UserController {
         try {
             userService.setUpMFAForUser(userId, currentUser);
             return ResponseEntity.ok(ApiResponse.success(null, "User onboarded successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error(e.getMessage()));
+        }
+    }
+    
+    @PostMapping("/totp/associate")
+    public ResponseEntity<ApiResponse<Map<String, String>>> associateTOTP(
+        @Valid @RequestBody AssociateTOTPRequest request,
+        HttpServletRequest httpRequest
+    ) {
+        UserContext currentUser = (UserContext) httpRequest.getAttribute("userContext");
+
+        try {
+            AssociateSoftwareTokenResponse response = userService.associateTOTP(
+                request.getAccessToken(), 
+                currentUser
+            );
+            
+            // Generate QR code URI from secret
+            String secretCode = response.secretCode();
+            String issuer = "Banking Buddy";
+            String accountName = currentUser.getEmail();
+            String qrCodeUri = String.format("otpauth://totp/%s:%s?secret=%s&issuer=%s", 
+                issuer, accountName, secretCode, issuer);
+            
+            Map<String, String> result = Map.of(
+                "secretCode", secretCode,
+                "qrCodeUri", qrCodeUri
+            );
+            
+            return ResponseEntity.ok(ApiResponse.success(result, "TOTP associated successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error(e.getMessage()));
+        }
+    }
+    
+    @PostMapping("/totp/verify")
+    public ResponseEntity<ApiResponse<Void>> verifyTOTP(
+        @Valid @RequestBody VerifyTOTPRequest request,
+        HttpServletRequest httpRequest
+    ) {
+        UserContext currentUser = (UserContext) httpRequest.getAttribute("userContext");
+
+        try {
+            userService.verifyTOTP(
+                request.getAccessToken(), 
+                request.getTotpCode(), 
+                currentUser
+            );
+            
+            return ResponseEntity.ok(ApiResponse.success(null, "TOTP verified successfully"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error(e.getMessage()));

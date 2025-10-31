@@ -29,6 +29,9 @@ export const userApi = {
     enableUser: (userId) => apiClient.patch(`/users/${userId}/enable`),
     resetPassword: (userId) => apiClient.post(`/users/${userId}/reset-password`),
     setUpMFAForUser: (userId) => apiClient.patch(`/users/${userId}/MFA`),
+    // TOTP setup endpoints
+    associateTOTP: (accessToken) => apiClient.post('/users/totp/associate', { accessToken }),
+    verifyTOTP: (accessToken, totpCode) => apiClient.post('/users/totp/verify', { accessToken, totpCode }),
 };
 
 // Client Service API endpoints (port 8081)

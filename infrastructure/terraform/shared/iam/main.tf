@@ -383,7 +383,11 @@ resource "aws_iam_role_policy" "elastic_beanstalk_cognito" {
           "cognito-idp:ForgotPassword",
           "cognito-idp:ConfirmForgotPassword",
           "cognito-idp:AdminResetUserPassword",
-          "cognito-idp:AdminSetUserMFAPreference"
+          "cognito-idp:AdminSetUserMFAPreference",
+          "cognito-idp:AssociateSoftwareToken",
+          "cognito-idp:VerifySoftwareToken",
+          "cognito-idp:SetUserMFAPreference",
+          "cognito-idp:AdminGetUser"
         ]
         Resource = "arn:aws:cognito-idp:${var.aws_region}:${data.aws_caller_identity.current.account_id}:userpool/*"
       }

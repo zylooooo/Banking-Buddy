@@ -136,4 +136,92 @@ public class CognitoService {
             throw new CognitoException("Failed to reset password in Cognito", e);
         }
     }
+    
+    /**
+     * Associate software token (TOTP) for a user using their access token.
+     * Returns the secret code and QR code URI.
+     */
+    public AssociateSoftwareTokenResponse associateSoftwareToken(String accessToken) {
+        try {
+            AssociateSoftwareTokenRequest request = AssociateSoftwareTokenRequest.builder()
+                .accessToken(accessToken)
+                .build();
+            
+            AssociateSoftwareTokenResponse response = cognitoClient.associateSoftwareToken(request);
+            log.info("Associated software token for user");
+            return response;
+            
+        } catch (Exception e) {
+            log.error("Failed to associate software token", e);
+            throw new CognitoException("Failed to associate software token", e);
+        }
+    }
+    
+    /**
+     * Verify software token (TOTP) code using user's access token.
+     */
+    public VerifySoftwareTokenResponse verifySoftwareToken(String accessToken, String userCode) {
+        try {
+            VerifySoftwareTokenRequest request = VerifySoftwareTokenRequest.builder()
+                .accessToken(accessToken)
+                .userCode(userCode)
+                .build();
+            
+            VerifySoftwareTokenResponse response = cognitoClient.verifySoftwareToken(request);
+            log.info("Verified software token for user");
+            return response;
+            
+        } catch (Exception e) {
+            log.error("Failed to verify software token", e);
+            throw new CognitoException("Failed to verify software token", e);
+        }
+    }
+    
+    /**
+     * Get current MFA preference for a user.
+     */
+    public AdminGetUserResponse getUserMFAStatus(String userId) {
+        try {
+            AdminGetUserRequest request = AdminGetUserRequest.builder()
+                .userPoolId(awsProperties.getCognito().getUserPoolId())
+                .username(userId)
+                .build();
+            
+            AdminGetUserResponse response = cognitoClient.adminGetUser(request);
+            log.debug("Retrieved MFA status for user: {}", userId);
+            return response;
+            
+        } catch (Exception e) {
+            log.error("Failed to get MFA status for user: {}", userId, e);
+            throw new CognitoException("Failed to get MFA status", e);
+        }
+    }
+    
+    /**
+     * Remove SMS MFA preference if user has software token MFA enabled.
+     * Use this during migration from SMS to TOTP.
+     * Sets software token as preferred and disables SMS MFA.
+     */
+    public void removeSMSMFAPreference(String userId) {
+        try {
+            AdminSetUserMfaPreferenceRequest request = AdminSetUserMfaPreferenceRequest.builder()
+                .userPoolId(awsProperties.getCognito().getUserPoolId())
+                .username(userId)
+                .softwareTokenMfaSettings(
+                    SoftwareTokenMfaSettingsType.builder()
+                        .enabled(true)
+                        .preferredMfa(true)
+                        .build()
+                )
+                // Don't set SMS settings - this will disable SMS MFA if it was enabled
+                .build();
+            
+            cognitoClient.adminSetUserMFAPreference(request);
+            log.info("Removed SMS MFA preference and set software token as preferred for user: {}", userId);
+            
+        } catch (Exception e) {
+            log.error("Failed to remove SMS MFA preference for user: {}", userId, e);
+            throw new CognitoException("Failed to remove SMS MFA preference", e);
+        }
+    }
 }
