@@ -5,6 +5,7 @@ import { clientApi, userApi } from '../services/apiService';
 import Header from '../components/Header';
 import Navigation from '../components/Navigation';
 import { formatPhoneNumber } from '../utils/phone';
+import { parsePhoneNumberFromString, isValidPhoneNumber } from 'libphonenumber-js';
 
 export default function ClientManagementPage() {
     const [currentUser, setCurrentUser] = useState(null);
@@ -79,9 +80,56 @@ export default function ClientManagementPage() {
         }
     }, [location, navigate]);
 
+    // Helper function to convert country name to ISO country code (used in handleCreateClient)
+    const getCountryCodeForPhone = (countryName) => {
+        const countryMap = {
+            'Singapore': 'SG',
+            'United States': 'US',
+            'United Kingdom': 'GB',
+            'Malaysia': 'MY',
+            'Indonesia': 'ID',
+            'Thailand': 'TH',
+            'Philippines': 'PH',
+            'Vietnam': 'VN',
+            'India': 'IN',
+            'China': 'CN',
+            'Australia': 'AU',
+            'New Zealand': 'NZ',
+            'Canada': 'CA',
+            'Germany': 'DE',
+            'France': 'FR',
+            'Japan': 'JP',
+            'South Korea': 'KR'
+        };
+        return countryMap[countryName] || undefined;
+    };
+
     const handleCreateClient = async (clientData) => {
         try {
-            await clientApi.createClient(clientData);
+            // Normalize phone number using libphonenumber-js
+            let normalizedPhoneNumber = clientData.phoneNumber;
+            try {
+                const cleanValue = clientData.phoneNumber.replace(/\s/g, '');
+                const countryCode = getCountryCodeForPhone(clientData.country);
+                const phoneNumber = parsePhoneNumberFromString(cleanValue, countryCode);
+                
+                if (phoneNumber) {
+                    // Extract digits with country code: countryCallingCode + nationalNumber
+                    normalizedPhoneNumber = phoneNumber.countryCallingCode + phoneNumber.nationalNumber;
+                } else {
+                    // Fallback: strip non-digits if parsing fails
+                    normalizedPhoneNumber = cleanValue.replace(/\D/g, '');
+                }
+            } catch (err) {
+                // Fallback: strip non-digits if parsing fails
+                normalizedPhoneNumber = clientData.phoneNumber.replace(/\D/g, '');
+            }
+
+            const normalizedData = {
+                ...clientData,
+                phoneNumber: normalizedPhoneNumber
+            };
+            await clientApi.createClient(normalizedData);
             // After creating, reset to first page and refresh
             setPage(0);
             const response = await clientApi.getAllClients(0, LIMIT, Date.now());
@@ -286,6 +334,30 @@ function CreateClientForm({ onSubmit, onCancel }) {
     const [validationErrors, setValidationErrors] = useState({});
     const [submitError, setSubmitError] = useState(null);
 
+    // Helper function to convert country name to ISO country code
+    const getCountryCode = (countryName) => {
+        const countryMap = {
+            'Singapore': 'SG',
+            'United States': 'US',
+            'United Kingdom': 'GB',
+            'Malaysia': 'MY',
+            'Indonesia': 'ID',
+            'Thailand': 'TH',
+            'Philippines': 'PH',
+            'Vietnam': 'VN',
+            'India': 'IN',
+            'China': 'CN',
+            'Australia': 'AU',
+            'New Zealand': 'NZ',
+            'Canada': 'CA',
+            'Germany': 'DE',
+            'France': 'FR',
+            'Japan': 'JP',
+            'South Korea': 'KR'
+        };
+        return countryMap[countryName] || undefined;
+    };
+
     const validateField = (name, value) => {
         const errors = {};
 
@@ -343,8 +415,17 @@ function CreateClientForm({ onSubmit, onCancel }) {
             case 'phoneNumber':
                 if (!value) {
                     errors[name] = 'Phone number is required';
-                } else if (!/^\+?[1-9]\d{9,14}$/.test(value.replace(/\s/g, ''))) {
-                    errors[name] = 'Please enter a valid phone number (10-15 digits)';
+                } else {
+                    // Remove spaces for validation
+                    const cleanValue = value.replace(/\s/g, '');
+                    // Map country name to ISO country code (default to SG for Singapore)
+                    const countryCode = formData.country === 'Singapore' ? 'SG' : 
+                                      formData.country ? getCountryCode(formData.country) : 'SG';
+                    
+                    // Use libphonenumber to validate the phone number
+                    if (!isValidPhoneNumber(cleanValue, countryCode)) {
+                        errors[name] = 'Please enter a valid phone number';
+                    }
                 }
                 break;
 

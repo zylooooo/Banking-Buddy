@@ -10,7 +10,7 @@ import UserManagementPage from './pages/UserManagementPage';
 import AccountManagementPage from './pages/AccountManagementPage';
 import TransactionManagementPage from './pages/TransactionManagementPage';
 import CommunicationPage from './pages/CommunicationPage';
-import { isAuthenticated } from './services/authService';
+import { isAuthenticated, getUserFromToken } from './services/authService';
 
 function ProtectedRoute({ children }) {
   const [authenticated, setAuthenticated] = useState(null);
@@ -28,6 +28,33 @@ function ProtectedRoute({ children }) {
   }
 
   return authenticated ? children : <Navigate to="/" />;
+}
+
+function RoleRoute({ allowedRoles, children }) {
+  const [authorized, setAuthorized] = useState(null);
+
+  useEffect(() => {
+    const check = async () => {
+      const isAuth = await isAuthenticated();
+      if (!isAuth) {
+        setAuthorized(false);
+        return;
+      }
+      const user = await getUserFromToken();
+      if (!user) {
+        setAuthorized(false);
+        return;
+      }
+      setAuthorized(allowedRoles.includes(user.role));
+    };
+    check();
+  }, [allowedRoles]);
+
+  if (authorized === null) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+
+  return authorized ? children : <Navigate to="/dashboard" />;
 }
 
 function RootRedirect() {
@@ -81,7 +108,9 @@ function App() {
           path="/clients"
           element={
             <ProtectedRoute>
-              <ClientManagementPage />
+              <RoleRoute allowedRoles={['admin','agent']}>
+                <ClientManagementPage />
+              </RoleRoute>
             </ProtectedRoute>
           }
         />
@@ -97,7 +126,9 @@ function App() {
           path="/users"
           element={
             <ProtectedRoute>
-              <UserManagementPage />
+              <RoleRoute allowedRoles={['rootAdministrator']}>
+                <UserManagementPage />
+              </RoleRoute>
             </ProtectedRoute>
           }
         />
@@ -105,7 +136,9 @@ function App() {
           path="/accounts"
           element={
             <ProtectedRoute>
-              <AccountManagementPage />
+              <RoleRoute allowedRoles={['agent']}>
+                <AccountManagementPage />
+              </RoleRoute>
             </ProtectedRoute>
           }
         />
@@ -113,7 +146,9 @@ function App() {
           path="/transactions"
           element={
             <ProtectedRoute>
-              <TransactionManagementPage />
+              <RoleRoute allowedRoles={['agent']}>
+                <TransactionManagementPage />
+              </RoleRoute>
             </ProtectedRoute>
           }
         />

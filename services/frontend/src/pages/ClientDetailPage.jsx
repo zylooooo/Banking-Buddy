@@ -5,6 +5,7 @@ import { clientApi } from '../services/apiService';
 import Header from '../components/Header';
 import Navigation from '../components/Navigation';
 import { formatPhoneNumber } from '../utils/phone';
+import { parsePhoneNumberFromString } from 'libphonenumber-js';
 
 export default function ClientDetailPage() {
     const { clientId } = useParams();
@@ -59,7 +60,33 @@ export default function ClientDetailPage() {
 
     const handleUpdateClient = async (updatedData) => {
         try {
-            const response = await clientApi.updateClient(clientId, updatedData);
+            // Normalize phone number using libphonenumber-js
+            let normalizedPhoneNumber = updatedData.phoneNumber;
+            if (updatedData.phoneNumber) {
+                try {
+                    const cleanValue = updatedData.phoneNumber.replace(/\s/g, '');
+                    // Default to Singapore if client country is not available
+                    const phoneNumber = parsePhoneNumberFromString(cleanValue, 'SG');
+                    
+                    if (phoneNumber) {
+                        // Extract digits with country code: countryCallingCode + nationalNumber
+                        normalizedPhoneNumber = phoneNumber.countryCallingCode + phoneNumber.nationalNumber;
+                    } else {
+                        // Fallback: strip non-digits if parsing fails
+                        normalizedPhoneNumber = cleanValue.replace(/\D/g, '');
+                    }
+                } catch (err) {
+                    // Fallback: strip non-digits if parsing fails
+                    normalizedPhoneNumber = updatedData.phoneNumber.replace(/\D/g, '');
+                }
+            }
+
+            const normalizedData = {
+                ...updatedData,
+                phoneNumber: normalizedPhoneNumber
+            };
+
+            const response = await clientApi.updateClient(clientId, normalizedData);
             setClient(response.data.data);
             setIsEditing(false);
         } catch (err) {

@@ -7,6 +7,7 @@ import Navigation from '../components/Navigation';
 import UserCard from '../components/UserCard';
 
 import axios from 'axios';
+import { clientApi } from '../services/apiService';
 
 export default function DashboardPage() {
     const [user, setUser] = useState(null);
@@ -64,7 +65,25 @@ export default function DashboardPage() {
                         Authorization: `Bearer ${jwt}`
                     }
                 });
-                setLogs(response.data?.logs || []);
+                let fetchedLogs = response.data?.logs || [];
+
+                // Filter logs for non-root roles to only those related to their allowed clients
+                const current = await getUserFromToken();
+                if (current && current.role !== 'rootAdministrator') {
+                    try {
+                        const clientsResp = await clientApi.getAllClients(0, 100);
+                        const clientIds = (clientsResp.data?.data || clientsResp.data?.clients || []).map(c => c.id || c.clientId);
+                        if (clientIds.length > 0) {
+                            fetchedLogs = fetchedLogs.filter(l => clientIds.includes(l.client_id));
+                        } else {
+                            fetchedLogs = [];
+                        }
+                    } catch (e) {
+                        // If client fetch fails, fall back to empty for safety
+                        fetchedLogs = [];
+                    }
+                }
+                setLogs(fetchedLogs);
                 setLogsLoading(false);
             } catch (err) {
                 setLogsError(err.response?.data?.message || err.message || 'Failed to load recent activities');
@@ -112,11 +131,10 @@ export default function DashboardPage() {
                     <p className="text-slate-400">Welcome to Banking Buddy CRM System</p>
                 </div>
 
-                {/* Quick Action Cards for agent role */}
+                {/* Quick Action Cards per role */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    {['admin', 'rootAdministrator'].includes(user.role) ? (
+                    {user.role === 'rootAdministrator' && (
                         <>
-                            {/* Create New Accounts Tab */}
                             <button
                                 onClick={() => navigate('/users', { state: { openCreateForm: true } })}
                                 className="bg-slate-800 border border-blue-700 rounded-lg p-6 hover:bg-blue-900 transition-colors group w-full text-left"
@@ -127,11 +145,10 @@ export default function DashboardPage() {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
                                         </svg>
                                     </div>
-                                    <h3 className="ml-4 text-lg font-semibold text-white">Create New Accounts</h3>
+                                    <h3 className="ml-4 text-lg font-semibold text-white">Create New User</h3>
                                 </div>
-                                <p className="text-slate-400 text-sm">Add a new user to the system</p>
+                                <p className="text-slate-400 text-sm">Add a new admin to the system</p>
                             </button>
-                            {/* Manage Accounts Tab */}
                             <Link
                                 to="/users"
                                 className="bg-slate-800 border border-green-700 rounded-lg p-6 hover:bg-green-900 transition-colors group"
@@ -142,29 +159,14 @@ export default function DashboardPage() {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                         </svg>
                                     </div>
-                                    <h3 className="ml-4 text-lg font-semibold text-white">Manage Accounts</h3>
+                                    <h3 className="ml-4 text-lg font-semibold text-white">Manage Users</h3>
                                 </div>
-                                <p className="text-slate-400 text-sm">View, edit, and manage all accounts</p>
-                            </Link>
-                            {/* View Transactions Tab */}
-                            <Link
-                                to="/transactions"
-                                className="bg-slate-800 border border-purple-700 rounded-lg p-6 hover:bg-purple-900 transition-colors group"
-                            >
-                                <div className="flex items-center mb-4">
-                                    <div className="p-3 bg-purple-900 rounded-lg group-hover:bg-purple-800 transition-colors">
-                                        <svg className="w-6 h-6 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                        </svg>
-                                    </div>
-                                    <h3 className="ml-4 text-lg font-semibold text-white">View Transactions</h3>
-                                </div>
-                                <p className="text-slate-400 text-sm">Go to transactions page</p>
+                                <p className="text-slate-400 text-sm">View and manage all admins</p>
                             </Link>
                         </>
-                    ) : (
+                    )}
+                    {user.role === 'admin' && (
                         <>
-                            {/* Create Client Profile Tab */}
                             <button
                                 onClick={() => navigate('/clients', { state: { openCreateForm: true } })}
                                 className="bg-slate-800 border border-blue-700 rounded-lg p-6 hover:bg-blue-900 transition-colors group w-full text-left"
@@ -179,7 +181,6 @@ export default function DashboardPage() {
                                 </div>
                                 <p className="text-slate-400 text-sm">Open the client creation form</p>
                             </button>
-                            {/* Manage Profiles Tab */}
                             <Link
                                 to="/clients"
                                 className="bg-slate-800 border border-green-700 rounded-lg p-6 hover:bg-green-900 transition-colors group"
@@ -194,7 +195,38 @@ export default function DashboardPage() {
                                 </div>
                                 <p className="text-slate-400 text-sm">Go to client management page</p>
                             </Link>
-                            {/* View Transactions Tab */}
+                        </>
+                    )}
+                    {user.role === 'agent' && (
+                        <>
+                            <button
+                                onClick={() => navigate('/clients', { state: { openCreateForm: true } })}
+                                className="bg-slate-800 border border-blue-700 rounded-lg p-6 hover:bg-blue-900 transition-colors group w-full text-left"
+                            >
+                                <div className="flex items-center mb-4">
+                                    <div className="p-3 bg-blue-900 rounded-lg group-hover:bg-blue-800 transition-colors">
+                                        <svg className="w-6 h-6 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                                        </svg>
+                                    </div>
+                                    <h3 className="ml-4 text-lg font-semibold text-white">Create Client Profile</h3>
+                                </div>
+                                <p className="text-slate-400 text-sm">Open the client creation form</p>
+                            </button>
+                            <Link
+                                to="/clients"
+                                className="bg-slate-800 border border-green-700 rounded-lg p-6 hover:bg-green-900 transition-colors group"
+                            >
+                                <div className="flex items-center mb-4">
+                                    <div className="p-3 bg-green-900 rounded-lg group-hover:bg-green-800 transition-colors">
+                                        <svg className="w-6 h-6 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                        </svg>
+                                    </div>
+                                    <h3 className="ml-4 text-lg font-semibold text-white">Manage Profiles</h3>
+                                </div>
+                                <p className="text-slate-400 text-sm">Go to client management page</p>
+                            </Link>
                             <Link
                                 to="/transactions"
                                 className="bg-slate-800 border border-purple-700 rounded-lg p-6 hover:bg-purple-900 transition-colors group"
