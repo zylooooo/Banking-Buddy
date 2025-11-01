@@ -10,5 +10,10 @@ output "zone_name" {
 
 output "api_record_name" {
   description = "Full domain name for API"
-  value       = aws_route53_record.api.fqdn
+  value       = var.api_subdomain != "" ? aws_route53_record.api[0].fqdn : null
+}
+
+output "frontend_record_name" {
+  description = "Full domain name for frontend"
+  value       = var.frontend_subdomain != "" ? aws_route53_record.frontend[0].fqdn : null
 }

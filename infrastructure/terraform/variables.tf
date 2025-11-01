@@ -187,6 +187,12 @@ variable "route53_zone_id" {
   default     = ""
 }
 
+variable "frontend_domain_name" {
+  description = "Full frontend domain name (e.g., app.bankingbuddy.com or www.bankingbuddy.com). Leave empty to use CloudFront default domain."
+  type        = string
+  default     = ""
+}
+
 variable "github_org" {
   description = "GitHub organization or username"
   type        = string

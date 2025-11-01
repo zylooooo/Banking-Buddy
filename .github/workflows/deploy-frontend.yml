@@ -1,0 +1,204 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [main, integration]
+    paths:
+      - 'services/frontend/**'
+      - '.github/workflows/deploy-frontend.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+env:
+  AWS_REGION: ap-southeast-1
+  SERVICE_PATH: services/frontend
+
+permissions:
+  contents: read    # Required to checkout code
+
+jobs:
+  # Job 1: Test and Build (Runs automatically on push)
+  build:
+    name: Test and Build Frontend
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: ${{ env.SERVICE_PATH }}/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd ${{ env.SERVICE_PATH }}
+          npm ci
+      
+      - name: Run linter
+        run: |
+          cd ${{ env.SERVICE_PATH }}
+          npm run lint
+      
+      - name: Run tests
+        run: |
+          cd ${{ env.SERVICE_PATH }}
+          npm run test:run
+      
+      - name: Build production bundle
+        env:
+          # Environment variables from Terraform outputs (or GitHub secrets)
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_COGNITO_USER_POOL_ID: ${{ secrets.VITE_COGNITO_USER_POOL_ID }}
+          VITE_COGNITO_CLIENT_ID: ${{ secrets.VITE_COGNITO_CLIENT_ID }}
+          VITE_COGNITO_DOMAIN: ${{ secrets.VITE_COGNITO_DOMAIN }}
+          VITE_AWS_REGION: ${{ env.AWS_REGION }}
+          VITE_REDIRECT_URI: ${{ secrets.VITE_REDIRECT_URI }}
+          VITE_LOGOUT_URI: ${{ secrets.VITE_LOGOUT_URI }}
+        run: |
+          cd ${{ env.SERVICE_PATH }}
+          npm run build
+      
+      - name: Verify build artifacts
+        run: |
+          if [ ! -f "${{ env.SERVICE_PATH }}/dist/index.html" ]; then
+            echo "Error: Build artifacts not found!"
+            exit 1
+          fi
+          echo "✅ Build completed successfully!"
+          ls -lh ${{ env.SERVICE_PATH }}/dist/
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: ${{ env.SERVICE_PATH }}/dist/
+          retention-days: 7
+
+  # Job 2: Deploy to S3 and CloudFront (Automated for dev, manual approval for staging/prod)
+  deploy:
+    name: Deploy to S3 and CloudFront
+    needs: build
+    runs-on: ubuntu-latest
+    # Uses GitHub Environments for manual approval on staging/prod
+    # Dev deployments are fully automated (no environment protection)
+    environment: 
+      name: ${{ github.event.inputs.environment || 'dev' }}
+    
+    env:
+      DEPLOY_ENV: ${{ github.event.inputs.environment || 'dev' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+      
+      - name: Verify infrastructure exists
+        working-directory: infrastructure/terraform
+        run: |
+          echo "Checking if S3 bucket and CloudFront distribution exist..."
+          
+          # Initialize Terraform
+          terraform init -backend=false
+          
+          # Get outputs
+          S3_BUCKET=$(terraform output -raw frontend_s3_bucket_name 2>/dev/null || echo "")
+          DIST_ID=$(terraform output -raw cloudfront_distribution_id 2>/dev/null || echo "")
+          
+          if [ -z "$S3_BUCKET" ] || [ -z "$DIST_ID" ]; then
+            echo "❌ Infrastructure does not exist."
+            echo "Please provision infrastructure first with: cd infrastructure/terraform && terraform apply"
+            exit 1
+          fi
+          
+          echo "✅ Infrastructure verified:"
+          echo "  S3 Bucket: $S3_BUCKET"
+          echo "  CloudFront Distribution: $DIST_ID"
+          echo "S3_BUCKET=$S3_BUCKET" >> $GITHUB_ENV
+          echo "DIST_ID=$DIST_ID" >> $GITHUB_ENV
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: ${{ env.SERVICE_PATH }}/dist/
+      
+      - name: Verify artifacts downloaded
+        run: |
+          if [ ! -f "${{ env.SERVICE_PATH }}/dist/index.html" ]; then
+            echo "Error: Build artifacts not found!"
+            exit 1
+          fi
+          echo "✅ Build artifacts verified"
+          ls -lh ${{ env.SERVICE_PATH }}/dist/
+      
+      - name: Upload to S3
+        run: |
+          echo "Uploading files to S3 bucket: ${{ env.S3_BUCKET }}"
+          
+          # Upload all files except index.html (with cache control for static assets)
+          aws s3 sync ${{ env.SERVICE_PATH }}/dist/ s3://${{ env.S3_BUCKET }}/ \
+            --delete \
+            --cache-control "public, max-age=31536000, immutable" \
+            --exclude "index.html" \
+            --exclude "*.html"
+          
+          # Upload index.html with no cache (important for SPA routing)
+          aws s3 cp ${{ env.SERVICE_PATH }}/dist/index.html s3://${{ env.S3_BUCKET }}/index.html \
+            --content-type "text/html" \
+            --cache-control "no-cache, no-store, must-revalidate"
+          
+          echo "✅ Files uploaded to S3"
+      
+      - name: Invalidate CloudFront cache
+        run: |
+          echo "Invalidating CloudFront cache for distribution: ${{ env.DIST_ID }}"
+          
+          INVALIDATION_ID=$(aws cloudfront create-invalidation \
+            --distribution-id ${{ env.DIST_ID }} \
+            --paths "/*" \
+            --query 'Invalidation.Id' \
+            --output text)
+          
+          echo "✅ CloudFront cache invalidation created: $INVALIDATION_ID"
+          echo "⏳ Waiting for invalidation to complete (this may take a few minutes)..."
+          
+          aws cloudfront wait invalidation-completed \
+            --distribution-id ${{ env.DIST_ID }} \
+            --id $INVALIDATION_ID
+          
+          echo "✅ Cache invalidation completed!"
+      
+      - name: Get frontend URL
+        working-directory: infrastructure/terraform
+        run: |
+          FRONTEND_URL=$(terraform output -raw frontend_url 2>/dev/null || echo "")
+          echo "🚀 Deployment completed successfully!"
+          echo "📍 Frontend URL: $FRONTEND_URL"
+          echo ""
+          echo "Test the deployment:"
+          echo "curl -I $FRONTEND_URL"
+

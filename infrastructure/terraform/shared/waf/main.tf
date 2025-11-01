@@ -131,6 +131,119 @@ resource "aws_wafv2_web_acl" "api" {
   tags = var.common_tags
 }
 
+# CloudFront-scoped WAF (required for CloudFront distributions)
+# CloudFront requires WAF to be CLOUDFRONT-scoped (global), not REGIONAL
+# IMPORTANT: CloudFront-scoped WAF must be created in us-east-1 region
+resource "aws_wafv2_web_acl" "cloudfront" {
+  provider = aws.us_east_1
+  name     = "${var.name_prefix}-cloudfront-waf"
+  scope    = "CLOUDFRONT" # Required for CloudFront - must be CLOUDFRONT scope
+
+  default_action {
+    allow {}
+  }
+
+  # Rule 1: Rate limiting (300 requests per 5 minutes per IP)
+  rule {
+    name     = "RateLimitRule"
+    priority = 1
+
+    action {
+      block {}
+    }
+
+    statement {
+      rate_based_statement {
+        limit              = 300
+        aggregate_key_type = "IP"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${var.name_prefix}-cf-rate-limit"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Rule 2: AWS Managed Rules - Core Rule Set
+  rule {
+    name     = "AWSManagedRulesCommonRuleSet"
+    priority = 2
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesCommonRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${var.name_prefix}-cf-common-rules"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Rule 3: AWS Managed Rules - Known Bad Inputs
+  rule {
+    name     = "AWSManagedRulesKnownBadInputsRuleSet"
+    priority = 3
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesKnownBadInputsRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${var.name_prefix}-cf-bad-inputs"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Rule 4: SQL Injection Protection
+  rule {
+    name     = "AWSManagedRulesSQLiRuleSet"
+    priority = 4
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesSQLiRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${var.name_prefix}-cf-sqli-protection"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "${var.name_prefix}-cloudfront-waf"
+    sampled_requests_enabled   = true
+  }
+
+  tags = var.common_tags
+}
+
 # CloudWatch Log Group for WAF logs
 # resource "aws_cloudwatch_log_group" "waf" {
 #   name              = "/aws/waf/${var.name_prefix}-api"

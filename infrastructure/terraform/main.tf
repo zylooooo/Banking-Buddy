@@ -164,6 +164,9 @@ module "ses" {
 }
 
 # Call the Cognito module
+# Note: We create this before CloudFront, so callback URLs will use localhost for development
+# If you want to add CloudFront default domain to callback URLs, you'll need to update the
+# Cognito User Pool Client manually after CloudFront is created, or move this module after CloudFront
 module "cognito" {
   source = "./shared/cognito"
 
@@ -171,11 +174,13 @@ module "cognito" {
   ses_email_arn        = module.ses.sender_email_arn
   ses_sender_email     = module.ses.sender_email
   cognito_sns_role_arn = module.iam.cognito_sns_role_arn
-  callback_urls        = ["http://localhost:3000/callback"] # Will be updated after ALB is created
-  logout_urls          = ["http://localhost:3000"]          # Will be updated after ALB is created
-  common_tags          = local.common_tags
-  environment          = var.environment
-  aws_region           = var.aws_region
+  # Callback URLs: Use custom domain if provided, otherwise use localhost for development
+  # Note: CloudFront default domain will be available after CloudFront is created
+  callback_urls = var.frontend_domain_name != "" ? ["https://${var.frontend_domain_name}/callback", "http://localhost:3000/callback"] : ["http://localhost:3000/callback"]
+  logout_urls   = var.frontend_domain_name != "" ? ["https://${var.frontend_domain_name}", "http://localhost:3000"] : ["http://localhost:3000"]
+  common_tags   = local.common_tags
+  environment   = var.environment
+  aws_region    = var.aws_region
 
   depends_on = [module.ses, module.iam]
 }
@@ -273,8 +278,81 @@ module "client-service" {
 module "waf" {
   source = "./shared/waf"
 
+  providers = {
+    aws.us_east_1 = aws.us_east_1
+  }
+
   name_prefix = local.name_prefix
   common_tags = local.common_tags
+}
+
+# Call the ACM module for CloudFront certificate (only if custom domain is configured)
+# CloudFront requires certificates in us-east-1 region
+module "acm_cloudfront" {
+  count  = var.root_domain_name != "" ? 1 : 0
+  source = "./shared/acm-cloudfront"
+
+  providers = {
+    aws.us_east_1 = aws.us_east_1
+  }
+
+  domain_name     = var.root_domain_name
+  route53_zone_id = var.route53_zone_id
+  name_prefix     = local.name_prefix
+  common_tags     = local.common_tags
+}
+
+# Call the S3 Frontend module
+module "s3_frontend" {
+  source = "./shared/s3-frontend"
+
+  name_prefix                = local.name_prefix
+  cloudfront_distribution_arn = ""  # Will be updated after CloudFront is created
+  common_tags                 = local.common_tags
+}
+
+# Call the CloudFront module
+module "cloudfront" {
+  source = "./shared/cloudfront"
+
+  name_prefix                = local.name_prefix
+  s3_bucket_name              = module.s3_frontend.bucket_name
+  s3_bucket_domain_name       = module.s3_frontend.bucket_domain_name
+  origin_access_control_id   = module.s3_frontend.origin_access_control_id
+  custom_domain               = var.frontend_domain_name != "" ? var.frontend_domain_name : ""
+  acm_certificate_arn        = var.root_domain_name != "" ? module.acm_cloudfront[0].certificate_arn : ""
+  waf_web_acl_arn            = module.waf.cloudfront_web_acl_arn  # Use CloudFront-scoped WAF
+  common_tags                = local.common_tags
+
+  depends_on = [module.s3_frontend, module.waf]
+}
+
+# Update S3 bucket policy after CloudFront is created to allow CloudFront access
+# This avoids circular dependency between S3 and CloudFront
+resource "aws_s3_bucket_policy" "frontend_update" {
+  bucket = module.s3_frontend.bucket_name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowCloudFrontServicePrincipal"
+        Effect = "Allow"
+        Principal = {
+          Service = "cloudfront.amazonaws.com"
+        }
+        Action   = "s3:GetObject"
+        Resource = "${module.s3_frontend.bucket_arn}/*"
+        Condition = {
+          StringEquals = {
+            "AWS:SourceArn" = module.cloudfront.distribution_arn
+          }
+        }
+      }
+    ]
+  })
+
+  depends_on = [module.cloudfront]
 }
 
 # Call the ACM module for API Gateway certificate (only if custom domain is configured)
@@ -317,11 +395,14 @@ module "route53" {
   count  = var.root_domain_name != "" ? 1 : 0
   source = "./shared/route53"
 
-  domain_name             = var.root_domain_name
-  api_subdomain           = var.api_domain_name
-  api_gateway_domain_name = module.api_gateway.custom_domain_regional_domain_name
-  api_gateway_zone_id     = module.api_gateway.custom_domain_regional_zone_id
-  common_tags             = local.common_tags
+  domain_name                = var.root_domain_name
+  api_subdomain              = var.api_domain_name
+  api_gateway_domain_name    = module.api_gateway.custom_domain_regional_domain_name
+  api_gateway_zone_id        = module.api_gateway.custom_domain_regional_zone_id
+  frontend_subdomain         = var.frontend_domain_name
+  cloudfront_domain_name     = module.cloudfront.distribution_domain_name
+  cloudfront_hosted_zone_id  = module.cloudfront.distribution_hosted_zone_id
+  common_tags                = local.common_tags
 
-  depends_on = [module.api_gateway]
+  depends_on = [module.api_gateway, module.cloudfront]
 }

@@ -142,3 +142,29 @@ output "route53_api_record" {
   description = "Route53 API record name (null if custom domain not configured)"
   value       = var.root_domain_name != "" ? module.route53[0].api_record_name : null
 }
+
+# Frontend Outputs
+output "frontend_s3_bucket_name" {
+  description = "Name of the frontend S3 bucket"
+  value       = module.s3_frontend.bucket_name
+}
+
+output "cloudfront_distribution_id" {
+  description = "ID of the CloudFront distribution"
+  value       = module.cloudfront.distribution_id
+}
+
+output "cloudfront_distribution_domain" {
+  description = "Domain name of the CloudFront distribution"
+  value       = module.cloudfront.distribution_domain_name
+}
+
+output "frontend_url" {
+  description = "Frontend URL (custom domain if configured, otherwise CloudFront domain)"
+  value       = var.frontend_domain_name != "" ? "https://${var.frontend_domain_name}" : "https://${module.cloudfront.distribution_domain_name}"
+}
+
+output "route53_frontend_record" {
+  description = "Route53 frontend record name (null if custom domain not configured)"
+  value       = var.root_domain_name != "" && var.frontend_domain_name != "" ? module.route53[0].frontend_record_name : null
+}

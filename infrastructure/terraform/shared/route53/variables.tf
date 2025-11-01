@@ -18,6 +18,24 @@ variable "api_gateway_zone_id" {
   type        = string
 }
 
+variable "frontend_subdomain" {
+  description = "Subdomain for frontend (e.g., app.bankingbuddy.com or www.bankingbuddy.com)"
+  type        = string
+  default     = ""
+}
+
+variable "cloudfront_domain_name" {
+  description = "CloudFront distribution domain name"
+  type        = string
+  default     = ""
+}
+
+variable "cloudfront_hosted_zone_id" {
+  description = "CloudFront distribution hosted zone ID"
+  type        = string
+  default     = ""
+}
+
 variable "common_tags" {
   description = "Common tags to apply to resources"
   type        = map(string)

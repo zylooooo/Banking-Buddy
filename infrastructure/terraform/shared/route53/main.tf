@@ -14,6 +14,7 @@ data "aws_route53_zone" "main" {
 
 # A record for API Gateway custom domain
 resource "aws_route53_record" "api" {
+  count   = var.api_subdomain != "" ? 1 : 0
   zone_id = data.aws_route53_zone.main.zone_id
   name    = var.api_subdomain
   type    = "A"
@@ -22,5 +23,33 @@ resource "aws_route53_record" "api" {
     name                   = var.api_gateway_domain_name
     zone_id                = var.api_gateway_zone_id
     evaluate_target_health = true
+  }
+}
+
+# A record for Frontend CloudFront distribution
+resource "aws_route53_record" "frontend" {
+  count   = var.frontend_subdomain != "" ? 1 : 0
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = var.frontend_subdomain
+  type    = "A"
+
+  alias {
+    name                   = var.cloudfront_domain_name
+    zone_id                = var.cloudfront_hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
+# AAAA record for Frontend IPv6 support
+resource "aws_route53_record" "frontend_ipv6" {
+  count   = var.frontend_subdomain != "" ? 1 : 0
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = var.frontend_subdomain
+  type    = "AAAA"
+
+  alias {
+    name                   = var.cloudfront_domain_name
+    zone_id                = var.cloudfront_hosted_zone_id
+    evaluate_target_health = false
   }
 }

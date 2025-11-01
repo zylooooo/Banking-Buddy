@@ -1,0 +1,68 @@
+name: 'Deploy to S3 and CloudFront'
+description: 'Reusable action to deploy frontend to S3 and invalidate CloudFront cache'
+
+inputs:
+  aws-access-key-id:
+    description: 'AWS Access Key ID'
+    required: false
+    default: ''
+  aws-secret-access-key:
+    description: 'AWS Secret Access Key'
+    required: false
+    default: ''
+  aws-region:
+    description: 'AWS Region'
+    required: true
+    default: 'ap-southeast-1'
+  s3-bucket:
+    description: 'S3 bucket name'
+    required: true
+  cloudfront-distribution-id:
+    description: 'CloudFront distribution ID'
+    required: true
+  build-path:
+    description: 'Path to build directory'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Upload to S3
+      shell: bash
+      run: |
+        echo "Uploading files to S3 bucket: ${{ inputs.s3-bucket }}"
+        
+        # Upload all files except index.html (with cache control for static assets)
+        aws s3 sync "${{ inputs.build-path }}/" s3://${{ inputs.s3-bucket }}/ \
+          --delete \
+          --cache-control "public, max-age=31536000, immutable" \
+          --exclude "index.html" \
+          --exclude "*.html"
+        
+        # Upload index.html with no cache (important for SPA routing)
+        aws s3 cp "${{ inputs.build-path }}/index.html" s3://${{ inputs.s3-bucket }}/index.html \
+          --content-type "text/html" \
+          --cache-control "no-cache, no-store, must-revalidate"
+        
+        echo "✅ Files uploaded to S3"
+    
+    - name: Invalidate CloudFront cache
+      shell: bash
+      run: |
+        echo "Invalidating CloudFront cache for distribution: ${{ inputs.cloudfront-distribution-id }}"
+        
+        INVALIDATION_ID=$(aws cloudfront create-invalidation \
+          --distribution-id ${{ inputs.cloudfront-distribution-id }} \
+          --paths "/*" \
+          --query 'Invalidation.Id' \
+          --output text)
+        
+        echo "✅ CloudFront cache invalidation created: $INVALIDATION_ID"
+        echo "⏳ Waiting for invalidation to complete..."
+        
+        aws cloudfront wait invalidation-completed \
+          --distribution-id ${{ inputs.cloudfront-distribution-id }} \
+          --id $INVALIDATION_ID
+        
+        echo "✅ Cache invalidation completed!"
+
