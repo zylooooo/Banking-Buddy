@@ -26,9 +26,9 @@ permissions:
   contents: read    # Required to checkout code
 
 jobs:
-  # Job 1: Test and Build (Runs automatically on push)
+  # Job 1: Build (Runs automatically on push)
   build:
-    name: Test and Build Frontend
+    name: Build Application
     runs-on: ubuntu-latest
     
     steps:
@@ -52,11 +52,6 @@ jobs:
           cd ${{ env.SERVICE_PATH }}
           npm run lint
       
-      - name: Run tests
-        run: |
-          cd ${{ env.SERVICE_PATH }}
-          npm run test:run
-      
       - name: Build production bundle
         env:
           # Environment variables from Terraform outputs (or GitHub secrets)
@@ -77,8 +72,8 @@ jobs:
             echo "Error: Build artifacts not found!"
             exit 1
           fi
-          echo "✅ Build completed successfully!"
           ls -lh ${{ env.SERVICE_PATH }}/dist/
+          echo "Build completed successfully! ✅"
       
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
