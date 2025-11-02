@@ -117,9 +117,15 @@ module "audit_logging" {
   cognito_user_pool_id        = module.cognito.user_pool_id
   cognito_user_pool_client_id = module.cognito.user_pool_client_id
   aws_region                  = var.aws_region
-  allowed_origins             = var.audit_api_allowed_origins
+  # Dynamically include CloudFront domain and custom frontend domain
+  # Note: If CloudFront domain changes, this will automatically update on next terraform apply
+  allowed_origins = distinct(concat(
+    var.audit_api_allowed_origins,
+    var.frontend_domain_name != "" ? ["https://${var.frontend_domain_name}"] : [],
+    ["https://${module.cloudfront.distribution_domain_name}"]
+  ))
 
-  depends_on = [module.dynamodb]
+  depends_on = [module.dynamodb, module.cloudfront]
 }
 
 # Call the transaction processor module

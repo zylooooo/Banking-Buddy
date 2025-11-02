@@ -57,6 +57,10 @@ resource "aws_api_gateway_integration_response" "users_options" {
   http_method = aws_api_gateway_method.users_options.http_method
   status_code = aws_api_gateway_method_response.users_options.status_code
 
+  response_templates = {
+    "application/json" = ""
+  }
+
   response_parameters = {
     "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
     "method.response.header.Access-Control-Allow-Methods" = "'GET,POST,PUT,PATCH,DELETE,OPTIONS'"
@@ -132,6 +136,10 @@ resource "aws_api_gateway_integration_response" "users_proxy_options" {
   http_method = aws_api_gateway_method.users_proxy_options.http_method
   status_code = aws_api_gateway_method_response.users_proxy_options.status_code
 
+  response_templates = {
+    "application/json" = ""
+  }
+
   response_parameters = {
     "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
     "method.response.header.Access-Control-Allow-Methods" = "'GET,POST,PUT,PATCH,DELETE,OPTIONS'"
@@ -182,7 +190,7 @@ resource "aws_api_gateway_method_response" "users_any" {
   }
 }
 
-# Integration response for /api/users ANY method
+# Integration response for /api/users ANY method (200 success)
 resource "aws_api_gateway_integration_response" "users_any" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   resource_id = aws_api_gateway_resource.users.id
@@ -199,6 +207,70 @@ resource "aws_api_gateway_integration_response" "users_any" {
   ]
 }
 
+# Integration responses for backend error responses (4xx, 5xx)
+# CRITICAL: For HTTP_PROXY integrations, backend responses pass through directly.
+# Gateway Responses only handle API Gateway-level errors, not backend responses.
+# We need integration responses with selection_pattern to add CORS headers to backend errors.
+resource "aws_api_gateway_method_response" "users_any_4xx" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.users.id
+  http_method = aws_api_gateway_method.users_any.http_method
+  status_code = "400"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "users_any_4xx" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.users.id
+  http_method = aws_api_gateway_method.users_any.http_method
+  status_code = aws_api_gateway_method_response.users_any_4xx.status_code
+
+  # Match any 4xx status code from backend (401, 403, 404, etc.)
+  selection_pattern = "4\\d{2}"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = "'*'"
+  }
+
+  depends_on = [
+    aws_api_gateway_integration.users_any,
+    aws_api_gateway_method_response.users_any_4xx
+  ]
+}
+
+resource "aws_api_gateway_method_response" "users_any_5xx" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.users.id
+  http_method = aws_api_gateway_method.users_any.http_method
+  status_code = "500"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "users_any_5xx" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.users.id
+  http_method = aws_api_gateway_method.users_any.http_method
+  status_code = aws_api_gateway_method_response.users_any_5xx.status_code
+
+  # Match any 5xx status code from backend (500, 502, 503, etc.)
+  selection_pattern = "5\\d{2}"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = "'*'"
+  }
+
+  depends_on = [
+    aws_api_gateway_integration.users_any,
+    aws_api_gateway_method_response.users_any_5xx
+  ]
+}
+
 # Method response for /api/users/{proxy+} ANY method
 resource "aws_api_gateway_method_response" "users_proxy_any" {
   rest_api_id = aws_api_gateway_rest_api.main.id
@@ -211,7 +283,7 @@ resource "aws_api_gateway_method_response" "users_proxy_any" {
   }
 }
 
-# Integration response for /api/users/{proxy+} ANY method
+# Integration response for /api/users/{proxy+} ANY method (200 success)
 resource "aws_api_gateway_integration_response" "users_proxy_any" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   resource_id = aws_api_gateway_resource.users_proxy.id
@@ -225,5 +297,69 @@ resource "aws_api_gateway_integration_response" "users_proxy_any" {
   depends_on = [
     aws_api_gateway_integration.users_proxy_any,
     aws_api_gateway_method_response.users_proxy_any
+  ]
+}
+
+# Integration responses for backend error responses (4xx, 5xx)
+# CRITICAL: For HTTP_PROXY integrations, backend responses pass through directly.
+# Gateway Responses only handle API Gateway-level errors, not backend responses.
+# We need integration responses with selection_pattern to add CORS headers to backend errors.
+resource "aws_api_gateway_method_response" "users_proxy_any_4xx" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.users_proxy.id
+  http_method = aws_api_gateway_method.users_proxy_any.http_method
+  status_code = "400"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "users_proxy_any_4xx" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.users_proxy.id
+  http_method = aws_api_gateway_method.users_proxy_any.http_method
+  status_code = aws_api_gateway_method_response.users_proxy_any_4xx.status_code
+
+  # Match any 4xx status code from backend (401, 403, 404, etc.)
+  selection_pattern = "4\\d{2}"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = "'*'"
+  }
+
+  depends_on = [
+    aws_api_gateway_integration.users_proxy_any,
+    aws_api_gateway_method_response.users_proxy_any_4xx
+  ]
+}
+
+resource "aws_api_gateway_method_response" "users_proxy_any_5xx" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.users_proxy.id
+  http_method = aws_api_gateway_method.users_proxy_any.http_method
+  status_code = "500"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "users_proxy_any_5xx" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.users_proxy.id
+  http_method = aws_api_gateway_method.users_proxy_any.http_method
+  status_code = aws_api_gateway_method_response.users_proxy_any_5xx.status_code
+
+  # Match any 5xx status code from backend (500, 502, 503, etc.)
+  selection_pattern = "5\\d{2}"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = "'*'"
+  }
+
+  depends_on = [
+    aws_api_gateway_integration.users_proxy_any,
+    aws_api_gateway_method_response.users_proxy_any_5xx
   ]
 }

@@ -50,6 +50,10 @@ resource "aws_api_gateway_integration_response" "clients_options" {
   http_method = aws_api_gateway_method.clients_options.http_method
   status_code = aws_api_gateway_method_response.clients_options.status_code
 
+  response_templates = {
+    "application/json" = ""
+  }
+
   response_parameters = {
     "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
     "method.response.header.Access-Control-Allow-Methods" = "'GET,POST,PUT,PATCH,DELETE,OPTIONS'"
@@ -111,6 +115,65 @@ resource "aws_api_gateway_integration_response" "clients_any" {
   depends_on = [aws_api_gateway_integration.clients_any]
 }
 
+# Integration responses for backend error responses (4xx, 5xx)
+resource "aws_api_gateway_method_response" "clients_any_4xx" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.clients.id
+  http_method = aws_api_gateway_method.clients_any.http_method
+  status_code = "400"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "clients_any_4xx" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.clients.id
+  http_method = aws_api_gateway_method.clients_any.http_method
+  status_code = aws_api_gateway_method_response.clients_any_4xx.status_code
+
+  selection_pattern = "4\\d{2}"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = "'*'"
+  }
+
+  depends_on = [
+    aws_api_gateway_integration.clients_any,
+    aws_api_gateway_method_response.clients_any_4xx
+  ]
+}
+
+resource "aws_api_gateway_method_response" "clients_any_5xx" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.clients.id
+  http_method = aws_api_gateway_method.clients_any.http_method
+  status_code = "500"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "clients_any_5xx" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.clients.id
+  http_method = aws_api_gateway_method.clients_any.http_method
+  status_code = aws_api_gateway_method_response.clients_any_5xx.status_code
+
+  selection_pattern = "5\\d{2}"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = "'*'"
+  }
+
+  depends_on = [
+    aws_api_gateway_integration.clients_any,
+    aws_api_gateway_method_response.clients_any_5xx
+  ]
+}
+
 # CORS preflight for /api/clients/{proxy+}
 resource "aws_api_gateway_method" "clients_proxy_options" {
   rest_api_id   = aws_api_gateway_rest_api.main.id
@@ -148,6 +211,10 @@ resource "aws_api_gateway_integration_response" "clients_proxy_options" {
   resource_id = aws_api_gateway_resource.clients_proxy.id
   http_method = aws_api_gateway_method.clients_proxy_options.http_method
   status_code = aws_api_gateway_method_response.clients_proxy_options.status_code
+
+  response_templates = {
+    "application/json" = ""
+  }
 
   response_parameters = {
     "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
@@ -209,4 +276,65 @@ resource "aws_api_gateway_integration_response" "clients_proxy_any" {
   }
 
   depends_on = [aws_api_gateway_integration.clients_proxy_any]
+}
+
+# Integration responses for backend error responses (4xx, 5xx)
+# CRITICAL: For HTTP_PROXY integrations, backend responses pass through directly.
+# We need integration responses with selection_pattern to add CORS headers to backend errors.
+resource "aws_api_gateway_method_response" "clients_proxy_any_4xx" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.clients_proxy.id
+  http_method = aws_api_gateway_method.clients_proxy_any.http_method
+  status_code = "400"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "clients_proxy_any_4xx" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.clients_proxy.id
+  http_method = aws_api_gateway_method.clients_proxy_any.http_method
+  status_code = aws_api_gateway_method_response.clients_proxy_any_4xx.status_code
+
+  selection_pattern = "4\\d{2}"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = "'*'"
+  }
+
+  depends_on = [
+    aws_api_gateway_integration.clients_proxy_any,
+    aws_api_gateway_method_response.clients_proxy_any_4xx
+  ]
+}
+
+resource "aws_api_gateway_method_response" "clients_proxy_any_5xx" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.clients_proxy.id
+  http_method = aws_api_gateway_method.clients_proxy_any.http_method
+  status_code = "500"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "clients_proxy_any_5xx" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.clients_proxy.id
+  http_method = aws_api_gateway_method.clients_proxy_any.http_method
+  status_code = aws_api_gateway_method_response.clients_proxy_any_5xx.status_code
+
+  selection_pattern = "5\\d{2}"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = "'*'"
+  }
+
+  depends_on = [
+    aws_api_gateway_integration.clients_proxy_any,
+    aws_api_gateway_method_response.clients_proxy_any_5xx
+  ]
 }

@@ -10,6 +10,150 @@ resource "aws_api_gateway_rest_api" "main" {
   tags = var.common_tags
 }
 
+# Gateway Responses for CORS on error responses (BEST PRACTICE)
+# This ensures CORS headers are present on ALL error responses (401, 403, 500, etc.)
+# This is the industry-standard approach for HTTP_PROXY integrations
+resource "aws_api_gateway_gateway_response" "unauthorized" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  response_type = "UNAUTHORIZED"
+
+  response_templates = {
+    "application/json" = "{\"message\":$context.error.messageString}"
+  }
+
+  response_parameters = {
+    "gatewayresponse.header.Access-Control-Allow-Origin"  = "'*'"
+    "gatewayresponse.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+  }
+}
+
+resource "aws_api_gateway_gateway_response" "forbidden" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  response_type = "ACCESS_DENIED"
+
+  response_templates = {
+    "application/json" = "{\"message\":$context.error.messageString}"
+  }
+
+  response_parameters = {
+    "gatewayresponse.header.Access-Control-Allow-Origin"  = "'*'"
+    "gatewayresponse.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+  }
+}
+
+resource "aws_api_gateway_gateway_response" "bad_request" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  response_type = "BAD_REQUEST_BODY"
+
+  response_templates = {
+    "application/json" = "{\"message\":$context.error.messageString}"
+  }
+
+  response_parameters = {
+    "gatewayresponse.header.Access-Control-Allow-Origin"  = "'*'"
+    "gatewayresponse.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+  }
+}
+
+resource "aws_api_gateway_gateway_response" "bad_request_params" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  response_type = "BAD_REQUEST_PARAMETERS"
+
+  response_templates = {
+    "application/json" = "{\"message\":$context.error.messageString}"
+  }
+
+  response_parameters = {
+    "gatewayresponse.header.Access-Control-Allow-Origin"  = "'*'"
+    "gatewayresponse.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+  }
+}
+
+resource "aws_api_gateway_gateway_response" "not_found" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  response_type = "RESOURCE_NOT_FOUND"
+
+  response_templates = {
+    "application/json" = "{\"message\":$context.error.messageString}"
+  }
+
+  response_parameters = {
+    "gatewayresponse.header.Access-Control-Allow-Origin"  = "'*'"
+    "gatewayresponse.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+  }
+}
+
+resource "aws_api_gateway_gateway_response" "too_many_requests" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  response_type = "THROTTLED"
+
+  response_templates = {
+    "application/json" = "{\"message\":$context.error.messageString}"
+  }
+
+  response_parameters = {
+    "gatewayresponse.header.Access-Control-Allow-Origin"  = "'*'"
+    "gatewayresponse.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+  }
+}
+
+resource "aws_api_gateway_gateway_response" "internal_error" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  response_type = "DEFAULT_5XX"
+
+  response_templates = {
+    "application/json" = "{\"message\":$context.error.messageString}"
+  }
+
+  response_parameters = {
+    "gatewayresponse.header.Access-Control-Allow-Origin"  = "'*'"
+    "gatewayresponse.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+  }
+}
+
+resource "aws_api_gateway_gateway_response" "integration_failure" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  response_type = "INTEGRATION_FAILURE"
+
+  response_templates = {
+    "application/json" = "{\"message\":$context.error.messageString}"
+  }
+
+  response_parameters = {
+    "gatewayresponse.header.Access-Control-Allow-Origin"  = "'*'"
+    "gatewayresponse.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+  }
+}
+
+resource "aws_api_gateway_gateway_response" "integration_timeout" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  response_type = "INTEGRATION_TIMEOUT"
+
+  response_templates = {
+    "application/json" = "{\"message\":$context.error.messageString}"
+  }
+
+  response_parameters = {
+    "gatewayresponse.header.Access-Control-Allow-Origin"  = "'*'"
+    "gatewayresponse.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+  }
+}
+
+# Catch-all for any 4xx errors not specifically handled above
+resource "aws_api_gateway_gateway_response" "default_4xx" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  response_type = "DEFAULT_4XX"
+
+  response_templates = {
+    "application/json" = "{\"message\":$context.error.messageString}"
+  }
+
+  response_parameters = {
+    "gatewayresponse.header.Access-Control-Allow-Origin"  = "'*'"
+    "gatewayresponse.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+  }
+}
+
 # Custom domain name for API Gateway
 resource "aws_api_gateway_domain_name" "main" {
   count = var.certificate_arn != null ? 1 : 0
@@ -95,13 +239,41 @@ resource "aws_api_gateway_deployment" "main" {
       aws_api_gateway_method_response.users_proxy_any.id,
       aws_api_gateway_method_response.transactions_proxy_any.id,
       aws_api_gateway_method_response.clients_proxy_any.id,
-      # ANY integration responses
+      # ANY integration responses (success)
       aws_api_gateway_integration_response.users_any.id,
       aws_api_gateway_integration_response.transactions_any.id,
       aws_api_gateway_integration_response.clients_any.id,
       aws_api_gateway_integration_response.users_proxy_any.id,
       aws_api_gateway_integration_response.transactions_proxy_any.id,
       aws_api_gateway_integration_response.clients_proxy_any.id,
+      # ANY integration responses (error responses - backend 4xx/5xx)
+      # Users service
+      aws_api_gateway_method_response.users_any_4xx.id,
+      aws_api_gateway_method_response.users_any_5xx.id,
+      aws_api_gateway_method_response.users_proxy_any_4xx.id,
+      aws_api_gateway_method_response.users_proxy_any_5xx.id,
+      aws_api_gateway_integration_response.users_any_4xx.id,
+      aws_api_gateway_integration_response.users_any_5xx.id,
+      aws_api_gateway_integration_response.users_proxy_any_4xx.id,
+      aws_api_gateway_integration_response.users_proxy_any_5xx.id,
+      # Clients service
+      aws_api_gateway_method_response.clients_any_4xx.id,
+      aws_api_gateway_method_response.clients_any_5xx.id,
+      aws_api_gateway_method_response.clients_proxy_any_4xx.id,
+      aws_api_gateway_method_response.clients_proxy_any_5xx.id,
+      aws_api_gateway_integration_response.clients_any_4xx.id,
+      aws_api_gateway_integration_response.clients_any_5xx.id,
+      aws_api_gateway_integration_response.clients_proxy_any_4xx.id,
+      aws_api_gateway_integration_response.clients_proxy_any_5xx.id,
+      # Transactions service
+      aws_api_gateway_method_response.transactions_any_4xx.id,
+      aws_api_gateway_method_response.transactions_any_5xx.id,
+      aws_api_gateway_method_response.transactions_proxy_any_4xx.id,
+      aws_api_gateway_method_response.transactions_proxy_any_5xx.id,
+      aws_api_gateway_integration_response.transactions_any_4xx.id,
+      aws_api_gateway_integration_response.transactions_any_5xx.id,
+      aws_api_gateway_integration_response.transactions_proxy_any_4xx.id,
+      aws_api_gateway_integration_response.transactions_proxy_any_5xx.id,
     ]))
   }
 
@@ -159,13 +331,41 @@ resource "aws_api_gateway_deployment" "main" {
     aws_api_gateway_method_response.users_proxy_any,
     aws_api_gateway_method_response.transactions_proxy_any,
     aws_api_gateway_method_response.clients_proxy_any,
-    # ANY integration responses
+    # ANY integration responses (success)
     aws_api_gateway_integration_response.users_any,
     aws_api_gateway_integration_response.transactions_any,
     aws_api_gateway_integration_response.clients_any,
     aws_api_gateway_integration_response.users_proxy_any,
     aws_api_gateway_integration_response.transactions_proxy_any,
     aws_api_gateway_integration_response.clients_proxy_any,
+    # ANY integration responses (error responses - backend 4xx/5xx)
+    # Users service
+    aws_api_gateway_method_response.users_any_4xx,
+    aws_api_gateway_method_response.users_any_5xx,
+    aws_api_gateway_method_response.users_proxy_any_4xx,
+    aws_api_gateway_method_response.users_proxy_any_5xx,
+    aws_api_gateway_integration_response.users_any_4xx,
+    aws_api_gateway_integration_response.users_any_5xx,
+    aws_api_gateway_integration_response.users_proxy_any_4xx,
+    aws_api_gateway_integration_response.users_proxy_any_5xx,
+    # Clients service
+    aws_api_gateway_method_response.clients_any_4xx,
+    aws_api_gateway_method_response.clients_any_5xx,
+    aws_api_gateway_method_response.clients_proxy_any_4xx,
+    aws_api_gateway_method_response.clients_proxy_any_5xx,
+    aws_api_gateway_integration_response.clients_any_4xx,
+    aws_api_gateway_integration_response.clients_any_5xx,
+    aws_api_gateway_integration_response.clients_proxy_any_4xx,
+    aws_api_gateway_integration_response.clients_proxy_any_5xx,
+    # Transactions service
+    aws_api_gateway_method_response.transactions_any_4xx,
+    aws_api_gateway_method_response.transactions_any_5xx,
+    aws_api_gateway_method_response.transactions_proxy_any_4xx,
+    aws_api_gateway_method_response.transactions_proxy_any_5xx,
+    aws_api_gateway_integration_response.transactions_any_4xx,
+    aws_api_gateway_integration_response.transactions_any_5xx,
+    aws_api_gateway_integration_response.transactions_proxy_any_4xx,
+    aws_api_gateway_integration_response.transactions_proxy_any_5xx,
   ]
 }
 
