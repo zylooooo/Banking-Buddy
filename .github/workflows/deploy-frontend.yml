@@ -296,10 +296,24 @@ jobs:
           CURRENT_LOGOUTS=$(echo "$CLIENT_CONFIG" | jq -r '.UserPoolClient.LogoutURLs // []' 2>/dev/null || echo "[]")
           
           # Get existing OAuth settings to preserve them (with sensible defaults if missing)
-          EXISTING_OAUTH_FLOWS=$(echo "$CLIENT_CONFIG" | jq -c '.UserPoolClient.AllowedOAuthFlows // ["code", "implicit"]' 2>/dev/null || echo '["code", "implicit"]')
-          EXISTING_OAUTH_SCOPES=$(echo "$CLIENT_CONFIG" | jq -c '.UserPoolClient.AllowedOAuthScopes // ["openid", "email", "phone", "profile", "aws.cognito.signin.user.admin"]' 2>/dev/null || echo '["openid", "email", "phone", "profile", "aws.cognito.signin.user.admin"]')
-          EXISTING_IDENTITY_PROVIDERS=$(echo "$CLIENT_CONFIG" | jq -c '.UserPoolClient.SupportedIdentityProviders // ["COGNITO"]' 2>/dev/null || echo '["COGNITO"]')
+          # AWS CLI expects space-separated values, not JSON arrays
+          EXISTING_OAUTH_FLOWS_JSON=$(echo "$CLIENT_CONFIG" | jq -c '.UserPoolClient.AllowedOAuthFlows // ["code", "implicit"]' 2>/dev/null || echo '["code", "implicit"]')
+          EXISTING_OAUTH_SCOPES_JSON=$(echo "$CLIENT_CONFIG" | jq -c '.UserPoolClient.AllowedOAuthScopes // ["openid", "email", "phone", "profile", "aws.cognito.signin.user.admin"]' 2>/dev/null || echo '["openid", "email", "phone", "profile", "aws.cognito.signin.user.admin"]')
+          EXISTING_IDENTITY_PROVIDERS_JSON=$(echo "$CLIENT_CONFIG" | jq -c '.UserPoolClient.SupportedIdentityProviders // ["COGNITO"]' 2>/dev/null || echo '["COGNITO"]')
           EXISTING_OAUTH_FLOWS_ENABLED=$(echo "$CLIENT_CONFIG" | jq -r '.UserPoolClient.AllowedOAuthFlowsUserPoolClient // true' 2>/dev/null || echo "true")
+          
+          # Convert JSON arrays to space-separated strings for AWS CLI
+          EXISTING_OAUTH_FLOWS=$(echo "$EXISTING_OAUTH_FLOWS_JSON" | jq -r 'join(" ")' 2>/dev/null || echo "code implicit")
+          EXISTING_OAUTH_SCOPES=$(echo "$EXISTING_OAUTH_SCOPES_JSON" | jq -r 'join(" ")' 2>/dev/null || echo "openid email phone profile aws.cognito.signin.user.admin")
+          EXISTING_IDENTITY_PROVIDERS=$(echo "$EXISTING_IDENTITY_PROVIDERS_JSON" | jq -r 'join(" ")' 2>/dev/null || echo "COGNITO")
+          
+          # Validate that we have valid OAuth settings (not empty)
+          if [ -z "$EXISTING_OAUTH_FLOWS" ] || [ -z "$EXISTING_OAUTH_SCOPES" ] || [ -z "$EXISTING_IDENTITY_PROVIDERS" ]; then
+            echo "⚠️ Warning: Some OAuth settings are empty, using defaults"
+            EXISTING_OAUTH_FLOWS=${EXISTING_OAUTH_FLOWS:-"code implicit"}
+            EXISTING_OAUTH_SCOPES=${EXISTING_OAUTH_SCOPES:-"openid email phone profile aws.cognito.signin.user.admin"}
+            EXISTING_IDENTITY_PROVIDERS=${EXISTING_IDENTITY_PROVIDERS:-"COGNITO"}
+          fi
           
           # Check if our URLs are already in the lists
           CALLBACK_EXISTS=$(echo "$CURRENT_CALLBACKS" | grep -o "$CALLBACK_URL" || echo "")
@@ -320,28 +334,50 @@ jobs:
           echo "Updating Cognito User Pool Client callback URLs..."
           echo "New callback URLs: $NEW_CALLBACKS"
           echo "New logout URLs: $NEW_LOGOUTS"
-          echo "Preserving OAuth flows: $EXISTING_OAUTH_FLOWS"
-          echo "Preserving OAuth scopes: $EXISTING_OAUTH_SCOPES"
-          echo "Preserving identity providers: $EXISTING_IDENTITY_PROVIDERS"
+          echo "Preserving OAuth flows (JSON): $EXISTING_OAUTH_FLOWS_JSON"
+          echo "Preserving OAuth flows (space-separated): $EXISTING_OAUTH_FLOWS"
+          echo "Preserving OAuth scopes (JSON): $EXISTING_OAUTH_SCOPES_JSON"
+          echo "Preserving OAuth scopes (space-separated): $EXISTING_OAUTH_SCOPES"
+          echo "Preserving identity providers (JSON): $EXISTING_IDENTITY_PROVIDERS_JSON"
+          echo "Preserving identity providers (space-separated): $EXISTING_IDENTITY_PROVIDERS"
+          echo "OAuth flows enabled: $EXISTING_OAUTH_FLOWS_ENABLED"
           
-          # Build update command with conditional OAuth flows flag
-          UPDATE_CMD="aws cognito-idp update-user-pool-client \
-            --user-pool-id \"$COGNITO_USER_POOL_ID\" \
-            --client-id \"$COGNITO_CLIENT_ID\" \
-            --callback-urls \"$NEW_CALLBACKS\" \
-            --logout-urls \"$NEW_LOGOUTS\" \
-            --allowed-o-auth-flows $EXISTING_OAUTH_FLOWS \
-            --allowed-o-auth-scopes $EXISTING_OAUTH_SCOPES \
-            --supported-identity-providers $EXISTING_IDENTITY_PROVIDERS"
+          # Build update command - AWS CLI expects space-separated values
+          # Note: When values contain spaces, we need to handle them carefully in arrays
+          UPDATE_ARGS=(
+            --user-pool-id "$COGNITO_USER_POOL_ID"
+            --client-id "$COGNITO_CLIENT_ID"
+            --callback-urls "$NEW_CALLBACKS"
+            --logout-urls "$NEW_LOGOUTS"
+          )
+          
+          # Add OAuth settings - these are space-separated values
+          # AWS CLI expects: --allowed-o-auth-flows code implicit
+          # So we need to split the space-separated string and add each as a separate argument
+          UPDATE_ARGS+=(--allowed-o-auth-flows)
+          for flow in $EXISTING_OAUTH_FLOWS; do
+            UPDATE_ARGS+=("$flow")
+          done
+          
+          UPDATE_ARGS+=(--allowed-o-auth-scopes)
+          for scope in $EXISTING_OAUTH_SCOPES; do
+            UPDATE_ARGS+=("$scope")
+          done
+          
+          UPDATE_ARGS+=(--supported-identity-providers)
+          for provider in $EXISTING_IDENTITY_PROVIDERS; do
+            UPDATE_ARGS+=("$provider")
+          done
           
           # Add OAuth flows flag only if enabled
           if [ "$EXISTING_OAUTH_FLOWS_ENABLED" = "true" ]; then
-            UPDATE_CMD="$UPDATE_CMD --allowed-o-auth-flows-user-pool-client"
+            UPDATE_ARGS+=(--allowed-o-auth-flows-user-pool-client)
           fi
           
-          UPDATE_CMD="$UPDATE_CMD --output json"
+          UPDATE_ARGS+=(--output json)
           
-          UPDATE_RESULT=$(eval "$UPDATE_CMD" 2>&1)
+          echo "Executing AWS CLI command with OAuth settings preserved..."
+          UPDATE_RESULT=$(aws cognito-idp update-user-pool-client "${UPDATE_ARGS[@]}" 2>&1)
           
           if [ $? -eq 0 ]; then
             echo "✅ Cognito callback URLs updated successfully"
