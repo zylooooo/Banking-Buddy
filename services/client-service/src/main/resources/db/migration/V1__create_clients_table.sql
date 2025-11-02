@@ -32,8 +32,9 @@ CREATE TABLE IF NOT EXISTS clients (
     
     -- Generated columns for conditional unique constraints
     -- These are NULL for deleted clients, allowing multiple soft-deleted records with same email/phone
-    email_if_active VARCHAR(255) AS (IF(deleted = FALSE, email, NULL)) STORED,
-    phone_if_active VARCHAR(15) AS (IF(deleted = FALSE, phone_number, NULL)) STORED,
+    -- Note: Using 0 instead of FALSE for boolean comparison in generated columns (MySQL requirement)
+    email_if_active VARCHAR(255) AS (IF(deleted = 0, email, NULL)) STORED,
+    phone_if_active VARCHAR(15) AS (IF(deleted = 0, phone_number, NULL)) STORED,
     
     -- Audit Fields
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
