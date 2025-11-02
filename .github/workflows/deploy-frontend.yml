@@ -106,53 +106,73 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
       
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.6.0
-      
-      - name: Verify infrastructure exists
-        working-directory: infrastructure/terraform
+      - name: Verify S3 bucket exists
         run: |
-          echo "Checking if S3 bucket and CloudFront distribution exist..."
+          echo "Checking if frontend S3 bucket exists..."
           
-          # Initialize Terraform
-          if ! terraform init -backend=false; then
-            echo "❌ Failed to initialize Terraform."
-            echo "Please check the Terraform configuration and ensure all required files exist."
+          # Query AWS for S3 buckets matching our naming pattern
+          # Pattern: banking-buddy-{env}-frontend-*
+          NAME_PREFIX="banking-buddy-${{ github.event.inputs.environment || 'dev' }}-frontend"
+          
+          S3_BUCKET=$(aws s3api list-buckets \
+            --query "Buckets[?starts_with(Name, '${NAME_PREFIX}')].Name" \
+            --output text 2>/dev/null | head -n1)
+          
+          if [ -z "$S3_BUCKET" ] || [ "$S3_BUCKET" = "None" ]; then
+            echo "❌ Frontend S3 bucket not found."
+            echo "Looking for buckets with prefix: ${NAME_PREFIX}"
+            echo ""
+            echo "Please ensure infrastructure is provisioned first:"
+            echo "  cd infrastructure/terraform && terraform apply"
             exit 1
           fi
           
-          # Get outputs with proper error handling
-          S3_BUCKET=""
+          echo "✅ S3 bucket found: $S3_BUCKET"
+          echo "S3_BUCKET=$S3_BUCKET" >> $GITHUB_ENV
+      
+      - name: Verify CloudFront distribution exists
+        env:
+          S3_BUCKET: ${{ env.S3_BUCKET }}
+        run: |
+          echo "Checking if CloudFront distribution exists..."
+          
+          if [ -z "$S3_BUCKET" ]; then
+            echo "❌ S3_BUCKET environment variable not set"
+            exit 1
+          fi
+          
+          # Get all CloudFront distributions and find the one with matching S3 bucket origin
+          # We'll list all distributions and check their origins
           DIST_ID=""
           
-          # Get S3 bucket name
-          S3_BUCKET=$(terraform output -raw frontend_s3_bucket_name 2>&1)
-          TERRAFORM_EXIT_CODE=$?
-          if [ $TERRAFORM_EXIT_CODE -ne 0 ] || [ -z "$S3_BUCKET" ]; then
-            echo "❌ Failed to get S3 bucket name from Terraform outputs."
-            echo "Exit code: $TERRAFORM_EXIT_CODE"
-            echo "Output: $S3_BUCKET"
-            echo "Please ensure infrastructure is provisioned and outputs exist."
+          # Try to find by matching S3 bucket name in origin domain
+          DIST_LIST=$(aws cloudfront list-distributions \
+            --query 'DistributionList.Items[*].[Id, Comment, Origins.Items[0].DomainName]' \
+            --output text 2>/dev/null || echo "")
+          
+          if [ -n "$DIST_LIST" ]; then
+            # Find distribution where origin domain contains our S3 bucket name
+            DIST_ID=$(echo "$DIST_LIST" | grep -i "$S3_BUCKET" | head -n1 | awk '{print $1}')
+          fi
+          
+          # If still not found, try finding by comment (CloudFront comments often include name prefix)
+          if [ -z "$DIST_ID" ] || [ "$DIST_ID" = "None" ]; then
+            NAME_PREFIX="banking-buddy-${{ github.event.inputs.environment || 'dev' }}"
+            DIST_ID=$(echo "$DIST_LIST" | grep -i "frontend\|${NAME_PREFIX}" | head -n1 | awk '{print $1}')
+          fi
+          
+          if [ -z "$DIST_ID" ] || [ "$DIST_ID" = "None" ]; then
+            echo "❌ CloudFront distribution not found for S3 bucket: $S3_BUCKET"
+            echo ""
+            echo "Available distributions:"
+            echo "$DIST_LIST" | head -5 || echo "  (Could not list distributions)"
+            echo ""
+            echo "Please ensure infrastructure is provisioned first:"
+            echo "  cd infrastructure/terraform && terraform apply"
             exit 1
           fi
           
-          # Get CloudFront distribution ID
-          DIST_ID=$(terraform output -raw cloudfront_distribution_id 2>&1)
-          TERRAFORM_EXIT_CODE=$?
-          if [ $TERRAFORM_EXIT_CODE -ne 0 ] || [ -z "$DIST_ID" ]; then
-            echo "❌ Failed to get CloudFront distribution ID from Terraform outputs."
-            echo "Exit code: $TERRAFORM_EXIT_CODE"
-            echo "Output: $DIST_ID"
-            echo "Please ensure infrastructure is provisioned and outputs exist."
-            exit 1
-          fi
-          
-          echo "✅ Infrastructure verified:"
-          echo "  S3 Bucket: $S3_BUCKET"
-          echo "  CloudFront Distribution: $DIST_ID"
-          echo "S3_BUCKET=$S3_BUCKET" >> $GITHUB_ENV
+          echo "✅ CloudFront distribution found: $DIST_ID"
           echo "DIST_ID=$DIST_ID" >> $GITHUB_ENV
       
       - name: Download build artifacts
@@ -224,12 +244,29 @@ jobs:
           echo "✅ Cache invalidation completed!"
       
       - name: Get frontend URL
-        working-directory: infrastructure/terraform
+        env:
+          DIST_ID: ${{ env.DIST_ID }}
         run: |
-          FRONTEND_URL=$(terraform output -raw frontend_url 2>/dev/null || echo "")
-          echo "🚀 Deployment completed successfully!"
-          echo "📍 Frontend URL: $FRONTEND_URL"
-          echo ""
-          echo "Test the deployment:"
-          echo "curl -I $FRONTEND_URL"
+          if [ -z "$DIST_ID" ]; then
+            echo "⚠️ CloudFront distribution ID not available"
+            exit 0
+          fi
+          
+          # Get CloudFront distribution domain name
+          FRONTEND_DOMAIN=$(aws cloudfront get-distribution \
+            --id $DIST_ID \
+            --query 'Distribution.DomainName' \
+            --output text 2>/dev/null || echo "")
+          
+          if [ -n "$FRONTEND_DOMAIN" ]; then
+            FRONTEND_URL="https://${FRONTEND_DOMAIN}"
+            echo "🚀 Deployment completed successfully!"
+            echo "📍 Frontend URL: $FRONTEND_URL"
+            echo ""
+            echo "Test the deployment:"
+            echo "curl -I $FRONTEND_URL"
+          else
+            echo "🚀 Deployment completed successfully!"
+            echo "⚠️ Could not retrieve CloudFront domain name"
+          fi
 
