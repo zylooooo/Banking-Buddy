@@ -164,9 +164,8 @@ module "ses" {
 }
 
 # Call the Cognito module
-# Note: We create this before CloudFront, so callback URLs will use localhost for development
-# If you want to add CloudFront default domain to callback URLs, you'll need to update the
-# Cognito User Pool Client manually after CloudFront is created, or move this module after CloudFront
+# Note: Cognito is created before CloudFront to avoid circular dependencies
+# Callback URLs are updated automatically in CI/CD pipeline after CloudFront deployment
 module "cognito" {
   source = "./shared/cognito"
 

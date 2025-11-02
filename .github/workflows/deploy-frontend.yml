@@ -243,6 +243,97 @@ jobs:
           
           echo "✅ Cache invalidation completed!"
       
+      - name: Update Cognito callback URLs
+        env:
+          DIST_ID: ${{ env.DIST_ID }}
+        run: |
+          if [ -z "$DIST_ID" ]; then
+            echo "⚠️ CloudFront distribution ID not available, skipping Cognito update"
+            exit 0
+          fi
+          
+          echo "Updating Cognito User Pool Client callback URLs..."
+          
+          # Get CloudFront distribution domain name
+          FRONTEND_DOMAIN=$(aws cloudfront get-distribution \
+            --id $DIST_ID \
+            --query 'Distribution.DomainName' \
+            --output text 2>/dev/null || echo "")
+          
+          if [ -z "$FRONTEND_DOMAIN" ]; then
+            echo "⚠️ Could not retrieve CloudFront domain name"
+            exit 0
+          fi
+          
+          FRONTEND_URL="https://${FRONTEND_DOMAIN}"
+          CALLBACK_URL="${FRONTEND_URL}/callback"
+          LOGOUT_URL="${FRONTEND_URL}"
+          
+          echo "Frontend URL: $FRONTEND_URL"
+          echo "Callback URL: $CALLBACK_URL"
+          echo "Logout URL: $LOGOUT_URL"
+          
+          # Get Cognito User Pool ID and Client ID from environment variables or secrets
+          # These should be set in GitHub secrets
+          COGNITO_USER_POOL_ID="${{ secrets.VITE_COGNITO_USER_POOL_ID }}"
+          COGNITO_CLIENT_ID="${{ secrets.VITE_COGNITO_CLIENT_ID }}"
+          
+          if [ -z "$COGNITO_USER_POOL_ID" ] || [ -z "$COGNITO_CLIENT_ID" ]; then
+            echo "⚠️ Cognito credentials not available in secrets, skipping callback URL update"
+            echo "Please manually update Cognito User Pool Client callback URLs to include:"
+            echo "  Callback: $CALLBACK_URL"
+            echo "  Logout: $LOGOUT_URL"
+            exit 0
+          fi
+          
+          # Get current callback URLs
+          CURRENT_CALLBACKS=$(aws cognito-idp describe-user-pool-client \
+            --user-pool-id "$COGNITO_USER_POOL_ID" \
+            --client-id "$COGNITO_CLIENT_ID" \
+            --query 'UserPoolClient.CallbackURLs' \
+            --output json 2>/dev/null || echo "[]")
+          
+          CURRENT_LOGOUTS=$(aws cognito-idp describe-user-pool-client \
+            --user-pool-id "$COGNITO_USER_POOL_ID" \
+            --client-id "$COGNITO_CLIENT_ID" \
+            --query 'UserPoolClient.LogoutURLs' \
+            --output json 2>/dev/null || echo "[]")
+          
+          # Check if our URLs are already in the lists
+          CALLBACK_EXISTS=$(echo "$CURRENT_CALLBACKS" | grep -o "$CALLBACK_URL" || echo "")
+          LOGOUT_EXISTS=$(echo "$CURRENT_LOGOUTS" | grep -o "$LOGOUT_URL" || echo "")
+          
+          if [ -n "$CALLBACK_EXISTS" ] && [ -n "$LOGOUT_EXISTS" ]; then
+            echo "✅ Callback URLs already configured correctly"
+            exit 0
+          fi
+          
+          # Build new callback URLs list (keep existing + add new if not present)
+          NEW_CALLBACKS=$(echo "$CURRENT_CALLBACKS" | jq -c ". + [\"$CALLBACK_URL\", \"http://localhost:3000/callback\"] | unique" 2>/dev/null || echo "[\"$CALLBACK_URL\", \"http://localhost:3000/callback\"]")
+          NEW_LOGOUTS=$(echo "$CURRENT_LOGOUTS" | jq -c ". + [\"$LOGOUT_URL\", \"http://localhost:3000\"] | unique" 2>/dev/null || echo "[\"$LOGOUT_URL\", \"http://localhost:3000\"]")
+          
+          # Update Cognito User Pool Client
+          echo "Updating Cognito User Pool Client callback URLs..."
+          aws cognito-idp update-user-pool-client \
+            --user-pool-id "$COGNITO_USER_POOL_ID" \
+            --client-id "$COGNITO_CLIENT_ID" \
+            --callback-urls "$NEW_CALLBACKS" \
+            --logout-urls "$NEW_LOGOUTS" \
+            --query 'UserPoolClient.ClientId' \
+            --output text > /dev/null 2>&1
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ Cognito callback URLs updated successfully"
+          else
+            echo "❌ Failed to update Cognito callback URLs"
+            echo "Please manually update in AWS Console:"
+            echo "  Cognito User Pool: $COGNITO_USER_POOL_ID"
+            echo "  Client ID: $COGNITO_CLIENT_ID"
+            echo "  Add Callback URL: $CALLBACK_URL"
+            echo "  Add Logout URL: $LOGOUT_URL"
+            exit 1
+          fi
+      
       - name: Get frontend URL
         env:
           DIST_ID: ${{ env.DIST_ID }}
