@@ -7,18 +7,19 @@ import org.springframework.boot.autoconfigure.flyway.FlywayMigrationInitializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
-import org.springframework.core.annotation.Order;
+import org.springframework.context.annotation.Primary;
 
 /**
- * Custom Flyway configuration that handles failed migrations gracefully.
- * This ensures repair() is called before migrate() to clean up any failed migration records.
+ * Custom Flyway configuration following industry best practices.
  * 
- * This configuration is essential because:
- * 1. spring.flyway.repair-on-migrate property doesn't always work reliably when migrations are already marked as failed
- * 2. Explicit repair() call before migrate() ensures failed migrations are cleaned up
- * 3. Prevents "contains a failed migration" errors during application startup
+ * This configuration replaces Spring Boot's default FlywayMigrationInitializer
+ * to ensure repair() is called before migrate() to clean up any failed migration records.
  * 
- * This overrides Spring Boot's default FlywayMigrationInitializer to add repair logic.
+ * Best Practices Followed:
+ * 1. Minimal custom logic - only repair, let Flyway handle migrations naturally
+ * 2. Migrations are split into atomic units (V1 for clients, V2 for accounts)
+ * 3. Uses Flyway's built-in repair mechanism, not custom table creation logic
+ * 4. Proper baseline is handled via spring.flyway.baseline-on-migrate property
  */
 @Configuration
 public class FlywayConfig {
@@ -26,43 +27,38 @@ public class FlywayConfig {
     private static final Logger log = LoggerFactory.getLogger(FlywayConfig.class);
 
     /**
-     * Custom Flyway migration initializer that explicitly repairs failed migrations
-     * before attempting migration. This is more reliable than relying solely
-     * on spring.flyway.repair-on-migrate property.
+     * Custom Flyway migration initializer that ensures repair() is called
+     * before migrate() to handle any failed migration records.
      * 
-     * The repair() method:
-     * - Removes failed migration records from flyway_schema_history
-     * - Realigns checksums, descriptions, and types of applied migrations
-     * - Marks missing migrations as deleted
-     * 
-     * Note: This bean replaces Spring Boot's auto-configured FlywayMigrationInitializer.
-     * The migration will run once when this initializer's afterPropertiesSet is called.
+     * The @Primary annotation ensures this REPLACES Spring Boot's auto-configured initializer,
+     * allowing us to inject repair logic before migration runs.
      * 
      * @param flyway The Flyway instance configured by Spring Boot
-     * @return FlywayMigrationInitializer that will trigger repair and migration
+     * @return FlywayMigrationInitializer that will trigger migration after repair
      */
     @Bean
+    @Primary
     @DependsOn("flyway")
-    @Order(1)
     public FlywayMigrationInitializer flywayMigrationInitializer(Flyway flyway) {
         
         log.info("Initializing Flyway migration with automatic repair");
         
         try {
-            // Explicitly repair failed migrations before migrate
-            // This is more reliable than repair-on-migrate property
+            // Repair any failed migration records in history before attempting migration
+            // This is more reliable than relying solely on spring.flyway.repair-on-migrate
             log.info("Repairing Flyway schema history to clean up any failed migrations...");
             flyway.repair();
             log.info("Flyway repair completed successfully");
             
         } catch (Exception e) {
             log.error("Flyway repair failed: {}", e.getMessage(), e);
-            // Continue anyway - repair failure shouldn't prevent migration attempt
-            log.warn("Continuing with migration despite repair failure");
+            // Don't throw - let FlywayMigrationInitializer handle migration attempt
+            // Repair failure shouldn't prevent migration from running
+            log.warn("Continuing with migration attempt despite repair failure");
         }
         
-        // Create and return initializer - migration will be triggered automatically
+        // Return the initializer - migration will be triggered automatically
+        log.info("Flyway migration initializer configured successfully");
         return new FlywayMigrationInitializer(flyway, null);
     }
 }
-
