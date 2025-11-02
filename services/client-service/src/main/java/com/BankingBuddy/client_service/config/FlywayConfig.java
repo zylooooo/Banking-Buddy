@@ -13,7 +13,10 @@ import org.springframework.context.annotation.Primary;
  * Custom Flyway configuration following industry best practices.
  * 
  * This configuration replaces Spring Boot's default FlywayMigrationInitializer
- * to ensure repair() is called before migrate() to clean up any failed migration records.
+ * to ensure repair() is called BEFORE any migration checks happen.
+ * 
+ * Critical Fix: FlywayMigrationInitializer checks for failed migrations in afterPropertiesSet(),
+ * which happens during bean initialization. We override this to call repair() FIRST.
  * 
  * Best Practices Followed:
  * 1. Minimal custom logic - only repair, let Flyway handle migrations naturally
@@ -28,37 +31,40 @@ public class FlywayConfig {
 
     /**
      * Custom Flyway migration initializer that ensures repair() is called
-     * before migrate() to handle any failed migration records.
+     * BEFORE any migration checks. This fixes the issue where Flyway detects
+     * failed migrations even when history shows success=1.
      * 
-     * The @Primary annotation ensures this REPLACES Spring Boot's auto-configured initializer,
-     * allowing us to inject repair logic before migration runs.
+     * The @Primary annotation ensures this REPLACES Spring Boot's auto-configured initializer.
+     * We create a custom initializer that overrides afterPropertiesSet() to repair first.
      * 
      * @param flyway The Flyway instance configured by Spring Boot
-     * @return FlywayMigrationInitializer that will trigger migration after repair
+     * @return Custom FlywayMigrationInitializer that repairs before migration
      */
     @Bean
     @Primary
     @DependsOn("flyway")
     public FlywayMigrationInitializer flywayMigrationInitializer(Flyway flyway) {
         
-        log.info("Initializing Flyway migration with automatic repair");
+        log.info("Creating custom Flyway migration initializer with repair-first logic");
         
-        try {
-            // Repair any failed migration records in history before attempting migration
-            // This is more reliable than relying solely on spring.flyway.repair-on-migrate
-            log.info("Repairing Flyway schema history to clean up any failed migrations...");
-            flyway.repair();
-            log.info("Flyway repair completed successfully");
-            
-        } catch (Exception e) {
-            log.error("Flyway repair failed: {}", e.getMessage(), e);
-            // Don't throw - let FlywayMigrationInitializer handle migration attempt
-            // Repair failure shouldn't prevent migration from running
-            log.warn("Continuing with migration attempt despite repair failure");
-        }
-        
-        // Return the initializer - migration will be triggered automatically
-        log.info("Flyway migration initializer configured successfully");
-        return new FlywayMigrationInitializer(flyway, null);
+        // Create custom initializer that repairs BEFORE migrate
+        return new FlywayMigrationInitializer(flyway) {
+            @Override
+            public void afterPropertiesSet() throws Exception {
+                // Repair BEFORE any migration checks happen
+                log.info("Pre-migration step: Repairing Flyway schema history to clean up any failed migrations...");
+                try {
+                    flyway.repair();
+                    log.info("Flyway repair completed successfully - any failed migration records cleaned");
+                } catch (Exception e) {
+                    log.error("Flyway repair failed: {}", e.getMessage(), e);
+                    // Don't throw - repair failure shouldn't block migration if schema is actually clean
+                    log.warn("Continuing with migration despite repair failure");
+                }
+                
+                // Now call parent's afterPropertiesSet() which runs migrate()
+                super.afterPropertiesSet();
+            }
+        };
     }
 }
