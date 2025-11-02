@@ -11,7 +11,9 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(async (config) => {
     const token = await getIdToken();
     if (token) {
-        // FOR DEVELOPMENT ONLY, WHEN ALB IMPLEMENTED, SEND BEARER AUTH STILL
+        // Primary: Send Bearer token for API Gateway Cognito authorizer
+        config.headers['Authorization'] = `Bearer ${token}`;
+        // Backwards compatibility: Keep x-amzn-oidc-data for backend services that expect it
         config.headers['x-amzn-oidc-data'] = token;
     }
     return config;
@@ -43,6 +45,9 @@ const clientApiClient = axios.create({
 clientApiClient.interceptors.request.use(async (config) => {
     const token = await getIdToken();
     if (token) {
+        // Primary: Send Bearer token for API Gateway Cognito authorizer
+        config.headers['Authorization'] = `Bearer ${token}`;
+        // Backwards compatibility: Keep x-amzn-oidc-data for backend services that expect it
         config.headers['x-amzn-oidc-data'] = token;
     }
     return config;
@@ -86,6 +91,9 @@ const transactionApiClient = axios.create({
 transactionApiClient.interceptors.request.use(async (config) => {
     const token = await getIdToken();
     if (token) {
+        // Primary: Send Bearer token for API Gateway Cognito authorizer
+        config.headers['Authorization'] = `Bearer ${token}`;
+        // Backwards compatibility: Keep x-amzn-oidc-data for backend services that expect it
         config.headers['x-amzn-oidc-data'] = token;
     }
     return config;
