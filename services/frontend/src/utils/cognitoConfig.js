@@ -9,6 +9,42 @@ const config = {
     logoutUri: import.meta.env.VITE_LOGOUT_URI,
 };
 
+// Dynamically determine redirect URIs based on current window location
+// This ensures the redirect URIs match the actual deployed URL (CloudFront or custom domain)
+// Fallback to env vars for local development or when window is not available
+const getRedirectSignIn = () => {
+    if (typeof window !== 'undefined') {
+        // Use current window origin for deployed environments
+        const origin = window.location.origin;
+        const dynamicCallback = `${origin}/callback`;
+        
+        // Include both dynamic URL and env var (if different) to support both deployed and local dev
+        const urls = [dynamicCallback];
+        if (config.redirectUri && config.redirectUri !== dynamicCallback) {
+            urls.push(config.redirectUri);
+        }
+        return urls;
+    }
+    // Fallback for SSR or when window is not available
+    return [config.redirectUri].filter(Boolean);
+};
+
+const getRedirectSignOut = () => {
+    if (typeof window !== 'undefined') {
+        // Use current window origin for deployed environments
+        const origin = window.location.origin;
+        
+        // Include both dynamic URL and env var (if different) to support both deployed and local dev
+        const urls = [origin];
+        if (config.logoutUri && config.logoutUri !== origin) {
+            urls.push(config.logoutUri);
+        }
+        return urls;
+    }
+    // Fallback for SSR or when window is not available
+    return [config.logoutUri].filter(Boolean);
+};
+
 Amplify.configure({
     Auth: {
         Cognito: {
@@ -24,8 +60,8 @@ Amplify.configure({
                         'profile',
                         'aws.cognito.signin.user.admin'
                     ],
-                    redirectSignIn: [config.redirectUri],
-                    redirectSignOut: [config.logoutUri],
+                    redirectSignIn: getRedirectSignIn(),
+                    redirectSignOut: getRedirectSignOut(),
                     responseType: 'code'
                 }
             }

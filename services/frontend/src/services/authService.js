@@ -96,7 +96,11 @@ export const handleForgotPassword = async () => {
 
         const cognitoDomain = import.meta.env.VITE_COGNITO_DOMAIN;
         const region = import.meta.env.VITE_AWS_REGION;
-        const redirectUri = import.meta.env.VITE_REDIRECT_URI;
+        
+        // Use dynamic redirect URI based on current window location (matches OAuth config)
+        const redirectUri = typeof window !== 'undefined' 
+            ? `${window.location.origin}/callback`
+            : import.meta.env.VITE_REDIRECT_URI;
 
         // Use Cognito Hosted UI for password reset
         const forgotPasswordUrl = `https://${cognitoDomain}.auth.${region}.amazoncognito.com/forgotPassword?client_id=${config.clientId}&response_type=code&scope=email+openid+profile&redirect_uri=${encodeURIComponent(redirectUri)}`;
