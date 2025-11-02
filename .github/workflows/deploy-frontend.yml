@@ -286,18 +286,20 @@ jobs:
             exit 0
           fi
           
-          # Get current callback URLs
-          CURRENT_CALLBACKS=$(aws cognito-idp describe-user-pool-client \
+          # Get current app client configuration (CRITICAL: Must preserve all OAuth settings)
+          CLIENT_CONFIG=$(aws cognito-idp describe-user-pool-client \
             --user-pool-id "$COGNITO_USER_POOL_ID" \
             --client-id "$COGNITO_CLIENT_ID" \
-            --query 'UserPoolClient.CallbackURLs' \
-            --output json 2>/dev/null || echo "[]")
+            --output json 2>/dev/null || echo "{}")
           
-          CURRENT_LOGOUTS=$(aws cognito-idp describe-user-pool-client \
-            --user-pool-id "$COGNITO_USER_POOL_ID" \
-            --client-id "$COGNITO_CLIENT_ID" \
-            --query 'UserPoolClient.LogoutURLs' \
-            --output json 2>/dev/null || echo "[]")
+          CURRENT_CALLBACKS=$(echo "$CLIENT_CONFIG" | jq -r '.UserPoolClient.CallbackURLs // []' 2>/dev/null || echo "[]")
+          CURRENT_LOGOUTS=$(echo "$CLIENT_CONFIG" | jq -r '.UserPoolClient.LogoutURLs // []' 2>/dev/null || echo "[]")
+          
+          # Get existing OAuth settings to preserve them (with sensible defaults if missing)
+          EXISTING_OAUTH_FLOWS=$(echo "$CLIENT_CONFIG" | jq -c '.UserPoolClient.AllowedOAuthFlows // ["code", "implicit"]' 2>/dev/null || echo '["code", "implicit"]')
+          EXISTING_OAUTH_SCOPES=$(echo "$CLIENT_CONFIG" | jq -c '.UserPoolClient.AllowedOAuthScopes // ["openid", "email", "phone", "profile", "aws.cognito.signin.user.admin"]' 2>/dev/null || echo '["openid", "email", "phone", "profile", "aws.cognito.signin.user.admin"]')
+          EXISTING_IDENTITY_PROVIDERS=$(echo "$CLIENT_CONFIG" | jq -c '.UserPoolClient.SupportedIdentityProviders // ["COGNITO"]' 2>/dev/null || echo '["COGNITO"]')
+          EXISTING_OAUTH_FLOWS_ENABLED=$(echo "$CLIENT_CONFIG" | jq -r '.UserPoolClient.AllowedOAuthFlowsUserPoolClient // true' 2>/dev/null || echo "true")
           
           # Check if our URLs are already in the lists
           CALLBACK_EXISTS=$(echo "$CURRENT_CALLBACKS" | grep -o "$CALLBACK_URL" || echo "")
@@ -305,6 +307,7 @@ jobs:
           
           if [ -n "$CALLBACK_EXISTS" ] && [ -n "$LOGOUT_EXISTS" ]; then
             echo "✅ Callback URLs already configured correctly"
+            echo "✅ OAuth settings preserved"
             exit 0
           fi
           
@@ -313,41 +316,65 @@ jobs:
           NEW_LOGOUTS=$(echo "$CURRENT_LOGOUTS" | jq -c ". + [\"$LOGOUT_URL\", \"http://localhost:3000\"] | unique" 2>/dev/null || echo "[\"$LOGOUT_URL\", \"http://localhost:3000\"]")
           
           # Update Cognito User Pool Client
+          # CRITICAL: Include ALL OAuth settings to prevent them from being reset
           echo "Updating Cognito User Pool Client callback URLs..."
           echo "New callback URLs: $NEW_CALLBACKS"
           echo "New logout URLs: $NEW_LOGOUTS"
+          echo "Preserving OAuth flows: $EXISTING_OAUTH_FLOWS"
+          echo "Preserving OAuth scopes: $EXISTING_OAUTH_SCOPES"
+          echo "Preserving identity providers: $EXISTING_IDENTITY_PROVIDERS"
           
-          UPDATE_RESULT=$(aws cognito-idp update-user-pool-client \
-            --user-pool-id "$COGNITO_USER_POOL_ID" \
-            --client-id "$COGNITO_CLIENT_ID" \
-            --callback-urls "$NEW_CALLBACKS" \
-            --logout-urls "$NEW_LOGOUTS" \
-            --output json 2>&1)
+          # Build update command with conditional OAuth flows flag
+          UPDATE_CMD="aws cognito-idp update-user-pool-client \
+            --user-pool-id \"$COGNITO_USER_POOL_ID\" \
+            --client-id \"$COGNITO_CLIENT_ID\" \
+            --callback-urls \"$NEW_CALLBACKS\" \
+            --logout-urls \"$NEW_LOGOUTS\" \
+            --allowed-o-auth-flows $EXISTING_OAUTH_FLOWS \
+            --allowed-o-auth-scopes $EXISTING_OAUTH_SCOPES \
+            --supported-identity-providers $EXISTING_IDENTITY_PROVIDERS"
+          
+          # Add OAuth flows flag only if enabled
+          if [ "$EXISTING_OAUTH_FLOWS_ENABLED" = "true" ]; then
+            UPDATE_CMD="$UPDATE_CMD --allowed-o-auth-flows-user-pool-client"
+          fi
+          
+          UPDATE_CMD="$UPDATE_CMD --output json"
+          
+          UPDATE_RESULT=$(eval "$UPDATE_CMD" 2>&1)
           
           if [ $? -eq 0 ]; then
             echo "✅ Cognito callback URLs updated successfully"
             
-            # Verify the update by checking current callback URLs
-            VERIFIED_CALLBACKS=$(aws cognito-idp describe-user-pool-client \
+            # Verify the update by checking ALL settings (callback URLs + OAuth settings)
+            VERIFIED_CONFIG=$(aws cognito-idp describe-user-pool-client \
               --user-pool-id "$COGNITO_USER_POOL_ID" \
               --client-id "$COGNITO_CLIENT_ID" \
-              --query 'UserPoolClient.CallbackURLs' \
-              --output json 2>/dev/null || echo "[]")
+              --output json 2>/dev/null || echo "{}")
             
-            VERIFIED_LOGOUTS=$(aws cognito-idp describe-user-pool-client \
-              --user-pool-id "$COGNITO_USER_POOL_ID" \
-              --client-id "$COGNITO_CLIENT_ID" \
-              --query 'UserPoolClient.LogoutURLs' \
-              --output json 2>/dev/null || echo "[]")
+            VERIFIED_CALLBACKS=$(echo "$VERIFIED_CONFIG" | jq -r '.UserPoolClient.CallbackURLs // []' 2>/dev/null || echo "[]")
+            VERIFIED_LOGOUTS=$(echo "$VERIFIED_CONFIG" | jq -r '.UserPoolClient.LogoutURLs // []' 2>/dev/null || echo "[]")
+            VERIFIED_OAUTH_FLOWS=$(echo "$VERIFIED_CONFIG" | jq -c '.UserPoolClient.AllowedOAuthFlows // []' 2>/dev/null || echo "[]")
+            VERIFIED_OAUTH_SCOPES=$(echo "$VERIFIED_CONFIG" | jq -c '.UserPoolClient.AllowedOAuthScopes // []' 2>/dev/null || echo "[]")
             
             echo "Verified callback URLs: $VERIFIED_CALLBACKS"
             echo "Verified logout URLs: $VERIFIED_LOGOUTS"
+            echo "Verified OAuth flows: $VERIFIED_OAUTH_FLOWS"
+            echo "Verified OAuth scopes: $VERIFIED_OAUTH_SCOPES"
             
             # Check if our URLs are in the verified list
             if echo "$VERIFIED_CALLBACKS" | grep -q "$CALLBACK_URL"; then
               echo "✅ CloudFront callback URL confirmed in Cognito"
             else
               echo "⚠️ Warning: CloudFront callback URL may not be in Cognito"
+            fi
+            
+            # Verify OAuth settings are preserved
+            if [ "$VERIFIED_OAUTH_FLOWS" != "[]" ] && [ "$VERIFIED_OAUTH_SCOPES" != "[]" ]; then
+              echo "✅ OAuth flows and scopes preserved successfully"
+            else
+              echo "⚠️ Warning: OAuth flows or scopes may have been cleared"
+              echo "Please verify in AWS Console and run 'terraform apply' to restore if needed"
             fi
           else
             echo "❌ Failed to update Cognito callback URLs"
