@@ -10,6 +10,23 @@ export default function CallbackPage() {
     useEffect(() => {
         const processCallback = async () => {
             try {
+                // Check for OAuth errors in URL query parameters first
+                const urlParams = new URLSearchParams(window.location.search);
+                const error = urlParams.get('error');
+                const errorDescription = urlParams.get('error_description');
+                
+                if (error) {
+                    console.error('OAuth error from Cognito:', error, errorDescription);
+                    
+                    // Handle specific OAuth errors with user-friendly messages
+                    if (error === 'unauthorized_client' || error === 'invalid_request') {
+                        setError(`Authentication failed: ${errorDescription || 'Invalid request. Please ensure your callback URL is correctly configured in Cognito.'}`);
+                    } else {
+                        setError(`Authentication failed: ${errorDescription || error}`);
+                    }
+                    return;
+                }
+                
                 // Complete OAuth callback - this processes the auth code
                 await handleCallback();
                 

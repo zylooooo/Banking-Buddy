@@ -9,42 +9,42 @@ const config = {
     logoutUri: import.meta.env.VITE_LOGOUT_URI,
 };
 
-// Dynamically determine redirect URIs based on current window location
-// This ensures the redirect URIs match the actual deployed URL (CloudFront or custom domain)
-// Fallback to env vars for local development or when window is not available
+/**
+ * Get the redirect URI based on the current window location.
+ * 
+ * Best Practice (per AWS documentation):
+ * - The redirect URI in Amplify config MUST exactly match one of the callback URLs
+ *   registered in Cognito User Pool Client settings
+ * - Use window.location.origin for runtime determination (supports CloudFront/custom domains)
+ * - Fallback to env vars for local development or when window is unavailable
+ * 
+ * Note: Cognito must have ALL possible redirect URIs registered:
+ * - CloudFront domain: https://{cloudfront-domain}.cloudfront.net/callback
+ * - Custom domain (if configured): https://{custom-domain}/callback
+ * - Local dev: http://localhost:3000/callback
+ */
 const getRedirectSignIn = () => {
-    if (typeof window !== 'undefined') {
-        // Use current window origin for deployed environments
-        const origin = window.location.origin;
-        const dynamicCallback = `${origin}/callback`;
-        
-        // Include both dynamic URL and env var (if different) to support both deployed and local dev
-        const urls = [dynamicCallback];
-        if (config.redirectUri && config.redirectUri !== dynamicCallback) {
-            urls.push(config.redirectUri);
-        }
-        return urls;
+    // Runtime check: use current window location (works for all deployed environments)
+    if (typeof window !== 'undefined' && window.location.origin) {
+        // Use the actual origin where the app is running (CloudFront, custom domain, or localhost)
+        return [`${window.location.origin}/callback`];
     }
-    // Fallback for SSR or when window is not available
+    // Fallback: use env var (for SSR, build time, or local development)
     return [config.redirectUri].filter(Boolean);
 };
 
 const getRedirectSignOut = () => {
-    if (typeof window !== 'undefined') {
-        // Use current window origin for deployed environments
-        const origin = window.location.origin;
-        
-        // Include both dynamic URL and env var (if different) to support both deployed and local dev
-        const urls = [origin];
-        if (config.logoutUri && config.logoutUri !== origin) {
-            urls.push(config.logoutUri);
-        }
-        return urls;
+    // Runtime check: use current window location (works for all deployed environments)
+    if (typeof window !== 'undefined' && window.location.origin) {
+        // Use the actual origin where the app is running (CloudFront, custom domain, or localhost)
+        return [window.location.origin];
     }
-    // Fallback for SSR or when window is not available
+    // Fallback: use env var (for SSR, build time, or local development)
     return [config.logoutUri].filter(Boolean);
 };
 
+// Configure Amplify with dynamic redirect URIs
+// This ensures the redirect URI matches the actual deployed URL
 Amplify.configure({
     Auth: {
         Cognito: {

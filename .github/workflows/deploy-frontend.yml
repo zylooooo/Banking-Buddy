@@ -314,18 +314,45 @@ jobs:
           
           # Update Cognito User Pool Client
           echo "Updating Cognito User Pool Client callback URLs..."
-          aws cognito-idp update-user-pool-client \
+          echo "New callback URLs: $NEW_CALLBACKS"
+          echo "New logout URLs: $NEW_LOGOUTS"
+          
+          UPDATE_RESULT=$(aws cognito-idp update-user-pool-client \
             --user-pool-id "$COGNITO_USER_POOL_ID" \
             --client-id "$COGNITO_CLIENT_ID" \
             --callback-urls "$NEW_CALLBACKS" \
             --logout-urls "$NEW_LOGOUTS" \
-            --query 'UserPoolClient.ClientId' \
-            --output text > /dev/null 2>&1
+            --output json 2>&1)
           
           if [ $? -eq 0 ]; then
             echo "✅ Cognito callback URLs updated successfully"
+            
+            # Verify the update by checking current callback URLs
+            VERIFIED_CALLBACKS=$(aws cognito-idp describe-user-pool-client \
+              --user-pool-id "$COGNITO_USER_POOL_ID" \
+              --client-id "$COGNITO_CLIENT_ID" \
+              --query 'UserPoolClient.CallbackURLs' \
+              --output json 2>/dev/null || echo "[]")
+            
+            VERIFIED_LOGOUTS=$(aws cognito-idp describe-user-pool-client \
+              --user-pool-id "$COGNITO_USER_POOL_ID" \
+              --client-id "$COGNITO_CLIENT_ID" \
+              --query 'UserPoolClient.LogoutURLs' \
+              --output json 2>/dev/null || echo "[]")
+            
+            echo "Verified callback URLs: $VERIFIED_CALLBACKS"
+            echo "Verified logout URLs: $VERIFIED_LOGOUTS"
+            
+            # Check if our URLs are in the verified list
+            if echo "$VERIFIED_CALLBACKS" | grep -q "$CALLBACK_URL"; then
+              echo "✅ CloudFront callback URL confirmed in Cognito"
+            else
+              echo "⚠️ Warning: CloudFront callback URL may not be in Cognito"
+            fi
           else
             echo "❌ Failed to update Cognito callback URLs"
+            echo "Error output: $UPDATE_RESULT"
+            echo ""
             echo "Please manually update in AWS Console:"
             echo "  Cognito User Pool: $COGNITO_USER_POOL_ID"
             echo "  Client ID: $COGNITO_CLIENT_ID"
