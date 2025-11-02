@@ -117,15 +117,35 @@ jobs:
           echo "Checking if S3 bucket and CloudFront distribution exist..."
           
           # Initialize Terraform
-          terraform init -backend=false
+          if ! terraform init -backend=false; then
+            echo "❌ Failed to initialize Terraform."
+            echo "Please check the Terraform configuration and ensure all required files exist."
+            exit 1
+          fi
           
-          # Get outputs
-          S3_BUCKET=$(terraform output -raw frontend_s3_bucket_name 2>/dev/null || echo "")
-          DIST_ID=$(terraform output -raw cloudfront_distribution_id 2>/dev/null || echo "")
+          # Get outputs with proper error handling
+          S3_BUCKET=""
+          DIST_ID=""
           
-          if [ -z "$S3_BUCKET" ] || [ -z "$DIST_ID" ]; then
-            echo "❌ Infrastructure does not exist."
-            echo "Please provision infrastructure first with: cd infrastructure/terraform && terraform apply"
+          # Get S3 bucket name
+          S3_BUCKET=$(terraform output -raw frontend_s3_bucket_name 2>&1)
+          TERRAFORM_EXIT_CODE=$?
+          if [ $TERRAFORM_EXIT_CODE -ne 0 ] || [ -z "$S3_BUCKET" ]; then
+            echo "❌ Failed to get S3 bucket name from Terraform outputs."
+            echo "Exit code: $TERRAFORM_EXIT_CODE"
+            echo "Output: $S3_BUCKET"
+            echo "Please ensure infrastructure is provisioned and outputs exist."
+            exit 1
+          fi
+          
+          # Get CloudFront distribution ID
+          DIST_ID=$(terraform output -raw cloudfront_distribution_id 2>&1)
+          TERRAFORM_EXIT_CODE=$?
+          if [ $TERRAFORM_EXIT_CODE -ne 0 ] || [ -z "$DIST_ID" ]; then
+            echo "❌ Failed to get CloudFront distribution ID from Terraform outputs."
+            echo "Exit code: $TERRAFORM_EXIT_CODE"
+            echo "Output: $DIST_ID"
+            echo "Please ensure infrastructure is provisioned and outputs exist."
             exit 1
           fi
           
@@ -151,29 +171,45 @@ jobs:
           ls -lh ${{ env.SERVICE_PATH }}/dist/
       
       - name: Upload to S3
+        env:
+          S3_BUCKET: ${{ env.S3_BUCKET }}
         run: |
-          echo "Uploading files to S3 bucket: ${{ env.S3_BUCKET }}"
+          if [ -z "$S3_BUCKET" ]; then
+            echo "❌ S3_BUCKET environment variable is not set."
+            echo "Please ensure infrastructure verification step completed successfully."
+            exit 1
+          fi
+          
+          echo "Uploading files to S3 bucket: $S3_BUCKET"
           
           # Upload all files except index.html (with cache control for static assets)
-          aws s3 sync ${{ env.SERVICE_PATH }}/dist/ s3://${{ env.S3_BUCKET }}/ \
+          aws s3 sync ${{ env.SERVICE_PATH }}/dist/ s3://$S3_BUCKET/ \
             --delete \
             --cache-control "public, max-age=31536000, immutable" \
             --exclude "index.html" \
             --exclude "*.html"
           
           # Upload index.html with no cache (important for SPA routing)
-          aws s3 cp ${{ env.SERVICE_PATH }}/dist/index.html s3://${{ env.S3_BUCKET }}/index.html \
+          aws s3 cp ${{ env.SERVICE_PATH }}/dist/index.html s3://$S3_BUCKET/index.html \
             --content-type "text/html" \
             --cache-control "no-cache, no-store, must-revalidate"
           
           echo "✅ Files uploaded to S3"
       
       - name: Invalidate CloudFront cache
+        env:
+          DIST_ID: ${{ env.DIST_ID }}
         run: |
-          echo "Invalidating CloudFront cache for distribution: ${{ env.DIST_ID }}"
+          if [ -z "$DIST_ID" ]; then
+            echo "❌ DIST_ID environment variable is not set."
+            echo "Please ensure infrastructure verification step completed successfully."
+            exit 1
+          fi
+          
+          echo "Invalidating CloudFront cache for distribution: $DIST_ID"
           
           INVALIDATION_ID=$(aws cloudfront create-invalidation \
-            --distribution-id ${{ env.DIST_ID }} \
+            --distribution-id $DIST_ID \
             --paths "/*" \
             --query 'Invalidation.Id' \
             --output text)
@@ -182,7 +218,7 @@ jobs:
           echo "⏳ Waiting for invalidation to complete (this may take a few minutes)..."
           
           aws cloudfront wait invalidation-completed \
-            --distribution-id ${{ env.DIST_ID }} \
+            --distribution-id $DIST_ID \
             --id $INVALIDATION_ID
           
           echo "✅ Cache invalidation completed!"
