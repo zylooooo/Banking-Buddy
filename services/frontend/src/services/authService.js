@@ -2,7 +2,6 @@ import {
     signInWithRedirect,
     signOut,
     fetchAuthSession,
-    fetchUserAttributes,
     updateUserAttributes,
     confirmUserAttribute,
     updateMFAPreference
@@ -74,6 +73,7 @@ export const isAuthenticated = async () => {
         const session = await fetchAuthSession();
         return session.tokens !== undefined;
     } catch (error) {
+        console.error('Failed to check authentication status:', error);
         return false;
     }
 };

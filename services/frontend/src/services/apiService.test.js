@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import axios from 'axios';
 import * as authService from './authService';
 
 // Mock axios before importing apiService

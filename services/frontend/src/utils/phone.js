@@ -13,7 +13,8 @@ export function formatPhoneNumber(rawNumber, defaultCountry = 'SG') {
             return phoneNumber.formatInternational(); // e.g., "+65 6123 4567"
         }
     } catch (err) {
-        // swallow and return raw input
+        console.error('Failed to parse phone number:', err, 'Raw number:', rawNumber);
+        // Return raw input if parsing fails
     }
     return String(rawNumber);
 }

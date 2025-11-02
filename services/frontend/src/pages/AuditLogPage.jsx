@@ -54,6 +54,7 @@ export default function AuditLogPage() {
         };
 
         loadData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [navigate]);
 
     const loadLogs = async () => {
@@ -68,7 +69,8 @@ export default function AuditLogPage() {
             }
             setLogs(response.data.data || []);
         } catch (err) {
-            setError('Failed to load audit logs');
+            console.error('Failed to load audit logs:', err);
+            setError(err.response?.data?.message || err.message || 'Failed to load audit logs');
         }
     };
 

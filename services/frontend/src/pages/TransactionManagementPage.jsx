@@ -49,6 +49,7 @@ export default function TransactionManagementPage() {
                         : (Array.isArray(payload?.content) ? payload.content : []);
                     setClients(fetchedClients);
                 } catch (err) {
+                    console.error('Failed to fetch clients for filter:', err);
                     // If getAllClients fails (e.g., non-AGENT user), set empty array
                     setClients([]);
                 }
@@ -64,6 +65,7 @@ export default function TransactionManagementPage() {
         };
 
         loadData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [navigate]);
 
 
@@ -200,15 +202,16 @@ export default function TransactionManagementPage() {
     const handleSyncFromSFTP = async () => {
         try {
             setSyncStatus('syncing');
-            const response = await transactionApi.syncFromSFTP();
+            await transactionApi.syncFromSFTP();
             setSyncStatus('success');
             setShowSyncModal(false);
             // Refresh transactions after sync
             await loadTransactions();
             alert('Transactions synced successfully from SFTP server');
         } catch (err) {
+            console.error('Failed to sync transactions from SFTP:', err);
             setSyncStatus('error');
-            setError('Failed to sync transactions from SFTP server');
+            setError(err.response?.data?.message || err.message || 'Failed to sync transactions from SFTP server');
         }
     };
 

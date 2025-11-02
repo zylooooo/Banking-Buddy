@@ -76,6 +76,7 @@ export default function ClientDetailPage() {
                         normalizedPhoneNumber = cleanValue.replace(/\D/g, '');
                     }
                 } catch (err) {
+                    console.error('Failed to parse phone number:', err);
                     // Fallback: strip non-digits if parsing fails
                     normalizedPhoneNumber = updatedData.phoneNumber.replace(/\D/g, '');
                 }
@@ -455,7 +456,7 @@ function CreateAccountForm({ onSubmit, onCancel }) {
                 }
                 break;
 
-            case 'initialDeposit':
+            case 'initialDeposit': {
                 const amount = parseFloat(value);
                 if (value && (isNaN(amount) || amount < 0)) {
                     errors[name] = 'Initial deposit must be a positive number';
@@ -463,6 +464,7 @@ function CreateAccountForm({ onSubmit, onCancel }) {
                     errors[name] = 'Savings account requires minimum SGD 100 initial deposit';
                 }
                 break;
+            }
 
             case 'currency':
                 if (!value) {

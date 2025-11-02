@@ -53,7 +53,6 @@ async function fetchNamesFromLogs(logs, jwt) {
 export default function CommunicationPage() {
     const [currentUser, setCurrentUser] = useState(null);
     const [logs, setLogs] = useState([]);
-    const [jwtToken, setJwtToken] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [agentNameMap, setAgentNameMap] = useState({});
@@ -80,7 +79,6 @@ export default function CommunicationPage() {
                         jwt = window.localStorage.getItem(cognitoKeys[cognitoKeys.length - 1]);
                     }
                 }
-                setJwtToken(jwt);
                 // Fetch logs from external endpoint with Bearer token
                 const response = await axios.get('https://f827tiy8zj.execute-api.ap-southeast-1.amazonaws.com/api/v1/audit/logs', {
                     headers: {

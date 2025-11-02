@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import ClientManagementPage from './ClientManagementPage';
@@ -198,7 +198,7 @@ describe('ClientManagementPage Integration Tests', () => {
     const user = userEvent.setup();
 
     // Mock window.confirm
-    global.confirm = vi.fn(() => true);
+    window.confirm = vi.fn(() => true);
 
     renderClientManagement();
 
@@ -211,7 +211,7 @@ describe('ClientManagementPage Integration Tests', () => {
     if (deleteButtons.length > 0) {
       await user.click(deleteButtons[0]);
 
-      expect(global.confirm).toHaveBeenCalled();
+      expect(window.confirm).toHaveBeenCalled();
 
       // Should still see the client list (checking for table content instead)
       await waitFor(() => {
@@ -219,14 +219,14 @@ describe('ClientManagementPage Integration Tests', () => {
       });
     }
 
-    global.confirm.mockRestore();
+    window.confirm.mockRestore();
   });
 
   it('cancels client deletion when user declines confirmation', async () => {
     const user = userEvent.setup();
 
     // Mock window.confirm to return false
-    global.confirm = vi.fn(() => false);
+    window.confirm = vi.fn(() => false);
 
     renderClientManagement();
 
@@ -238,7 +238,7 @@ describe('ClientManagementPage Integration Tests', () => {
     if (deleteButtons.length > 0) {
       await user.click(deleteButtons[0]);
 
-      expect(global.confirm).toHaveBeenCalled();
+      expect(window.confirm).toHaveBeenCalled();
 
       // Client should still be visible
       await waitFor(() => {
@@ -246,7 +246,7 @@ describe('ClientManagementPage Integration Tests', () => {
       });
     }
 
-    global.confirm.mockRestore();
+    window.confirm.mockRestore();
   });
 
   it('displays navigation with user info', async () => {

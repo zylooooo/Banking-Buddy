@@ -67,6 +67,7 @@ function RootRedirect() {
         const isAuth = await isAuthenticated();
         setShouldRedirect(isAuth);
       } catch (error) {
+        console.error('Error checking authentication:', error);
         setShouldRedirect(false);
       } finally {
         setLoading(false);

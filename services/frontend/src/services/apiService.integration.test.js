@@ -240,7 +240,7 @@ describe('API Service Integration Tests', () => {
         expect(response.data.data).toHaveProperty('totalAmount');
       } catch (error) {
         // If endpoint doesn't exist in current implementation, skip this test
-        console.log('Transaction stats endpoint may not be implemented yet');
+        console.log('Transaction stats endpoint may not be implemented yet', error);
       }
     });
   });

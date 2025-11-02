@@ -121,6 +121,7 @@ export default function ClientManagementPage() {
                     normalizedPhoneNumber = cleanValue.replace(/\D/g, '');
                 }
             } catch (err) {
+                console.error('Failed to parse phone number:', err);
                 // Fallback: strip non-digits if parsing fails
                 normalizedPhoneNumber = clientData.phoneNumber.replace(/\D/g, '');
             }
