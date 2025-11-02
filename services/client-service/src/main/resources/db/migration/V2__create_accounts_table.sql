@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS accounts (
     -- Account Information
     account_type ENUM('Savings', 'Checking', 'Business') NOT NULL,
     account_status ENUM('Active', 'Inactive', 'Pending') NOT NULL DEFAULT 'Pending',
-    opening_date DATE NOT NULL DEFAULT (CURRENT_DATE),
+    opening_date DATE NOT NULL DEFAULT (CURDATE()),
     initial_deposit DECIMAL(15, 2) NOT NULL,
     balance DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
     currency VARCHAR(3) NOT NULL DEFAULT 'SGD',
