@@ -2,7 +2,7 @@ name: Deploy Transaction Service
 
 on:
   push:
-    branches: [main, integration]
+    branches: [master, integration]
     paths:
       - 'services/transaction-service/**'
       - '.github/workflows/deploy-transaction-service.yml'

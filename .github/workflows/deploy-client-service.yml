@@ -2,7 +2,7 @@ name: Deploy Client Service
 
 on:
   push:
-    branches: [main, integration]
+    branches: [master, integration]
     paths:
       - 'services/client-service/**'
       - '.github/workflows/deploy-client-service.yml'

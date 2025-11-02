@@ -2,7 +2,7 @@ name: Deploy User Service
 
 on:
   push:
-    branches: [main, integration]
+    branches: [master, integration]
     paths:
       - 'services/user-service/**'
       - '.github/workflows/deploy-user-service.yml'
