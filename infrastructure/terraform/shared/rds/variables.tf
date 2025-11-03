@@ -1,5 +1,5 @@
-variable "private_subnet_ids" {
-  description = "IDs of the private subnets"
+variable "database_subnet_ids" {
+  description = "IDs of the database subnets (for RDS and ElastiCache isolation)"
   type        = list(string)
 }
 

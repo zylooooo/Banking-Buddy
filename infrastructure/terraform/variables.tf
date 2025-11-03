@@ -220,19 +220,19 @@ variable "crm_transactions_db_password" {
 
 variable "crm_clients_db_username" {
   description = "CRM clients database username"
-  type = string
-  default = "crm_clients_user"
-  sensitive = true
+  type        = string
+  default     = "crm_clients_user"
+  sensitive   = true
 }
 
 variable "crm_clients_db_password" {
   description = "CRM clients database password"
-  type = string
-  sensitive = true
+  type        = string
+  sensitive   = true
 }
 
 variable "ses_source_service" {
   description = "SES source service"
-  type = string
-  default = "client-service"
+  type        = string
+  default     = "client-service"
 }

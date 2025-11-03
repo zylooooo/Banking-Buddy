@@ -27,3 +27,9 @@ output "nat_gateway_public_ip" {
   description = "Public IP of the NAT Gateway"
   value       = aws_eip.nat.public_ip
 }
+
+output "database_subnet_ids" {
+  description = "IDs of the database subnets (for RDS and ElastiCache)"
+  # Database subnets for data segregation - separate from application subnets
+  value = aws_subnet.database[*].id
+}

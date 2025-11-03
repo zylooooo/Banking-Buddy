@@ -1,9 +1,15 @@
 # ElastiCache Subnet Group
 resource "aws_elasticache_subnet_group" "main" {
   name       = "${var.name_prefix}-redis-subnet-group"
-  subnet_ids = var.private_subnet_ids
+  subnet_ids = var.database_subnet_ids
 
   tags = var.common_tags
+
+  lifecycle {
+    create_before_destroy = true
+    # Allow subnet_ids to be updated without destroying first
+    # This enables safe migration between subnet sets
+  }
 }
 
 # ElastiCache Redis Replication Group (Primary + Replica, Multi-AZ)
@@ -43,4 +49,8 @@ resource "aws_elasticache_replication_group" "main" {
   auto_minor_version_upgrade = true
 
   tags = var.common_tags
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }

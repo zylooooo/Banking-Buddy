@@ -113,3 +113,39 @@ resource "aws_route_table_association" "private" {
   subnet_id      = aws_subnet.private[count.index].id
   route_table_id = aws_route_table.private.id
 }
+
+# Database subnets (for RDS and ElastiCache)
+resource "aws_subnet" "database" {
+  count = length(var.availability_zones)
+
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = cidrsubnet(var.vpc_cidr, 8, count.index + 20) # Different CIDR blocks from private subnets
+  availability_zone = var.availability_zones[count.index]
+
+  tags = merge(var.common_tags, {
+    Name = "${var.name_prefix}-database-subnet-${count.index + 1}"
+    Type = "Database"
+  })
+}
+
+# Route table for database subnets
+resource "aws_route_table" "database" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.main.id
+  }
+
+  tags = merge(var.common_tags, {
+    Name = "${var.name_prefix}-database-rt"
+  })
+}
+
+# Route table association for database subnets
+resource "aws_route_table_association" "database" {
+  count = length(aws_subnet.database)
+
+  subnet_id      = aws_subnet.database[count.index].id
+  route_table_id = aws_route_table.database.id
+}

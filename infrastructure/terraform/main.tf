@@ -46,7 +46,7 @@ module "iam" {
 module "rds" {
   source = "./shared/rds"
 
-  private_subnet_ids    = module.vpc.private_subnet_ids
+  database_subnet_ids   = module.vpc.database_subnet_ids
   common_tags           = local.common_tags
   name_prefix           = local.name_prefix
   db_instance_class     = var.db_instance_class
@@ -195,7 +195,7 @@ module "elasticache" {
   source = "./shared/elasticache"
 
   name_prefix             = local.name_prefix
-  private_subnet_ids      = module.vpc.private_subnet_ids
+  database_subnet_ids     = module.vpc.database_subnet_ids
   redis_security_group_id = module.security_groups.redis_id
   common_tags             = local.common_tags
 
@@ -311,8 +311,8 @@ module "acm_cloudfront" {
 module "s3_frontend" {
   source = "./shared/s3-frontend"
 
-  name_prefix                = local.name_prefix
-  cloudfront_distribution_arn = ""  # Will be updated after CloudFront is created
+  name_prefix                 = local.name_prefix
+  cloudfront_distribution_arn = "" # Will be updated after CloudFront is created
   common_tags                 = local.common_tags
 }
 
@@ -320,14 +320,14 @@ module "s3_frontend" {
 module "cloudfront" {
   source = "./shared/cloudfront"
 
-  name_prefix                = local.name_prefix
-  s3_bucket_name              = module.s3_frontend.bucket_name
-  s3_bucket_domain_name       = module.s3_frontend.bucket_domain_name
-  origin_access_control_id   = module.s3_frontend.origin_access_control_id
-  custom_domain               = var.frontend_domain_name != "" ? var.frontend_domain_name : ""
-  acm_certificate_arn        = var.root_domain_name != "" ? module.acm_cloudfront[0].certificate_arn : ""
-  waf_web_acl_arn            = module.waf.cloudfront_web_acl_arn  # Use CloudFront-scoped WAF
-  common_tags                = local.common_tags
+  name_prefix              = local.name_prefix
+  s3_bucket_name           = module.s3_frontend.bucket_name
+  s3_bucket_domain_name    = module.s3_frontend.bucket_domain_name
+  origin_access_control_id = module.s3_frontend.origin_access_control_id
+  custom_domain            = var.frontend_domain_name != "" ? var.frontend_domain_name : ""
+  acm_certificate_arn      = var.root_domain_name != "" ? module.acm_cloudfront[0].certificate_arn : ""
+  waf_web_acl_arn          = module.waf.cloudfront_web_acl_arn # Use CloudFront-scoped WAF
+  common_tags              = local.common_tags
 
   depends_on = [module.s3_frontend, module.waf]
 }
@@ -387,10 +387,10 @@ module "api_gateway" {
   common_tags                  = local.common_tags
 
   depends_on = [
-    module.user-service, 
-    module.transaction-service, 
-    module.client-service, 
-    module.cognito, 
+    module.user-service,
+    module.transaction-service,
+    module.client-service,
+    module.cognito,
     module.waf
   ]
 }
@@ -400,14 +400,14 @@ module "route53" {
   count  = var.root_domain_name != "" ? 1 : 0
   source = "./shared/route53"
 
-  domain_name                = var.root_domain_name
-  api_subdomain              = var.api_domain_name
-  api_gateway_domain_name    = module.api_gateway.custom_domain_regional_domain_name
-  api_gateway_zone_id        = module.api_gateway.custom_domain_regional_zone_id
-  frontend_subdomain         = var.frontend_domain_name
-  cloudfront_domain_name     = module.cloudfront.distribution_domain_name
-  cloudfront_hosted_zone_id  = module.cloudfront.distribution_hosted_zone_id
-  common_tags                = local.common_tags
+  domain_name               = var.root_domain_name
+  api_subdomain             = var.api_domain_name
+  api_gateway_domain_name   = module.api_gateway.custom_domain_regional_domain_name
+  api_gateway_zone_id       = module.api_gateway.custom_domain_regional_zone_id
+  frontend_subdomain        = var.frontend_domain_name
+  cloudfront_domain_name    = module.cloudfront.distribution_domain_name
+  cloudfront_hosted_zone_id = module.cloudfront.distribution_hosted_zone_id
+  common_tags               = local.common_tags
 
   depends_on = [module.api_gateway, module.cloudfront]
 }

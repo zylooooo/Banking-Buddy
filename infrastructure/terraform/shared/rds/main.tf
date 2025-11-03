@@ -1,11 +1,17 @@
 # RDS Subnet Group
 resource "aws_db_subnet_group" "main" {
   name       = "${var.name_prefix}-db-subnet-group"
-  subnet_ids = var.private_subnet_ids
+  subnet_ids = var.database_subnet_ids
 
   tags = merge(var.common_tags, {
     Name = "${var.name_prefix}-db-subnet-group"
   })
+
+  lifecycle {
+    create_before_destroy = true
+    # Allow subnet_ids to be updated without destroying first
+    # This enables safe migration between subnet sets
+  }
 }
 
 # RDS Parameter Group for custom settings
@@ -50,10 +56,20 @@ resource "aws_db_instance" "main" {
   backup_window           = "03:00-04:00"
   maintenance_window      = "sun:04:00-sun:05:00"
 
+  # Apply changes during maintenance window (not immediately) to avoid downtime
+  # Subnet changes will be applied during the next maintenance window
+  apply_immediately = false
+
   skip_final_snapshot = true
   deletion_protection = var.environment == "prod" ? true : false
 
   tags = merge(var.common_tags, {
     Name = "${var.name_prefix}-rds-mysql"
   })
+
+  lifecycle {
+    create_before_destroy = true
+    # RDS Multi-AZ will handle subnet migration automatically during maintenance window
+    # The instance will use subnets from the subnet group that are available
+  }
 }
