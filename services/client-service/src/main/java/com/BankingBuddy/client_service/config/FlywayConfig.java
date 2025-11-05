@@ -62,8 +62,18 @@ public class FlywayConfig {
                     log.warn("Continuing with migration despite repair failure");
                 }
                 
+                // Log current migration state before migration
+                log.info("Current Flyway migration info: {}", flyway.info());
+                
                 // Now call parent's afterPropertiesSet() which runs migrate()
-                super.afterPropertiesSet();
+                try {
+                    super.afterPropertiesSet();
+                    log.info("Flyway migration completed successfully");
+                } catch (Exception e) {
+                    log.error("Flyway migration failed: {}", e.getMessage(), e);
+                    log.error("Migration error details: ", e);
+                    throw e; // Re-throw to prevent startup with failed migrations
+                }
             }
         };
     }
