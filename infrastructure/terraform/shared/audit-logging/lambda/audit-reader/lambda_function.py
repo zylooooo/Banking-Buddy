@@ -5,6 +5,7 @@ Agents can only see their own logs via AgentIndex, admins see all logs.
 import json
 import os
 import logging
+import base64
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 from decimal import Decimal
@@ -55,12 +56,38 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         path_parameters = event.get('pathParameters') or {}
         query_params = event.get('queryStringParameters') or {}
         
-        logger.info(f"Route: {route_key}, Path params: {path_parameters}")
+        # Parse pagination parameters
+        page_size = query_params.get('page_size')
+        next_token = query_params.get('next_token')
+        
+        # Decode pagination token if provided
+        exclusive_start_key = None
+        if next_token:
+            try:
+                exclusive_start_key = json.loads(
+                    base64.urlsafe_b64decode(next_token.encode()).decode()
+                )
+                logger.info(f"Decoded pagination token: {exclusive_start_key}")
+            except Exception as e:
+                logger.error(f"Invalid pagination token: {str(e)}")
+                return {
+                    'statusCode': 400,
+                    'headers': {'Content-Type': 'application/json'},
+                    'body': json.dumps({'error': 'Invalid pagination token'})
+                }
+        
+        # Determine page_size (default 10 if page_size provided, otherwise use limit for backward compatibility)
+        if page_size:
+            page_size = int(page_size)
+            page_size = max(1, min(page_size, 100))  # Clamp between 1-100
+        
+        logger.info(f"Route: {route_key}, Path params: {path_parameters}, page_size: {page_size}, has_token: {next_token is not None}")
         
         # Route detection
+        result = None
         if route_key == 'GET /api/v1/audit/logs':
             # Existing endpoint - query by agent/admin
-            audit_logs = query_audit_logs(user_context, query_params)
+            result = query_audit_logs(user_context, query_params, page_size, exclusive_start_key)
         
         elif route_key == 'GET /api/v1/audit/logs/client/{client_id}':
             # NEW endpoint - query by client_id
@@ -68,10 +95,34 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             if not client_id:
                 raise ValueError("Missing client_id in path")
             
-            audit_logs = query_client_logs(user_context, client_id, query_params)
+            result = query_client_logs(user_context, client_id, query_params, page_size, exclusive_start_key)
         
         else:
             raise ValueError(f"Unknown route: {route_key}")
+        
+        # Extract results
+        audit_logs = result['items']
+        last_evaluated_key = result.get('last_evaluated_key')
+        
+        # Encode pagination token for response
+        response_next_token = None
+        if last_evaluated_key:
+            response_next_token = base64.urlsafe_b64encode(
+                json.dumps(last_evaluated_key).encode()
+            ).decode()
+            logger.info(f"Generated next_token for {len(audit_logs)} items")
+        
+        # Build response
+        response_body = {
+            'logs': audit_logs,
+            'count': len(audit_logs),
+            'next_token': response_next_token,
+            'has_more': response_next_token is not None
+        }
+        
+        # Add page_size to response if pagination was used
+        if page_size:
+            response_body['page_size'] = page_size
         
         return {
             'statusCode': 200,
@@ -79,10 +130,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*'
             },
-            'body': json.dumps({
-                'logs': audit_logs,
-                'count': len(audit_logs)
-            }, cls=DecimalEncoder)
+            'body': json.dumps(response_body, cls=DecimalEncoder)
         }
         
     except ValueError as e:
@@ -155,8 +203,10 @@ def extract_user_context(event: Dict[str, Any]) -> Dict[str, str]:
 
 def query_audit_logs(
     user_context: Dict[str, str],
-    query_params: Dict[str, str]
-) -> List[Dict[str, Any]]:
+    query_params: Dict[str, str],
+    page_size: Optional[int] = None,
+    exclusive_start_key: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
     """
     Query audit logs based on user role and parameters.
     Agents can only see their own logs, admins see all logs.
@@ -164,9 +214,11 @@ def query_audit_logs(
     Args:
         user_context: Dictionary with user_id and role
         query_params: Query string parameters (operation, hours, limit)
+        page_size: Number of items per page (if pagination enabled)
+        exclusive_start_key: DynamoDB pagination cursor (decoded from next_token)
         
     Returns:
-        List of audit log items
+        Dictionary with 'items' (list of logs) and 'last_evaluated_key' (pagination cursor)
     """
     role = user_context['role']
     user_id = user_context['user_id']
@@ -176,30 +228,34 @@ def query_audit_logs(
     limit = int(query_params.get('limit', '100'))
     operation = query_params.get('operation')  # Optional filter
     
+    # Use page_size if provided, otherwise fall back to limit for backward compatibility
+    effective_limit = page_size if page_size else limit
+    
     # Calculate time threshold (24 hours ago by default)
     time_threshold = (datetime.utcnow() - timedelta(hours=hours)).isoformat() + 'Z'
     
-    logger.info(f"Querying logs: role={role}, hours={hours}, operation={operation}")
+    logger.info(f"Querying logs: role={role}, hours={hours}, operation={operation}, limit={effective_limit}")
     
     # Query based on role
     if role == 'agent':
         # Agents can only see their own logs via AgentIndex
-        items = query_agent_logs(user_id, time_threshold, limit, operation)
+        result = query_agent_logs(user_id, time_threshold, effective_limit, operation, exclusive_start_key)
     elif role in ['admin', 'rootAdministrator']:
         # Admins can see all logs
-        items = query_all_logs(time_threshold, limit, operation)
+        result = query_all_logs(time_threshold, effective_limit, operation, exclusive_start_key)
     else:
         raise ValueError(f"Invalid role: {role}")
     
-    return items
+    return result
 
 
 def query_agent_logs(
     agent_id: str,
     time_threshold: str,
     limit: int,
-    operation: Optional[str] = None
-) -> List[Dict[str, Any]]:
+    operation: Optional[str] = None,
+    exclusive_start_key: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
     """
     Query logs for a specific agent using AgentIndex.
     
@@ -208,9 +264,10 @@ def query_agent_logs(
         time_threshold: ISO timestamp to filter from
         limit: Maximum number of items to return
         operation: Optional CRUD operation filter
+        exclusive_start_key: DynamoDB pagination cursor (for continuing from previous page)
         
     Returns:
-        List of audit log items
+        Dictionary with 'items' (list of logs) and 'last_evaluated_key' (pagination cursor)
     """
     # Build query expression
     key_condition = 'agent_id = :agent_id AND #ts >= :threshold'
@@ -235,18 +292,27 @@ def query_agent_logs(
         'ScanIndexForward': False  # Most recent first
     }
     
+    # Add pagination support
+    if exclusive_start_key:
+        query_params['ExclusiveStartKey'] = exclusive_start_key
+    
     if filter_expression:
         query_params['FilterExpression'] = filter_expression
     
     response = table.query(**query_params)
-    return response.get('Items', [])
+    
+    return {
+        'items': response.get('Items', []),
+        'last_evaluated_key': response.get('LastEvaluatedKey')
+    }
 
 
 def query_all_logs(
     time_threshold: str,
     limit: int,
-    operation: Optional[str] = None
-) -> List[Dict[str, Any]]:
+    operation: Optional[str] = None,
+    exclusive_start_key: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
     """
     Query all logs for admins using Scan or OperationIndex.
     
@@ -254,9 +320,10 @@ def query_all_logs(
         time_threshold: ISO timestamp to filter from
         limit: Maximum number of items to return
         operation: Optional CRUD operation filter
+        exclusive_start_key: DynamoDB pagination cursor (for continuing from previous page)
         
     Returns:
-        List of audit log items
+        Dictionary with 'items' (list of logs) and 'last_evaluated_key' (pagination cursor)
     """
     # If operation specified, use OperationIndex for efficiency
     if operation:
@@ -266,39 +333,56 @@ def query_all_logs(
             ':threshold': time_threshold
         }
         
-        response = table.query(
-            IndexName=operation_index_name,
-            KeyConditionExpression=key_condition,
-            ExpressionAttributeNames={'#ts': 'timestamp'},
-            ExpressionAttributeValues=expression_values,
-            Limit=limit,
-            ScanIndexForward=False
-        )
+        query_params = {
+            'IndexName': operation_index_name,
+            'KeyConditionExpression': key_condition,
+            'ExpressionAttributeNames': {'#ts': 'timestamp'},
+            'ExpressionAttributeValues': expression_values,
+            'Limit': limit,
+            'ScanIndexForward': False
+        }
+        
+        # Add pagination support
+        if exclusive_start_key:
+            query_params['ExclusiveStartKey'] = exclusive_start_key
+        
+        response = table.query(**query_params)
     else:
         # Scan entire table with time filter
         filter_expression = '#ts >= :threshold'
         expression_values = {':threshold': time_threshold}
         
-        response = table.scan(
-            FilterExpression=filter_expression,
-            ExpressionAttributeNames={'#ts': 'timestamp'},
-            ExpressionAttributeValues=expression_values,
-            Limit=limit
-        )
+        scan_params = {
+            'FilterExpression': filter_expression,
+            'ExpressionAttributeNames': {'#ts': 'timestamp'},
+            'ExpressionAttributeValues': expression_values,
+            'Limit': limit
+        }
+        
+        # Add pagination support
+        if exclusive_start_key:
+            scan_params['ExclusiveStartKey'] = exclusive_start_key
+        
+        response = table.scan(**scan_params)
     
     items = response.get('Items', [])
     
     # Sort by timestamp descending (most recent first)
     items.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
     
-    return items
+    return {
+        'items': items,
+        'last_evaluated_key': response.get('LastEvaluatedKey')
+    }
 
 
 def query_client_logs(
     user_context: Dict[str, str],
     client_id: str,
-    query_params: Dict[str, str]
-) -> List[Dict[str, Any]]:
+    query_params: Dict[str, str],
+    page_size: Optional[int] = None,
+    exclusive_start_key: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
     """
     Query audit logs for a specific client with authorization.
     Agents can only query their own clients.
@@ -310,9 +394,11 @@ def query_client_logs(
         user_context: Dictionary with user_id and role
         client_id: Client ID to query logs for
         query_params: Query string parameters (limit, operation)
+        page_size: Number of items per page (if pagination enabled)
+        exclusive_start_key: DynamoDB pagination cursor (for continuing from previous page)
         
     Returns:
-        List of audit log items for the client (sorted DESC by timestamp)
+        Dictionary with 'items' (list of logs) and 'last_evaluated_key' (pagination cursor)
         
     Raises:
         ValueError: If role is not agent OR agent doesn't own this client
@@ -325,34 +411,38 @@ def query_client_logs(
     limit = min(limit, 20)  # Cap at 20 for performance
     operation = query_params.get('operation')  # Optional: CREATE, UPDATE, DELETE
     
-    logger.info(f"Querying logs for client {client_id}: role={role}, limit={limit}, operation={operation}")
+    # Use page_size if provided, otherwise fall back to limit for backward compatibility
+    effective_limit = page_size if page_size else limit
+    
+    logger.info(f"Querying logs for client {client_id}: role={role}, limit={effective_limit}, operation={operation}")
     
     # Authorization: AGENT ONLY
     if role not in ['agent']:
         logger.warning(f"Non-agent role {role} attempted to access client-specific endpoint")
         raise ValueError("This endpoint is for agents only. Admins should use GET /api/v1/audit/logs")
     
-    # Verify agent owns this client
-    # Strategy: Query ONE log to get agent_id, then verify ownership
-    verification_response = table.query(
-        KeyConditionExpression='client_id = :client_id',
-        ExpressionAttributeValues={':client_id': client_id},
-        Limit=1,
-        ScanIndexForward=False  # Most recent first
-    )
-    
-    if not verification_response.get('Items'):
-        # No logs found - client doesn't exist or has no activity
-        logger.warning(f"No logs found for client {client_id}")
-        raise ValueError("Client not found")
-    
-    # Check if agent owns this client
-    client_agent_id = verification_response['Items'][0].get('agent_id')
-    if client_agent_id != user_id:
-        logger.warning(f"Agent {user_id} attempted to access client {client_id} owned by {client_agent_id}")
-        raise ValueError("Client not found")  # Don't reveal client exists
-    
-    logger.info(f"Agent {user_id} authorized to query logs for client {client_id}")
+    # Verify agent owns this client (only if not paginating - skip verification on subsequent pages)
+    if not exclusive_start_key:
+        # Strategy: Query ONE log to get agent_id, then verify ownership
+        verification_response = table.query(
+            KeyConditionExpression='client_id = :client_id',
+            ExpressionAttributeValues={':client_id': client_id},
+            Limit=1,
+            ScanIndexForward=False  # Most recent first
+        )
+        
+        if not verification_response.get('Items'):
+            # No logs found - client doesn't exist or has no activity
+            logger.warning(f"No logs found for client {client_id}")
+            raise ValueError("Client not found")
+        
+        # Check if agent owns this client
+        client_agent_id = verification_response['Items'][0].get('agent_id')
+        if client_agent_id != user_id:
+            logger.warning(f"Agent {user_id} attempted to access client {client_id} owned by {client_agent_id}")
+            raise ValueError("Client not found")  # Don't reveal client exists
+        
+        logger.info(f"Agent {user_id} authorized to query logs for client {client_id}")
     
     # Build query expression
     key_condition = 'client_id = :client_id'
@@ -372,9 +462,13 @@ def query_client_logs(
     query_params_ddb = {
         'KeyConditionExpression': key_condition,
         'ExpressionAttributeValues': expression_values,
-        'Limit': limit,
+        'Limit': effective_limit,
         'ScanIndexForward': False  # Most recent first (DESC)
     }
+    
+    # Add pagination support
+    if exclusive_start_key:
+        query_params_ddb['ExclusiveStartKey'] = exclusive_start_key
     
     if filter_expression:
         query_params_ddb['FilterExpression'] = filter_expression
@@ -384,4 +478,7 @@ def query_client_logs(
     
     logger.info(f"Retrieved {len(items)} logs for client {client_id}")
     
-    return items
+    return {
+        'items': items,
+        'last_evaluated_key': response.get('LastEvaluatedKey')
+    }

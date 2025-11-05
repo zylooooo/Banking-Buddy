@@ -193,7 +193,7 @@ resource "aws_iam_role_policy" "elastic_beanstalk_ses" {
           "ses:SendEmail",
           "ses:SendRawEmail"
         ]
-        Resource = var.ses_email_arn
+        Resource = "arn:aws:ses:${var.aws_region}:${data.aws_caller_identity.current.account_id}:identity/*"
       }
     ]
   })
@@ -233,7 +233,7 @@ resource "aws_iam_role_policy" "cognito_ses" {
           "ses:SendEmail",
           "ses:SendRawEmail"
         ]
-        Resource = var.ses_email_arn
+        Resource = "arn:aws:ses:${var.aws_region}:${data.aws_caller_identity.current.account_id}:identity/*"
       }
     ]
   })
