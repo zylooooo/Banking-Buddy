@@ -83,42 +83,28 @@ export default function CommunicationPage() {
                         jwt = window.localStorage.getItem(cognitoKeys[cognitoKeys.length - 1]);
                     }
                 }
-                // Fetch logs using paginated endpoint with operation=UPDATE filter
+                // Fetch first 10 logs using paginated endpoint with operation=UPDATE filter
                 // Backend filters by operation, then we filter by attribute_name and after_value on frontend
-                let allFetchedLogs = [];
-                let currentToken = null;
-                let hasMorePages = true;
-                let finalNextToken = null;
+                const response = await auditApi.getLogsPaginated(10, null, 'UPDATE');
+                let fetchedLogs = response.data?.logs || [];
+                const responseNextToken = response.data?.next_token || null;
+                const responseHasMore = response.data?.has_more || false;
                 
-                // Keep fetching pages until we have at least 10 filtered logs or no more pages
-                while (hasMorePages && allFetchedLogs.length < 10) {
-                    const response = await auditApi.getLogsPaginated(10, currentToken, 'UPDATE');
-                    const fetchedLogs = response.data?.logs || [];
-                    currentToken = response.data?.next_token || null;
-                    hasMorePages = response.data?.has_more || false;
-                    
-                    // Filter logs for verification status update to Verified
-                    // Backend already filtered by operation=UPDATE, so we only need to filter by attribute and value
-                    const verificationLogs = fetchedLogs.filter(log => {
-                        return log.attribute_name === 'Verification Status' &&
-                            log.after_value === 'Verified';
-                    });
-                    
-                    allFetchedLogs = [...allFetchedLogs, ...verificationLogs];
-                    finalNextToken = currentToken;
-                    
-                    // Continue if we still have < 10 filtered logs and there are more pages
-                    // The while condition will handle the break
-                }
+                // Filter logs for verification status update to Verified
+                // Backend already filtered by operation=UPDATE, so we only need to filter by attribute and value
+                const verificationLogs = fetchedLogs.filter(log => {
+                    return log.attribute_name === 'Verification Status' &&
+                        log.after_value === 'Verified';
+                });
                 
-                setLogs(allFetchedLogs);
-                setNextToken(finalNextToken);
-                setHasMore(hasMorePages);
+                setLogs(verificationLogs);
+                setNextToken(responseNextToken);
+                setHasMore(responseHasMore);
                 setLoading(false);
 
                 // Fetch agent/client names for logs
-                if (allFetchedLogs.length > 0) {
-                    const { agentNameMap, clientNameMap } = await fetchNamesFromLogs(allFetchedLogs, jwt);
+                if (verificationLogs.length > 0) {
+                    const { agentNameMap, clientNameMap } = await fetchNamesFromLogs(verificationLogs, jwt);
                     setAgentNameMap(agentNameMap);
                     setClientNameMap(clientNameMap);
                 } else {
@@ -149,42 +135,28 @@ export default function CommunicationPage() {
                 }
             }
             
-            // Fetch next batch of logs using pagination token with operation=UPDATE filter
+            // Fetch next 10 logs using pagination token with operation=UPDATE filter
             // Backend filters by operation, then we filter by attribute_name and after_value on frontend
-            let allNewLogs = [];
-            let currentToken = nextToken;
-            let hasMorePages = true;
-            let finalNextToken = null;
+            const response = await auditApi.getLogsPaginated(10, nextToken, 'UPDATE');
+            let newLogs = response.data?.logs || [];
+            const responseNextToken = response.data?.next_token || null;
+            const responseHasMore = response.data?.has_more || false;
             
-            // Keep fetching pages until we have at least 10 filtered logs or no more pages
-            while (hasMorePages && allNewLogs.length < 10) {
-                const response = await auditApi.getLogsPaginated(10, currentToken, 'UPDATE');
-                const fetchedLogs = response.data?.logs || [];
-                currentToken = response.data?.next_token || null;
-                hasMorePages = response.data?.has_more || false;
-                
-                // Filter logs for verification status update to Verified
-                // Backend already filtered by operation=UPDATE, so we only need to filter by attribute and value
-                const verificationLogs = fetchedLogs.filter(log => {
-                    return log.attribute_name === 'Verification Status' &&
-                        log.after_value === 'Verified';
-                });
-                
-                allNewLogs = [...allNewLogs, ...verificationLogs];
-                finalNextToken = currentToken;
-                
-                // Continue if we still have < 10 filtered logs and there are more pages
-                // The while condition will handle the break
-            }
+            // Filter logs for verification status update to Verified
+            // Backend already filtered by operation=UPDATE, so we only need to filter by attribute and value
+            const verificationLogs = newLogs.filter(log => {
+                return log.attribute_name === 'Verification Status' &&
+                    log.after_value === 'Verified';
+            });
 
             // Append new logs to existing logs
-            setLogs(prevLogs => [...prevLogs, ...allNewLogs]);
-            setNextToken(finalNextToken);
-            setHasMore(hasMorePages);
+            setLogs(prevLogs => [...prevLogs, ...verificationLogs]);
+            setNextToken(responseNextToken);
+            setHasMore(responseHasMore);
 
             // Fetch agent/client names for new logs and merge with existing maps
-            if (allNewLogs.length > 0) {
-                const { agentNameMap: newAgentNameMap, clientNameMap: newClientNameMap } = await fetchNamesFromLogs(allNewLogs, jwt);
+            if (verificationLogs.length > 0) {
+                const { agentNameMap: newAgentNameMap, clientNameMap: newClientNameMap } = await fetchNamesFromLogs(verificationLogs, jwt);
                 setAgentNameMap(prev => ({ ...prev, ...newAgentNameMap }));
                 setClientNameMap(prev => ({ ...prev, ...newClientNameMap }));
             }
