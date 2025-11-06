@@ -224,17 +224,25 @@ def query_audit_logs(
     user_id = user_context['user_id']
     
     # Parse query parameters
-    hours = int(query_params.get('hours', '24'))
+    hours = query_params.get('hours')  # Optional time filter
     limit = int(query_params.get('limit', '100'))
     operation = query_params.get('operation')  # Optional filter
     
     # Use page_size if provided, otherwise fall back to limit for backward compatibility
     effective_limit = page_size if page_size else limit
     
-    # Calculate time threshold (24 hours ago by default)
-    time_threshold = (datetime.utcnow() - timedelta(hours=hours)).isoformat() + 'Z'
+    # Calculate time threshold if hours specified
+    # For pagination (page_size specified), default to no time filter to get ALL logs
+    if hours:
+        time_threshold = (datetime.utcnow() - timedelta(hours=int(hours))).isoformat() + 'Z'
+    elif page_size:
+        # Pagination mode: get all logs (set very old threshold)
+        time_threshold = '2000-01-01T00:00:00Z'
+    else:
+        # Legacy mode: default to 24 hours for backward compatibility
+        time_threshold = (datetime.utcnow() - timedelta(hours=24)).isoformat() + 'Z'
     
-    logger.info(f"Querying logs: role={role}, hours={hours}, operation={operation}, limit={effective_limit}")
+    logger.info(f"Querying logs: role={role}, hours={hours}, operation={operation}, limit={effective_limit}, threshold={time_threshold}")
     
     # Query based on role
     if role == 'agent':
@@ -299,11 +307,16 @@ def query_agent_logs(
             }
             
             response = table.query(**query_params)
-            items = response.get('Items', [])[:limit]
+            items = response.get('Items', [])
+            items_to_return = items[:limit]
+            
+            # Determine if there's more data
+            has_last_key = response.get('LastEvaluatedKey') is not None
+            has_more = len(items) > limit or (len(items) == limit and has_last_key)
             
             return {
-                'items': items,
-                'last_evaluated_key': response.get('LastEvaluatedKey')
+                'items': items_to_return,
+                'last_evaluated_key': response.get('LastEvaluatedKey') if has_more else None
             }
         
         # First page: Keep querying until we have enough items
@@ -439,13 +452,15 @@ def query_all_logs(
             # Trim to requested limit
             items_to_return = items[:limit]
             
-            # If we got fewer items than requested but there's more data, return cursor
-            # If we got exactly limit or more, and there's a cursor, there's more
-            has_more = response.get('LastEvaluatedKey') is not None
+            # Determine if there's more data:
+            # - If we got more items than limit after filtering, definitely more
+            # - If we got fewer items than limit, check if DynamoDB has more to scan
+            has_last_key = response.get('LastEvaluatedKey') is not None
+            has_more = len(items) > limit or (len(items) == limit and has_last_key)
             
             return {
                 'items': items_to_return,
-                'last_evaluated_key': response.get('LastEvaluatedKey') if (has_more or len(items_to_return) >= limit) else None
+                'last_evaluated_key': response.get('LastEvaluatedKey') if has_more else None
             }
         
         # First page: Keep scanning until we have enough items or no more data
@@ -588,13 +603,18 @@ def query_client_logs(
             }
             
             response = table.query(**query_params_ddb)
-            items = response.get('Items', [])[:effective_limit]
+            items = response.get('Items', [])
+            items_to_return = items[:effective_limit]
             
-            logger.info(f"Retrieved {len(items)} logs for client {client_id} (continuation with operation filter)")
+            # Determine if there's more data
+            has_last_key = response.get('LastEvaluatedKey') is not None
+            has_more = len(items) > effective_limit or (len(items) == effective_limit and has_last_key)
+            
+            logger.info(f"Retrieved {len(items_to_return)} logs for client {client_id} (continuation with operation filter)")
             
             return {
-                'items': items,
-                'last_evaluated_key': response.get('LastEvaluatedKey')
+                'items': items_to_return,
+                'last_evaluated_key': response.get('LastEvaluatedKey') if has_more else None
             }
         
         # First page: Keep querying until we have enough items
