@@ -282,29 +282,85 @@ def query_agent_logs(
         filter_expression = 'crud_operation = :operation'
         expression_values[':operation'] = operation.upper()
     
-    # Query AgentIndex
-    query_params = {
-        'IndexName': agent_index_name,
-        'KeyConditionExpression': key_condition,
-        'ExpressionAttributeNames': {'#ts': 'timestamp'},
-        'ExpressionAttributeValues': expression_values,
-        'Limit': limit,
-        'ScanIndexForward': False  # Most recent first
-    }
-    
-    # Add pagination support
-    if exclusive_start_key:
-        query_params['ExclusiveStartKey'] = exclusive_start_key
-    
+    # If operation filter is specified, we need to keep querying until we get enough items
+    # because FilterExpression is applied AFTER Limit
     if filter_expression:
-        query_params['FilterExpression'] = filter_expression
-    
-    response = table.query(**query_params)
-    
-    return {
-        'items': response.get('Items', []),
-        'last_evaluated_key': response.get('LastEvaluatedKey')
-    }
+        # If continuing from a previous page, do a single query to maintain cursor consistency
+        if exclusive_start_key:
+            query_params = {
+                'IndexName': agent_index_name,
+                'KeyConditionExpression': key_condition,
+                'ExpressionAttributeNames': {'#ts': 'timestamp'},
+                'ExpressionAttributeValues': expression_values,
+                'FilterExpression': filter_expression,
+                'Limit': limit * 2,  # Request more to account for filtering
+                'ScanIndexForward': False,
+                'ExclusiveStartKey': exclusive_start_key
+            }
+            
+            response = table.query(**query_params)
+            items = response.get('Items', [])[:limit]
+            
+            return {
+                'items': items,
+                'last_evaluated_key': response.get('LastEvaluatedKey')
+            }
+        
+        # First page: Keep querying until we have enough items
+        all_items = []
+        last_evaluated_key = None
+        
+        while len(all_items) < limit:
+            query_params = {
+                'IndexName': agent_index_name,
+                'KeyConditionExpression': key_condition,
+                'ExpressionAttributeNames': {'#ts': 'timestamp'},
+                'ExpressionAttributeValues': expression_values,
+                'FilterExpression': filter_expression,
+                'Limit': limit * 2,  # Request more to account for filtering
+                'ScanIndexForward': False
+            }
+            
+            if last_evaluated_key:
+                query_params['ExclusiveStartKey'] = last_evaluated_key
+            
+            response = table.query(**query_params)
+            items = response.get('Items', [])
+            all_items.extend(items)
+            
+            last_evaluated_key = response.get('LastEvaluatedKey')
+            if not last_evaluated_key:
+                break  # No more data
+        
+        # Trim to requested limit
+        items_to_return = all_items[:limit]
+        has_more_items = len(all_items) > limit or (len(all_items) == limit and last_evaluated_key is not None)
+        
+        return {
+            'items': items_to_return,
+            'last_evaluated_key': last_evaluated_key if has_more_items else None
+        }
+    else:
+        # No FilterExpression, so Limit works as expected
+        query_params = {
+            'IndexName': agent_index_name,
+            'KeyConditionExpression': key_condition,
+            'ExpressionAttributeNames': {'#ts': 'timestamp'},
+            'ExpressionAttributeValues': expression_values,
+            'Limit': limit,
+            'ScanIndexForward': False  # Most recent first
+        }
+        
+        # Add pagination support
+        if exclusive_start_key:
+            query_params['ExclusiveStartKey'] = exclusive_start_key
+        
+        response = table.query(**query_params)
+        
+        return {
+            'items': response.get('Items', []),
+            'last_evaluated_key': response.get('LastEvaluatedKey')
+        }
 
 
 def query_all_logs(
@@ -347,33 +403,92 @@ def query_all_logs(
             query_params['ExclusiveStartKey'] = exclusive_start_key
         
         response = table.query(**query_params)
+        items = response.get('Items', [])
+        
+        # Sort by timestamp descending (most recent first)
+        items.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        
+        return {
+            'items': items,
+            'last_evaluated_key': response.get('LastEvaluatedKey')
+        }
     else:
         # Scan entire table with time filter
+        # Note: Scan's Limit applies BEFORE FilterExpression, so we need to keep scanning
+        # until we have enough items or run out of data
         filter_expression = '#ts >= :threshold'
         expression_values = {':threshold': time_threshold}
         
-        scan_params = {
-            'FilterExpression': filter_expression,
-            'ExpressionAttributeNames': {'#ts': 'timestamp'},
-            'ExpressionAttributeValues': expression_values,
-            'Limit': limit
-        }
-        
-        # Add pagination support
+        # If continuing from a previous page (exclusive_start_key provided),
+        # do a single scan operation to maintain cursor consistency
         if exclusive_start_key:
-            scan_params['ExclusiveStartKey'] = exclusive_start_key
+            scan_params = {
+                'FilterExpression': filter_expression,
+                'ExpressionAttributeNames': {'#ts': 'timestamp'},
+                'ExpressionAttributeValues': expression_values,
+                'Limit': limit * 3,  # Request more to account for filtering
+                'ExclusiveStartKey': exclusive_start_key
+            }
+            
+            response = table.scan(**scan_params)
+            items = response.get('Items', [])
+            
+            # Sort by timestamp descending (most recent first)
+            items.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+            
+            # Trim to requested limit
+            items_to_return = items[:limit]
+            
+            # If we got fewer items than requested but there's more data, return cursor
+            # If we got exactly limit or more, and there's a cursor, there's more
+            has_more = response.get('LastEvaluatedKey') is not None
+            
+            return {
+                'items': items_to_return,
+                'last_evaluated_key': response.get('LastEvaluatedKey') if (has_more or len(items_to_return) >= limit) else None
+            }
         
-        response = table.scan(**scan_params)
-    
-    items = response.get('Items', [])
-    
-    # Sort by timestamp descending (most recent first)
-    items.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
-    
-    return {
-        'items': items,
-        'last_evaluated_key': response.get('LastEvaluatedKey')
-    }
+        # First page: Keep scanning until we have enough items or no more data
+        all_items = []
+        last_evaluated_key = None
+        
+        while len(all_items) < limit:
+            scan_params = {
+                'FilterExpression': filter_expression,
+                'ExpressionAttributeNames': {'#ts': 'timestamp'},
+                'ExpressionAttributeValues': expression_values,
+                'Limit': limit * 3  # Request more to account for filtering
+            }
+            
+            # Add pagination support
+            if last_evaluated_key:
+                scan_params['ExclusiveStartKey'] = last_evaluated_key
+            
+            response = table.scan(**scan_params)
+            items = response.get('Items', [])
+            all_items.extend(items)
+            
+            # Check if there's more data to scan
+            last_evaluated_key = response.get('LastEvaluatedKey')
+            if not last_evaluated_key:
+                # No more data in table
+                break
+        
+        # Sort by timestamp descending (most recent first)
+        all_items.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        
+        # Trim to requested limit
+        items_to_return = all_items[:limit]
+        
+        # Determine if there are more items
+        # If we got more than limit, there are definitely more
+        # If we stopped because of no more data, check if we hit the limit exactly
+        has_more_items = len(all_items) > limit or (len(all_items) == limit and last_evaluated_key is not None)
+        
+        return {
+            'items': items_to_return,
+            'last_evaluated_key': last_evaluated_key if has_more_items else None
+        }
 
 
 def query_client_logs(
@@ -458,27 +573,83 @@ def query_client_logs(
         else:
             logger.warning(f"Invalid operation filter: {operation}")
     
-    # Query logs for this client (main table query by partition key)
-    query_params_ddb = {
-        'KeyConditionExpression': key_condition,
-        'ExpressionAttributeValues': expression_values,
-        'Limit': effective_limit,
-        'ScanIndexForward': False  # Most recent first (DESC)
-    }
-    
-    # Add pagination support
-    if exclusive_start_key:
-        query_params_ddb['ExclusiveStartKey'] = exclusive_start_key
-    
+    # If operation filter is specified, we need to keep querying until we get enough items
+    # because FilterExpression is applied AFTER Limit
     if filter_expression:
-        query_params_ddb['FilterExpression'] = filter_expression
-    
-    response = table.query(**query_params_ddb)
-    items = response.get('Items', [])
-    
-    logger.info(f"Retrieved {len(items)} logs for client {client_id}")
-    
-    return {
-        'items': items,
-        'last_evaluated_key': response.get('LastEvaluatedKey')
-    }
+        # If continuing from a previous page, do a single query to maintain cursor consistency
+        if exclusive_start_key:
+            query_params_ddb = {
+                'KeyConditionExpression': key_condition,
+                'ExpressionAttributeValues': expression_values,
+                'FilterExpression': filter_expression,
+                'Limit': effective_limit * 2,  # Request more to account for filtering
+                'ScanIndexForward': False,
+                'ExclusiveStartKey': exclusive_start_key
+            }
+            
+            response = table.query(**query_params_ddb)
+            items = response.get('Items', [])[:effective_limit]
+            
+            logger.info(f"Retrieved {len(items)} logs for client {client_id} (continuation with operation filter)")
+            
+            return {
+                'items': items,
+                'last_evaluated_key': response.get('LastEvaluatedKey')
+            }
+        
+        # First page: Keep querying until we have enough items
+        all_items = []
+        last_evaluated_key = None
+        
+        while len(all_items) < effective_limit:
+            query_params_ddb = {
+                'KeyConditionExpression': key_condition,
+                'ExpressionAttributeValues': expression_values,
+                'FilterExpression': filter_expression,
+                'Limit': effective_limit * 2,  # Request more to account for filtering
+                'ScanIndexForward': False
+            }
+            
+            if last_evaluated_key:
+                query_params_ddb['ExclusiveStartKey'] = last_evaluated_key
+            
+            response = table.query(**query_params_ddb)
+            items = response.get('Items', [])
+            all_items.extend(items)
+            
+            last_evaluated_key = response.get('LastEvaluatedKey')
+            if not last_evaluated_key:
+                break  # No more data
+        
+        # Trim to requested limit
+        items_to_return = all_items[:effective_limit]
+        has_more_items = len(all_items) > effective_limit or (len(all_items) == effective_limit and last_evaluated_key is not None)
+        
+        logger.info(f"Retrieved {len(items_to_return)} logs for client {client_id} (with operation filter)")
+        
+        return {
+            'items': items_to_return,
+            'last_evaluated_key': last_evaluated_key if has_more_items else None
+        }
+    else:
+        # No FilterExpression, so Limit works as expected
+        query_params_ddb = {
+            'KeyConditionExpression': key_condition,
+            'ExpressionAttributeValues': expression_values,
+            'Limit': effective_limit,
+            'ScanIndexForward': False  # Most recent first (DESC)
+        }
+        
+        # Add pagination support
+        if exclusive_start_key:
+            query_params_ddb['ExclusiveStartKey'] = exclusive_start_key
+        
+        response = table.query(**query_params_ddb)
+        items = response.get('Items', [])
+        
+        logger.info(f"Retrieved {len(items)} logs for client {client_id}")
+        
+        return {
+            'items': items,
+            'last_evaluated_key': response.get('LastEvaluatedKey')
+        }
