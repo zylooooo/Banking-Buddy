@@ -58,6 +58,9 @@ export default function CommunicationPage() {
     const [error, setError] = useState(null);
     const [agentNameMap, setAgentNameMap] = useState({});
     const [clientNameMap, setClientNameMap] = useState({});
+    const [nextToken, setNextToken] = useState(null);
+    const [hasMore, setHasMore] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -80,20 +83,42 @@ export default function CommunicationPage() {
                         jwt = window.localStorage.getItem(cognitoKeys[cognitoKeys.length - 1]);
                     }
                 }
-                // Fetch logs from audit API using environment variable
-                const response = await auditApi.getAllLogs();
-                // Filter logs for verification status update to Verified
-                const verificationLogs = (response.data?.logs || []).filter(log => {
-                    return log.crud_operation === 'UPDATE' &&
-                        log.attribute_name === 'Verification Status' &&
-                        log.after_value === 'Verified';
-                });
-                setLogs(verificationLogs);
+                // Fetch logs using paginated endpoint with operation=UPDATE filter
+                // Backend filters by operation, then we filter by attribute_name and after_value on frontend
+                let allFetchedLogs = [];
+                let currentToken = null;
+                let hasMorePages = true;
+                let finalNextToken = null;
+                
+                // Keep fetching pages until we have at least 10 filtered logs or no more pages
+                while (hasMorePages && allFetchedLogs.length < 10) {
+                    const response = await auditApi.getLogsPaginated(10, currentToken, 'UPDATE');
+                    const fetchedLogs = response.data?.logs || [];
+                    currentToken = response.data?.next_token || null;
+                    hasMorePages = response.data?.has_more || false;
+                    
+                    // Filter logs for verification status update to Verified
+                    // Backend already filtered by operation=UPDATE, so we only need to filter by attribute and value
+                    const verificationLogs = fetchedLogs.filter(log => {
+                        return log.attribute_name === 'Verification Status' &&
+                            log.after_value === 'Verified';
+                    });
+                    
+                    allFetchedLogs = [...allFetchedLogs, ...verificationLogs];
+                    finalNextToken = currentToken;
+                    
+                    // Continue if we still have < 10 filtered logs and there are more pages
+                    // The while condition will handle the break
+                }
+                
+                setLogs(allFetchedLogs);
+                setNextToken(finalNextToken);
+                setHasMore(hasMorePages);
                 setLoading(false);
 
                 // Fetch agent/client names for logs
-                if (verificationLogs.length > 0) {
-                    const { agentNameMap, clientNameMap } = await fetchNamesFromLogs(verificationLogs, jwt);
+                if (allFetchedLogs.length > 0) {
+                    const { agentNameMap, clientNameMap } = await fetchNamesFromLogs(allFetchedLogs, jwt);
                     setAgentNameMap(agentNameMap);
                     setClientNameMap(clientNameMap);
                 } else {
@@ -108,6 +133,68 @@ export default function CommunicationPage() {
         };
         loadLogs();
     }, [navigate]);
+
+    const loadMoreLogs = async () => {
+        if (!nextToken || loadingMore) return;
+        
+        setLoadingMore(true);
+        try {
+            // Get JWT token from localStorage for current user
+            const cognitoUser = await getUserFromToken();
+            let jwt = '';
+            if (cognitoUser && cognitoUser.sub) {
+                const cognitoKeys = Object.keys(window.localStorage).filter(k => k.includes('CognitoIdentityServiceProvider') && k.includes(cognitoUser.sub) && k.endsWith('.idToken'));
+                if (cognitoKeys.length > 0) {
+                    jwt = window.localStorage.getItem(cognitoKeys[cognitoKeys.length - 1]);
+                }
+            }
+            
+            // Fetch next batch of logs using pagination token with operation=UPDATE filter
+            // Backend filters by operation, then we filter by attribute_name and after_value on frontend
+            let allNewLogs = [];
+            let currentToken = nextToken;
+            let hasMorePages = true;
+            let finalNextToken = null;
+            
+            // Keep fetching pages until we have at least 10 filtered logs or no more pages
+            while (hasMorePages && allNewLogs.length < 10) {
+                const response = await auditApi.getLogsPaginated(10, currentToken, 'UPDATE');
+                const fetchedLogs = response.data?.logs || [];
+                currentToken = response.data?.next_token || null;
+                hasMorePages = response.data?.has_more || false;
+                
+                // Filter logs for verification status update to Verified
+                // Backend already filtered by operation=UPDATE, so we only need to filter by attribute and value
+                const verificationLogs = fetchedLogs.filter(log => {
+                    return log.attribute_name === 'Verification Status' &&
+                        log.after_value === 'Verified';
+                });
+                
+                allNewLogs = [...allNewLogs, ...verificationLogs];
+                finalNextToken = currentToken;
+                
+                // Continue if we still have < 10 filtered logs and there are more pages
+                // The while condition will handle the break
+            }
+
+            // Append new logs to existing logs
+            setLogs(prevLogs => [...prevLogs, ...allNewLogs]);
+            setNextToken(finalNextToken);
+            setHasMore(hasMorePages);
+
+            // Fetch agent/client names for new logs and merge with existing maps
+            if (allNewLogs.length > 0) {
+                const { agentNameMap: newAgentNameMap, clientNameMap: newClientNameMap } = await fetchNamesFromLogs(allNewLogs, jwt);
+                setAgentNameMap(prev => ({ ...prev, ...newAgentNameMap }));
+                setClientNameMap(prev => ({ ...prev, ...newClientNameMap }));
+            }
+        } catch (err) {
+            console.error('Failed to load more logs:', err);
+            setError(err.response?.data?.message || err.message || 'Failed to load more logs');
+        } finally {
+            setLoadingMore(false);
+        }
+    };
 
     // All communicationApi and /communications API calls removed
 
@@ -144,34 +231,47 @@ export default function CommunicationPage() {
                                     No verification logs found.
                                 </div>
                             ) : (
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b border-slate-700">
-                                            <th className="text-left p-4 text-slate-300 font-medium">Date/Time</th>
-                                            <th className="text-left p-4 text-slate-300 font-medium">Client Name</th>
-                                            <th className="text-left p-4 text-slate-300 font-medium">Agent Name</th>
-                                            <th className="text-left p-4 text-slate-300 font-medium">Previous Status</th>
-                                            <th className="text-left p-4 text-slate-300 font-medium">Current Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {logs.map((log, idx) => {
-                                            const aid = log.agent_id;
-                                            const cid = log.client_id;
-                                            return (
-                                                <tr key={idx} className="border-b border-slate-700 hover:bg-slate-750">
-                                                    <td className="p-4 text-slate-300 text-sm">
-                                                        {log.timestamp ? new Date(log.timestamp).toLocaleString('en-SG') : ''}
-                                                    </td>
-                                                    <td className="p-4 text-slate-300">{cid ? clientNameMap[cid] || cid : '-'}</td>
-                                                    <td className="p-4 text-slate-300">{aid ? agentNameMap[aid] || aid : '-'}</td>
-                                                    <td className="p-4 text-slate-300">{log.before_value || '-'}</td>
-                                                    <td className="p-4 text-slate-300">{log.after_value || '-'}</td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
+                                <>
+                                    <table className="w-full">
+                                        <thead>
+                                            <tr className="border-b border-slate-700">
+                                                <th className="text-left p-4 text-slate-300 font-medium">Date/Time</th>
+                                                <th className="text-left p-4 text-slate-300 font-medium">Client Name</th>
+                                                <th className="text-left p-4 text-slate-300 font-medium">Agent Name</th>
+                                                <th className="text-left p-4 text-slate-300 font-medium">Previous Status</th>
+                                                <th className="text-left p-4 text-slate-300 font-medium">Current Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {logs.map((log, idx) => {
+                                                const aid = log.agent_id;
+                                                const cid = log.client_id;
+                                                return (
+                                                    <tr key={idx} className="border-b border-slate-700 hover:bg-slate-750">
+                                                        <td className="p-4 text-slate-300 text-sm">
+                                                            {log.timestamp ? new Date(log.timestamp).toLocaleString('en-SG') : ''}
+                                                        </td>
+                                                        <td className="p-4 text-slate-300">{cid ? clientNameMap[cid] || cid : '-'}</td>
+                                                        <td className="p-4 text-slate-300">{aid ? agentNameMap[aid] || aid : '-'}</td>
+                                                        <td className="p-4 text-slate-300">{log.before_value || '-'}</td>
+                                                        <td className="p-4 text-slate-300">{log.after_value || '-'}</td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                    {hasMore && (
+                                        <div className="mt-4 pb-4 flex justify-center">
+                                            <button
+                                                onClick={loadMoreLogs}
+                                                disabled={loadingMore}
+                                                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                                {loadingMore ? 'Loading...' : 'See More'}
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
                     </div>

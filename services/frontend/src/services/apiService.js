@@ -137,6 +137,13 @@ export const auditApi = {
         if (filters.attribute) params.attribute = filters.attribute;
         return auditApiClient.get('/api/v1/audit/logs', { params });
     },
+    // GET /api/v1/audit/logs - get paginated audit logs
+    getLogsPaginated: (pageSize = 10, nextToken = null, operation = null) => {
+        const params = { page_size: pageSize };
+        if (nextToken) params.next_token = nextToken;
+        if (operation) params.operation = operation;
+        return auditApiClient.get('/api/v1/audit/logs', { params });
+    },
     // GET /api/v1/audit/logs?clientId=CLIENT_ID - get logs by client ID
     getLogsByClientId: (clientId) => auditApiClient.get('/api/v1/audit/logs', { params: { clientId } }),
     // GET /api/v1/audit/logs?agentId=AGENT_ID - get logs by agent ID

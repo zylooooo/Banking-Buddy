@@ -68,6 +68,9 @@ export default function DashboardPage() {
     const [logsError, setLogsError] = useState(null);
     const [userNameMap, setUserNameMap] = useState({});
     const [clientNameMap, setClientNameMap] = useState({});
+    const [nextToken, setNextToken] = useState(null);
+    const [hasMore, setHasMore] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -111,9 +114,12 @@ export default function DashboardPage() {
                         jwt = window.localStorage.getItem(cognitoKeys[cognitoKeys.length - 1]);
                     }
                 }
-                // Fetch logs from audit API using environment variable
-                const response = await auditApi.getAllLogs();
+                
+                // Fetch first 10 logs using paginated endpoint
+                const response = await auditApi.getLogsPaginated(10);
                 let fetchedLogs = response.data?.logs || [];
+                const responseNextToken = response.data?.next_token || null;
+                const responseHasMore = response.data?.has_more || false;
 
                 // Filter logs based on role
                 const current = await getUserFromToken();
@@ -161,7 +167,10 @@ export default function DashboardPage() {
                         fetchedLogs = [];
                     }
                 }
+                
                 setLogs(fetchedLogs);
+                setNextToken(responseNextToken);
+                setHasMore(responseHasMore);
                 setLogsLoading(false);
 
                 // Fetch user/client names for logs
@@ -180,6 +189,84 @@ export default function DashboardPage() {
         };
         loadLogs();
     }, [navigate]);
+
+    const loadMoreLogs = async () => {
+        if (!nextToken || loadingMore) return;
+        
+        setLoadingMore(true);
+        try {
+            // Get JWT token from localStorage for current user
+            const cognitoUser = await getUserFromToken();
+            let jwt = '';
+            if (cognitoUser && cognitoUser.sub) {
+                const cognitoKeys = Object.keys(window.localStorage).filter(k => k.includes('CognitoIdentityServiceProvider') && k.includes(cognitoUser.sub) && k.endsWith('.idToken'));
+                if (cognitoKeys.length > 0) {
+                    jwt = window.localStorage.getItem(cognitoKeys[cognitoKeys.length - 1]);
+                }
+            }
+            
+            // Fetch next 10 logs using pagination token
+            const response = await auditApi.getLogsPaginated(10, nextToken);
+            let newLogs = response.data?.logs || [];
+            const responseNextToken = response.data?.next_token || null;
+            const responseHasMore = response.data?.has_more || false;
+
+            // Filter logs based on role (same logic as initial load)
+            const current = await getUserFromToken();
+            if (current && current.role !== 'rootAdministrator') {
+                try {
+                    if (current.role === 'agent') {
+                        const clientsResp = await clientApi.getAllClients(0, 100);
+                        const pageData = clientsResp.data?.data;
+                        let clients = [];
+                        if (Array.isArray(pageData)) {
+                            clients = pageData;
+                        } else if (pageData?.content) {
+                            clients = pageData.content;
+                        } else if (clientsResp.data?.clients) {
+                            clients = clientsResp.data.clients;
+                        }
+                        const clientIds = clients.map(c => c.id || c.clientId);
+                        if (clientIds.length > 0) {
+                            newLogs = newLogs.filter(l => clientIds.includes(l.client_id));
+                        } else {
+                            newLogs = [];
+                        }
+                    } else if (current.role === 'admin') {
+                        const usersResp = await userApi.getAllUsers();
+                        const managedAgents = (usersResp.data?.data || [])
+                            .filter(user => user.role === 'agent')
+                            .map(user => user.id);
+                        if (managedAgents.length > 0) {
+                            newLogs = newLogs.filter(l => managedAgents.includes(l.agent_id));
+                        } else {
+                            newLogs = [];
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to filter logs:', e);
+                    newLogs = [];
+                }
+            }
+
+            // Append new logs to existing logs
+            setLogs(prevLogs => [...prevLogs, ...newLogs]);
+            setNextToken(responseNextToken);
+            setHasMore(responseHasMore);
+
+            // Fetch user/client names for new logs and merge with existing maps
+            if (newLogs.length > 0) {
+                const { userNameMap: newUserNameMap, clientNameMap: newClientNameMap } = await fetchNamesFromLogs(newLogs, jwt);
+                setUserNameMap(prev => ({ ...prev, ...newUserNameMap }));
+                setClientNameMap(prev => ({ ...prev, ...newClientNameMap }));
+            }
+        } catch (err) {
+            console.error('Failed to load more logs:', err);
+            setLogsError(err.response?.data?.message || err.message || 'Failed to load more activities');
+        } finally {
+            setLoadingMore(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -305,32 +392,45 @@ export default function DashboardPage() {
                     ) : logs.length === 0 ? (
                         <div className="p-6 text-center text-slate-400">No recent activities found.</div>
                     ) : (
-                        <div className="bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-x-auto">
-                            <table className="w-full">
-                                <thead>
-                                    <tr className="border-b border-slate-700">
-                                        <th className="text-left p-4 text-slate-300 font-medium">User Name</th>
-                                        <th className="text-left p-4 text-slate-300 font-medium">Client Name</th>
-                                        <th className="text-left p-4 text-slate-300 font-medium">Date/Time</th>
-                                        <th className="text-left p-4 text-slate-300 font-medium">Operation</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {logs.map((log, idx) => {
-                                        const uid = log.agent_id || log.user_id;
-                                        const cid = log.client_id;
-                                        return (
-                                            <tr key={idx} className="border-b border-slate-700 hover:bg-slate-750">
-                                                <td className="p-4 text-slate-300">{uid ? userNameMap[uid] || uid : '-'}</td>
-                                                <td className="p-4 text-slate-300">{cid ? clientNameMap[cid] || cid : '-'}</td>
-                                                <td className="p-4 text-slate-300 text-sm">{log.timestamp ? new Date(log.timestamp).toLocaleString('en-SG') : ''}</td>
-                                                <td className="p-4 text-slate-300">{log.crud_operation || '-'}</td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
+                        <>
+                            <div className="bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-x-auto">
+                                <table className="w-full">
+                                    <thead>
+                                        <tr className="border-b border-slate-700">
+                                            <th className="text-left p-4 text-slate-300 font-medium">User Name</th>
+                                            <th className="text-left p-4 text-slate-300 font-medium">Client Name</th>
+                                            <th className="text-left p-4 text-slate-300 font-medium">Date/Time</th>
+                                            <th className="text-left p-4 text-slate-300 font-medium">Operation</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {logs.map((log, idx) => {
+                                            const uid = log.agent_id || log.user_id;
+                                            const cid = log.client_id;
+                                            return (
+                                                <tr key={idx} className="border-b border-slate-700 hover:bg-slate-750">
+                                                    <td className="p-4 text-slate-300">{uid ? userNameMap[uid] || uid : '-'}</td>
+                                                    <td className="p-4 text-slate-300">{cid ? clientNameMap[cid] || cid : '-'}</td>
+                                                    <td className="p-4 text-slate-300 text-sm">{log.timestamp ? new Date(log.timestamp).toLocaleString('en-SG') : ''}</td>
+                                                    <td className="p-4 text-slate-300">{log.crud_operation || '-'}</td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {hasMore && (
+                                <div className="mt-4 flex justify-center">
+                                    <button
+                                        onClick={loadMoreLogs}
+                                        disabled={loadingMore}
+                                        className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        {loadingMore ? 'Loading...' : 'See More'}
+                                    </button>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
 
