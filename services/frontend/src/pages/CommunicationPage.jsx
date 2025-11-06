@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isAuthenticated, getUserFromToken } from '../services/authService';
+import { auditApi } from '../services/apiService';
 import axios from 'axios';
 import Header from '../components/Header';
 import Navigation from '../components/Navigation';
@@ -79,12 +80,8 @@ export default function CommunicationPage() {
                         jwt = window.localStorage.getItem(cognitoKeys[cognitoKeys.length - 1]);
                     }
                 }
-                // Fetch logs from external endpoint with Bearer token
-                const response = await axios.get('https://f827tiy8zj.execute-api.ap-southeast-1.amazonaws.com/api/v1/audit/logs', {
-                    headers: {
-                        Authorization: `Bearer ${jwt}`
-                    }
-                });
+                // Fetch logs from audit API using environment variable
+                const response = await auditApi.getAllLogs();
                 // Filter logs for verification status update to Verified
                 const verificationLogs = (response.data?.logs || []).filter(log => {
                     return log.crud_operation === 'UPDATE' &&

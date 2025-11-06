@@ -108,6 +108,41 @@ export const transactionApi = {
         transactionApiClient.get(`/transactions/search`, { params: searchParams }),
 };
 
+// Audit Service API endpoints
+const AUDIT_API_BASE_URL = import.meta.env.VITE_AUDIT_API_BASE_URL || 'https://f827tiy8zj.execute-api.ap-southeast-1.amazonaws.com';
+
+const auditApiClient = axios.create({
+    baseURL: AUDIT_API_BASE_URL,
+    headers: { 'Content-Type': 'application/json' }
+});
+
+auditApiClient.interceptors.request.use(async (config) => {
+    const token = await getIdToken();
+    if (token) {
+        // Primary: Send Bearer token for API Gateway Cognito authorizer
+        config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+});
+
+export const auditApi = {
+    // GET /api/v1/audit/logs - get all audit logs
+    getAllLogs: (filters = {}) => {
+        const params = {};
+        if (filters.clientId) params.clientId = filters.clientId;
+        if (filters.agentId) params.agentId = filters.agentId;
+        if (filters.operation) params.operation = filters.operation;
+        if (filters.dateFrom) params.dateFrom = filters.dateFrom;
+        if (filters.dateTo) params.dateTo = filters.dateTo;
+        if (filters.attribute) params.attribute = filters.attribute;
+        return auditApiClient.get('/api/v1/audit/logs', { params });
+    },
+    // GET /api/v1/audit/logs?clientId=CLIENT_ID - get logs by client ID
+    getLogsByClientId: (clientId) => auditApiClient.get('/api/v1/audit/logs', { params: { clientId } }),
+    // GET /api/v1/audit/logs?agentId=AGENT_ID - get logs by agent ID
+    getLogsByAgentId: (agentId) => auditApiClient.get('/api/v1/audit/logs', { params: { agentId } }),
+};
+
 // Communication API endpoints
 
 export default apiClient;

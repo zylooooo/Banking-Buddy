@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { isAuthenticated, getUserFromToken } from '../services/authService';
-import { userApi } from '../services/apiService';
+import { userApi, clientApi, auditApi } from '../services/apiService';
 import Header from '../components/Header';
 import Navigation from '../components/Navigation';
 import { 
@@ -13,7 +13,6 @@ import {
 } from '../components/Icons';
 
 import axios from 'axios';
-import { clientApi } from '../services/apiService';
 // Helper to batch fetch user names and client names
 async function fetchNamesFromLogs(logs, jwt) {
     // Collate unique user IDs and client IDs
@@ -112,12 +111,8 @@ export default function DashboardPage() {
                         jwt = window.localStorage.getItem(cognitoKeys[cognitoKeys.length - 1]);
                     }
                 }
-                // Fetch logs from external endpoint with Bearer token
-                const response = await axios.get('https://f827tiy8zj.execute-api.ap-southeast-1.amazonaws.com/api/v1/audit/logs', {
-                    headers: {
-                        Authorization: `Bearer ${jwt}`
-                    }
-                });
+                // Fetch logs from audit API using environment variable
+                const response = await auditApi.getAllLogs();
                 let fetchedLogs = response.data?.logs || [];
 
                 // Filter logs based on role
