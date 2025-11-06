@@ -70,27 +70,28 @@ resource "aws_iam_role_policy" "lambda_writer_dynamodb" {
 # Trigger build when source code changes
 resource "null_resource" "audit_writer_package_builder" {
   triggers = {
-    requirements    = filemd5("${path.module}/lambda/audit-writer/requirements.txt")
-    lambda_function = filemd5("${path.module}/lambda/audit-writer/lambda_function.py")
-    build_script    = filemd5("${path.module}/lambda/audit-writer/build.sh")
+    requirements = filemd5("${path.module}/lambda/audit-writer/requirements.txt")
+    lambda       = filemd5("${path.module}/lambda/audit-writer/lambda_function.py")
+    dockerfile   = filemd5("${path.module}/lambda/audit-writer/Dockerfile.build")
   }
 
   provisioner "local-exec" {
-    command     = "cd ${path.module}/lambda/audit-writer && bash build.sh"
+    command     = "docker build -f ${path.module}/lambda/audit-writer/Dockerfile.build -t lambda-builder-audit-writer ${path.module}/lambda/audit-writer && docker create --name lambda-temp-audit-writer lambda-builder-audit-writer && docker cp lambda-temp-audit-writer:/build/lambda-deployment-package.zip ${path.module}/lambda/audit-writer.zip && docker rm lambda-temp-audit-writer"
     working_dir = path.root
   }
 }
 
 # Lambda Function - Audit Writer
 resource "aws_lambda_function" "audit_writer" {
-  depends_on    = [null_resource.audit_writer_package_builder]
-  filename      = "${path.module}/lambda/audit-writer.zip"
-  function_name = "${var.name_prefix}-audit-writer"
-  role          = aws_iam_role.lambda_writer.arn
-  handler       = "lambda_function.lambda_handler"
-  runtime       = "python3.12"
-  timeout       = 30
-  memory_size   = 256
+  depends_on      = [null_resource.audit_writer_package_builder]
+  filename        = "${path.module}/lambda/audit-writer.zip"
+  source_code_hash = base64sha256("${filemd5("${path.module}/lambda/audit-writer/requirements.txt")}${filemd5("${path.module}/lambda/audit-writer/lambda_function.py")}${filemd5("${path.module}/lambda/audit-writer/Dockerfile.build")}")
+  function_name   = "${var.name_prefix}-audit-writer"
+  role            = aws_iam_role.lambda_writer.arn
+  handler         = "lambda_function.lambda_handler"
+  runtime         = "python3.12"
+  timeout         = 30
+  memory_size     = 256
 
   environment {
     variables = {

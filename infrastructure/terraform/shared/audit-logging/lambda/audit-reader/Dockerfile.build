@@ -1,0 +1,19 @@
+FROM public.ecr.aws/lambda/python:3.12
+
+# Install system dependencies
+RUN microdnf install -y zip
+
+WORKDIR /build
+
+# Copy requirements and source code
+COPY requirements.txt ./
+COPY lambda_function.py ./
+# Copy vendored jwt directory (if it exists, it will be included)
+COPY jwt/ ./jwt/
+
+# Install dependencies to current directory
+RUN pip install -r requirements.txt -t .
+
+# Create deployment package
+RUN zip -r lambda-deployment-package.zip . -x "*.pyc" -x "__pycache__/*"
+
