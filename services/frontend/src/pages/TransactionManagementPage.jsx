@@ -24,6 +24,11 @@ export default function TransactionManagementPage() {
     });
     const [showSyncModal, setShowSyncModal] = useState(false);
     const [syncStatus, setSyncStatus] = useState(null);
+    // Pagination state
+    const [page, setPage] = useState(0);
+    const LIMIT = 10;
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -67,6 +72,14 @@ export default function TransactionManagementPage() {
         loadData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [navigate]);
+    
+    // Reload transactions when page changes
+    useEffect(() => {
+        if (currentUser) {
+            loadTransactions();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [page]);
 
 
     // Always use /api/transactions/search endpoint for loading transactions
@@ -92,6 +105,8 @@ export default function TransactionManagementPage() {
                 // If agent has no clients, show empty state (not an error)
                 if (agentClients.length === 0) {
                     setTransactions([]);
+                    setTotalPages(0);
+                    setTotalElements(0);
                     setError(null); // Ensure no error is shown
                     return; // No API call made
                 }
@@ -102,6 +117,8 @@ export default function TransactionManagementPage() {
                 // Safety check: ensure we have at least one clientId before making API call
                 if (!clientIds || clientIds.length === 0) {
                     setTransactions([]);
+                    setTotalPages(0);
+                    setTotalElements(0);
                     setError(null);
                     return;
                 }
@@ -109,6 +126,8 @@ export default function TransactionManagementPage() {
                 // Build search params - only include clientIds and valid filter values
                 const searchParams = {
                     clientIds: clientIds, // Non-empty array - ensures validation passes
+                    page: page,
+                    limit: LIMIT,
                     // Only include other filters if they have meaningful values
                     ...(filters.transactionType && { transaction: filters.transactionType }),
                     ...(filters.status && { status: filters.status }),
@@ -120,12 +139,18 @@ export default function TransactionManagementPage() {
 
                 // Call the search endpoint with the constructed parameters
                 const response = await transactionApi.searchTransactions(searchParams);
-                setTransactions(response.data.data?.content || []);
+                const pageData = response.data.data;
+                setTransactions(pageData?.content || []);
+                setTotalPages(pageData?.totalPages || 0);
+                setTotalElements(pageData?.totalElements || 0);
 
             } else {
                 // For non-AGENT users (admin, rootAdministrator)
                 // Build search params with only non-empty filter values
-                const searchParams = {};
+                const searchParams = {
+                    page: page,
+                    limit: LIMIT,
+                };
 
                 // Add filters only if they have values
                 if (filters.clientId) {
@@ -151,18 +176,23 @@ export default function TransactionManagementPage() {
                 }
 
                 // Backend requires at least one filter - don't call if none are set
-                const hasAtLeastOneFilter = Object.keys(searchParams).length > 0;
+                const hasAtLeastOneFilter = Object.keys(searchParams).filter(k => k !== 'page' && k !== 'limit').length > 0;
 
                 if (!hasAtLeastOneFilter) {
                     // For non-AGENT users with no filters, show empty state
                     setTransactions([]);
+                    setTotalPages(0);
+                    setTotalElements(0);
                     setError(null); // Don't show error, just empty state
                     return;
                 }
 
                 // Call the search endpoint
                 const response = await transactionApi.searchTransactions(searchParams);
-                setTransactions(response.data.data?.content || []);
+                const pageData = response.data.data;
+                setTransactions(pageData?.content || []);
+                setTotalPages(pageData?.totalPages || 0);
+                setTotalElements(pageData?.totalElements || 0);
             }
         } catch (err) {
             console.error('Failed to load transactions:', err);
@@ -172,6 +202,8 @@ export default function TransactionManagementPage() {
                 'Failed to load transactions';
             setError(errorMessage);
             setTransactions([]); // Clear transactions on error
+            setTotalPages(0);
+            setTotalElements(0);
         }
     };
 
@@ -183,6 +215,7 @@ export default function TransactionManagementPage() {
     };
 
     const handleApplyFilters = () => {
+        setPage(0); // Reset to first page when applying filters
         loadTransactions();
     };
 
@@ -196,6 +229,7 @@ export default function TransactionManagementPage() {
             minAmount: '',
             maxAmount: ''
         });
+        setPage(0); // Reset to first page when clearing filters
         loadTransactions();
     };
 
@@ -229,7 +263,8 @@ export default function TransactionManagementPage() {
     };
 
     const getTypeColor = (type) => {
-        return type === 'D' ? 'bg-green-900 text-green-300' : 'bg-blue-900 text-blue-300';
+        // Handle both enum constant names (DEPOSIT/WITHDRAWAL) and value strings (Deposit/Withdrawal)
+        return (type === 'Deposit' || type === 'DEPOSIT') ? 'bg-green-900 text-green-300' : 'bg-blue-900 text-blue-300';
     };
 
     const formatCurrency = (amount) => {
@@ -311,8 +346,8 @@ export default function TransactionManagementPage() {
                                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                                 >
                                     <option value="">All Types</option>
-                                    <option value="D">Deposit</option>
-                                    <option value="W">Withdrawal</option>
+                                    <option value="DEPOSIT">Deposit</option>
+                                    <option value="WITHDRAWAL">Withdrawal</option>
                                 </select>
                             </div>
                             <div>
@@ -430,7 +465,7 @@ export default function TransactionManagementPage() {
                                                 </td>
                                                 <td className="p-4">
                                                     <span className={`px-2 py-1 text-xs rounded-full ${getTypeColor(transaction.transaction)}`}>
-                                                        {transaction.transaction === 'D' ? 'Deposit' : 'Withdrawal'}
+                                                        {(transaction.transaction === 'Deposit' || transaction.transaction === 'DEPOSIT') ? 'Deposit' : 'Withdrawal'}
                                                     </span>
                                                 </td>
                                                 <td className="p-4 text-white font-semibold">
@@ -449,6 +484,27 @@ export default function TransactionManagementPage() {
                                     )}
                                 </tbody>
                             </table>
+                        </div>
+                        <div className="flex items-center justify-between p-4 border-t border-slate-700">
+                            <div className="text-slate-400 text-sm">
+                                Showing page {page + 1} of {Math.max(totalPages, 1)} ({totalElements} total)
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setPage((p) => Math.max(p - 1, 0))}
+                                    disabled={page === 0}
+                                    className={`px-3 py-1 text-sm rounded ${page === 0 ? 'bg-slate-700 text-slate-500' : 'bg-slate-600 text-white hover:bg-slate-500'}`}
+                                >
+                                    Previous
+                                </button>
+                                <button
+                                    onClick={() => setPage((p) => Math.min(p + 1, Math.max(totalPages - 1, 0)))}
+                                    disabled={page >= totalPages - 1}
+                                    className={`px-3 py-1 text-sm rounded ${page >= totalPages - 1 ? 'bg-slate-700 text-slate-500' : 'bg-slate-600 text-white hover:bg-slate-500'}`}
+                                >
+                                    Next
+                                </button>
+                            </div>
                         </div>
                     </div>
 
