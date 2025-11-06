@@ -83,15 +83,14 @@ resource "null_resource" "audit_writer_package_builder" {
 
 # Lambda Function - Audit Writer
 resource "aws_lambda_function" "audit_writer" {
-  depends_on       = [null_resource.audit_writer_package_builder]
-  filename         = "${path.module}/lambda/audit-writer.zip"
-  function_name    = "${var.name_prefix}-audit-writer"
-  role             = aws_iam_role.lambda_writer.arn
-  handler          = "lambda_function.lambda_handler"
-  runtime          = "python3.12"
-  timeout          = 30
-  memory_size      = 256
-  source_code_hash = filebase64sha256("${path.module}/lambda/audit-writer.zip")
+  depends_on    = [null_resource.audit_writer_package_builder]
+  filename      = "${path.module}/lambda/audit-writer.zip"
+  function_name = "${var.name_prefix}-audit-writer"
+  role          = aws_iam_role.lambda_writer.arn
+  handler       = "lambda_function.lambda_handler"
+  runtime       = "python3.12"
+  timeout       = 30
+  memory_size   = 256
 
   environment {
     variables = {
