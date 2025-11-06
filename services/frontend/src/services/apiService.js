@@ -19,7 +19,7 @@ apiClient.interceptors.request.use(async (config) => {
 
 // User Service API endpoints (port 8080)
 export const userApi = {
-    getAllUsers: () => apiClient.get('/users'),
+    getAllUsers: (page = 0, limit = 10) => apiClient.get('/users', { params: { page, limit } }),
     getUserById: (userId) => apiClient.get(`/users/${userId}`),
     createUser: (userData) => apiClient.post('/users', userData),
     updateUser: (userId, userData) => apiClient.patch(`/users/${userId}`, userData),

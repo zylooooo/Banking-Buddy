@@ -9,9 +9,15 @@ import { formatRole } from '../utils/roleLabels';
 export default function UserManagementPage() {
     const [currentUser, setCurrentUser] = useState(null);
     const [users, setUsers] = useState([]);
+    const [allUsers, setAllUsers] = useState([]); // Store all users for client-side pagination
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [showCreateForm, setShowCreateForm] = useState(false);
+    // Pagination state
+    const [page, setPage] = useState(0);
+    const LIMIT = 10;
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -41,9 +47,25 @@ export default function UserManagementPage() {
                     return;
                 }
 
-                // Load users (scope enforced by backend)
-                const response = await userApi.getAllUsers();
-                setUsers(response.data.data);
+                // Load users (scope enforced by backend) with pagination
+                const response = await userApi.getAllUsers(page, LIMIT);
+                const pageData = response.data.data;
+                // Handle both paginated response (Page object) and list response (backward compatibility)
+                if (Array.isArray(pageData)) {
+                    // Backward compatibility: if backend returns list, store all and paginate client-side
+                    setAllUsers(pageData);
+                    const startIndex = page * LIMIT;
+                    const endIndex = startIndex + LIMIT;
+                    setUsers(pageData.slice(startIndex, endIndex));
+                    setTotalPages(Math.ceil(pageData.length / LIMIT));
+                    setTotalElements(pageData.length);
+                } else {
+                    // Paginated response from backend
+                    setAllUsers([]); // Clear allUsers when using server-side pagination
+                    setUsers(pageData?.content || []);
+                    setTotalPages(pageData?.totalPages || 0);
+                    setTotalElements(pageData?.totalElements || 0);
+                }
                 setLoading(false);
             } catch (err) {
                 console.error('Failed to load data:', err);
@@ -53,7 +75,17 @@ export default function UserManagementPage() {
         };
 
         loadData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [navigate]);
+
+    // Handle client-side pagination when allUsers is set
+    useEffect(() => {
+        if (allUsers.length > 0) {
+            const startIndex = page * LIMIT;
+            const endIndex = startIndex + LIMIT;
+            setUsers(allUsers.slice(startIndex, endIndex));
+        }
+    }, [page, allUsers]);
 
     // Open create user form if navigation state is set, and clear state after opening (match ClientManagementPage pattern)
     useEffect(() => {
@@ -67,9 +99,22 @@ export default function UserManagementPage() {
     const handleCreateUser = async (userData) => {
         try {
             await userApi.createUser(userData);
-            // Refresh users list
-            const response = await userApi.getAllUsers();
-            setUsers(response.data.data);
+            // Refresh users list with current pagination
+            const response = await userApi.getAllUsers(page, LIMIT);
+            const pageData = response.data.data;
+            if (Array.isArray(pageData)) {
+                setAllUsers(pageData);
+                const startIndex = page * LIMIT;
+                const endIndex = startIndex + LIMIT;
+                setUsers(pageData.slice(startIndex, endIndex));
+                setTotalPages(Math.ceil(pageData.length / LIMIT));
+                setTotalElements(pageData.length);
+            } else {
+                setAllUsers([]);
+                setUsers(pageData?.content || []);
+                setTotalPages(pageData?.totalPages || 0);
+                setTotalElements(pageData?.totalElements || 0);
+            }
             setShowCreateForm(false);
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to create user');
@@ -80,9 +125,22 @@ export default function UserManagementPage() {
         if (window.confirm('Are you sure you want to disable this user?')) {
             try {
                 await userApi.disableUser(userId);
-                // Refresh users list
-                const response = await userApi.getAllUsers();
-                setUsers(response.data.data);
+                // Refresh users list with current pagination
+                const response = await userApi.getAllUsers(page, LIMIT);
+                const pageData = response.data.data;
+                if (Array.isArray(pageData)) {
+                    setAllUsers(pageData);
+                    const startIndex = page * LIMIT;
+                    const endIndex = startIndex + LIMIT;
+                    setUsers(pageData.slice(startIndex, endIndex));
+                    setTotalPages(Math.ceil(pageData.length / LIMIT));
+                    setTotalElements(pageData.length);
+                } else {
+                    setAllUsers([]);
+                    setUsers(pageData?.content || []);
+                    setTotalPages(pageData?.totalPages || 0);
+                    setTotalElements(pageData?.totalElements || 0);
+                }
             } catch (err) {
                 setError(err.response?.data?.message || 'Failed to disable user');
             }
@@ -92,15 +150,79 @@ export default function UserManagementPage() {
     const handleEnableUser = async (userId) => {
         try {
             await userApi.enableUser(userId);
-            // Refresh users list
-            const response = await userApi.getAllUsers();
-            setUsers(response.data.data);
+            // Refresh users list with current pagination
+            const response = await userApi.getAllUsers(page, LIMIT);
+            const pageData = response.data.data;
+            if (Array.isArray(pageData)) {
+                setAllUsers(pageData);
+                const startIndex = page * LIMIT;
+                const endIndex = startIndex + LIMIT;
+                setUsers(pageData.slice(startIndex, endIndex));
+                setTotalPages(Math.ceil(pageData.length / LIMIT));
+                setTotalElements(pageData.length);
+            } else {
+                setAllUsers([]);
+                setUsers(pageData?.content || []);
+                setTotalPages(pageData?.totalPages || 0);
+                setTotalElements(pageData?.totalElements || 0);
+            }
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to enable user');
         }
     };
 
     // Reset Password and MFA setup actions removed from UI per new requirements
+
+    // Generate page numbers to display in pagination
+    const getPageNumbers = () => {
+        const currentPage = page + 1; // Convert 0-indexed to 1-indexed
+        const total = Math.max(totalPages, 1);
+        const pages = [];
+
+        if (total <= 7) {
+            // Show all pages if 7 or fewer
+            for (let i = 1; i <= total; i++) {
+                pages.push(i);
+            }
+        } else {
+            // Always show first page
+            pages.push(1);
+
+            // Calculate range around current page
+            let start = Math.max(2, currentPage - 1);
+            let end = Math.min(total - 1, currentPage + 1);
+
+            // Adjust if we're near the start
+            if (currentPage <= 3) {
+                end = Math.min(4, total - 1);
+            }
+
+            // Adjust if we're near the end
+            if (currentPage >= total - 2) {
+                start = Math.max(2, total - 3);
+            }
+
+            // Add ellipsis after first page if needed
+            if (start > 2) {
+                pages.push('...');
+            }
+
+            // Add pages in range
+            for (let i = start; i <= end; i++) {
+                pages.push(i);
+            }
+
+            // Add ellipsis before last page if needed
+            if (end < total - 1) {
+                pages.push('...');
+            }
+
+            // Always show last page
+            pages.push(total);
+        }
+
+        return pages;
+    };
 
     if (loading) {
         return (
@@ -252,6 +374,51 @@ export default function UserManagementPage() {
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                    <div className="flex items-center justify-between p-4 border-t border-slate-700">
+                        <div className="text-slate-400 text-sm">
+                            Showing page {page + 1} of {Math.max(totalPages, 1)} ({totalElements} total)
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setPage((p) => Math.max(p - 1, 0))}
+                                disabled={page === 0}
+                                className={`px-3 py-1 text-sm rounded ${page === 0 ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-600 text-white hover:bg-slate-500'}`}
+                            >
+                                Previous
+                            </button>
+                            {getPageNumbers().map((pageNum, idx) => {
+                                if (pageNum === '...') {
+                                    return (
+                                        <span key={`ellipsis-${idx}`} className="px-2 text-slate-400">
+                                            ...
+                                        </span>
+                                    );
+                                }
+                                const pageIndex = pageNum - 1; // Convert to 0-indexed
+                                const isActive = page === pageIndex;
+                                return (
+                                    <button
+                                        key={pageNum}
+                                        onClick={() => setPage(pageIndex)}
+                                        className={`px-3 py-1 text-sm rounded ${
+                                            isActive
+                                                ? 'bg-blue-600 text-white font-semibold'
+                                                : 'bg-slate-600 text-white hover:bg-slate-500'
+                                        }`}
+                                    >
+                                        {pageNum}
+                                    </button>
+                                );
+                            })}
+                            <button
+                                onClick={() => setPage((p) => Math.min(p + 1, Math.max(totalPages - 1, 0)))}
+                                disabled={page >= totalPages - 1}
+                                className={`px-3 py-1 text-sm rounded ${page >= totalPages - 1 ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-600 text-white hover:bg-slate-500'}`}
+                            >
+                                Next
+                            </button>
+                        </div>
                     </div>
                 </div>
                 </main>
