@@ -274,6 +274,57 @@ export default function TransactionManagementPage() {
         }).format(amount);
     };
 
+    // Generate page numbers to display in pagination
+    const getPageNumbers = () => {
+        const currentPage = page + 1; // Convert 0-indexed to 1-indexed
+        const total = Math.max(totalPages, 1);
+        const pages = [];
+
+        if (total <= 7) {
+            // Show all pages if 7 or fewer
+            for (let i = 1; i <= total; i++) {
+                pages.push(i);
+            }
+        } else {
+            // Always show first page
+            pages.push(1);
+
+            // Calculate range around current page
+            let start = Math.max(2, currentPage - 1);
+            let end = Math.min(total - 1, currentPage + 1);
+
+            // Adjust if we're near the start
+            if (currentPage <= 3) {
+                end = Math.min(4, total - 1);
+            }
+
+            // Adjust if we're near the end
+            if (currentPage >= total - 2) {
+                start = Math.max(2, total - 3);
+            }
+
+            // Add ellipsis after first page if needed
+            if (start > 2) {
+                pages.push('...');
+            }
+
+            // Add pages in range
+            for (let i = start; i <= end; i++) {
+                pages.push(i);
+            }
+
+            // Add ellipsis before last page if needed
+            if (end < total - 1) {
+                pages.push('...');
+            }
+
+            // Always show last page
+            pages.push(total);
+        }
+
+        return pages;
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-slate-900 flex items-center justify-center">
@@ -493,14 +544,38 @@ export default function TransactionManagementPage() {
                                 <button
                                     onClick={() => setPage((p) => Math.max(p - 1, 0))}
                                     disabled={page === 0}
-                                    className={`px-3 py-1 text-sm rounded ${page === 0 ? 'bg-slate-700 text-slate-500' : 'bg-slate-600 text-white hover:bg-slate-500'}`}
+                                    className={`px-3 py-1 text-sm rounded ${page === 0 ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-600 text-white hover:bg-slate-500'}`}
                                 >
                                     Previous
                                 </button>
+                                {getPageNumbers().map((pageNum, idx) => {
+                                    if (pageNum === '...') {
+                                        return (
+                                            <span key={`ellipsis-${idx}`} className="px-2 text-slate-400">
+                                                ...
+                                            </span>
+                                        );
+                                    }
+                                    const pageIndex = pageNum - 1; // Convert to 0-indexed
+                                    const isActive = page === pageIndex;
+                                    return (
+                                        <button
+                                            key={pageNum}
+                                            onClick={() => setPage(pageIndex)}
+                                            className={`px-3 py-1 text-sm rounded ${
+                                                isActive
+                                                    ? 'bg-blue-600 text-white font-semibold'
+                                                    : 'bg-slate-600 text-white hover:bg-slate-500'
+                                            }`}
+                                        >
+                                            {pageNum}
+                                        </button>
+                                    );
+                                })}
                                 <button
                                     onClick={() => setPage((p) => Math.min(p + 1, Math.max(totalPages - 1, 0)))}
                                     disabled={page >= totalPages - 1}
-                                    className={`px-3 py-1 text-sm rounded ${page >= totalPages - 1 ? 'bg-slate-700 text-slate-500' : 'bg-slate-600 text-white hover:bg-slate-500'}`}
+                                    className={`px-3 py-1 text-sm rounded ${page >= totalPages - 1 ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-600 text-white hover:bg-slate-500'}`}
                                 >
                                     Next
                                 </button>
