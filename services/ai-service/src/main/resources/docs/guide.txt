@@ -1,0 +1,373 @@
+Banking Buddy CRM System - User Guide
+=====================================
+
+OVERVIEW
+--------
+Banking Buddy is a Customer Relationship Management (CRM) system for banking operations. It helps agents manage client profiles, accounts, and transactions while maintaining secure role-based access control.
+
+USER ROLES
+----------
+1. AGENT: Manages client profiles, creates accounts, and views transactions for their assigned clients only.
+   - Can create and manage client profiles
+   - Can create and view accounts for their clients (via UI)
+   - Can query accounts with personal scope ("accounts I manage", "my accounts")
+   - Can view transactions for their own clients
+   - CANNOT query all accounts in the system (only their clients' accounts)
+   - CANNOT view other agents' clients or transactions
+   - CANNOT manage users or agents
+
+2. ADMIN: Manages agents they created. Focused on user management.
+   - Can create and manage agents (only those they created)
+   - Can view only the agents they created and manage
+   - CANNOT view account data (only ROOT_ADMIN can view accounts)
+   - CANNOT view transactions (operational data accessible only to agents)
+   - CANNOT create or manage client profiles directly (that's the agent's job)
+   - CANNOT manage other admins or root admins
+   - CANNOT see agents created by other admins
+
+3. ROOT_ADMIN: Full system access, can manage all users and view all accounts.
+   - Can create and manage both admins and agents (across all admins)
+   - Can view all accounts in the system (full oversight)
+   - Can view all agents and admins in the system
+   - Can manage all users except other root admins
+   - Full system oversight and administration
+   - CANNOT view transactions (operational data accessible only to agents)
+   - CANNOT create or manage client profiles directly (that's the agent's job)
+
+ROLE HIERARCHY: ROOT_ADMIN → ADMIN → AGENT → Clients (not system users)
+
+CLIENT MANAGEMENT (AGENTS ONLY)
+----------------
+NOTE: Only AGENTS can create and manage client profiles. Admins and Root Admins manage users (agents), not clients.
+
+How to Create a Client:
+1. Navigate to the "Client Management" page from the main dashboard
+2. Click the "Create Client" button
+3. Fill in required information:
+   - First Name and Last Name
+   - Email address (must be unique)
+   - Phone number (must be unique)
+   - Date of Birth (must be 18-100 years old)
+   - Address details
+4. Click "Submit" to create the client
+5. The client will be assigned to you (as the creating agent)
+
+How to View Client Details:
+1. Go to "Client Management" page
+2. Browse the list of your clients (agents can only see clients they created)
+3. Click on a client's name or row to view full details
+4. Client details include: personal information, verification status, and all associated accounts
+
+How to Update Client Information:
+1. Navigate to the client detail page
+2. Click "Edit Client" button
+3. Modify the fields you want to update (note: email, phone, and date of birth cannot be changed)
+4. Click "Save Changes"
+5. Only changed fields will be updated (partial updates are supported)
+
+How to Verify a Client:
+1. Open the client detail page
+2. Click the "Verify Client" button
+3. The system will mark the client as verified and send a verification email automatically
+4. Verification can only be done by the agent who created the client
+
+How to Delete a Client:
+1. Go to the client detail page
+2. Click "Delete Client" button
+3. Important: You can only delete a client if ALL their accounts have a balance of $0
+4. If any account has a balance > $0, deletion will be blocked with an error message
+5. Once deleted, the client profile is soft-deleted (hidden but not permanently removed)
+
+ACCOUNT MANAGEMENT
+------------------
+NOTE:
+- AGENTS can create accounts for their own clients
+- ROOT_ADMINS can view all accounts (for system oversight)
+- ADMINS do not have account visibility (focused on user management)
+
+How to Create an Account (AGENTS):
+1. Navigate to a client's detail page
+2. Scroll to the "Accounts" section
+3. Click "Create Account" button
+4. Fill in account details:
+   - Account Type (Savings, Checking, etc.)
+   - Initial Deposit amount
+   - Currency (default: SGD)
+   - Branch ID
+5. Click "Submit" to create the account
+6. Only agents can create accounts for their own clients
+
+How to View All Accounts (ROOT_ADMINS Only):
+1. Navigate to the "Account Management" page (visible only to ROOT_ADMIN role)
+2. View all accounts across all clients in the system
+3. Use filters to search by account type, status, or branch
+
+How to Delete an Account:
+1. Go to the account detail page or account list
+2. Click "Delete Account" on the specific account
+3. Important: Account can only be deleted if balance = $0
+4. Both agents (for their clients) and admins (for any account) can delete accounts
+
+TRANSACTION MANAGEMENT (AGENTS ONLY)
+---------------------
+NOTE: Only AGENTS can view transaction data. Transactions are operational data not accessible to administrators.
+
+How to View Transactions (AGENTS):
+1. Navigate to the "Transactions" page
+2. You will automatically see transactions from all your clients
+3. Use filters to search by client, transaction type, date range, or amount
+4. Transactions are automatically filtered to show only your clients' transactions
+5. Click on a transaction to view full details
+
+Why can't ADMINS/ROOT_ADMINS see transactions?
+- Transactions are sensitive operational data
+- Admins focus on user management and account oversight
+- Agents handle day-to-day client operations including transactions
+
+How to Search Transactions (AGENTS):
+1. On the Transactions page, use the search filters:
+   - Select client(s) from dropdown (you only see your clients)
+   - Choose transaction type (Deposit, Withdrawal, Transfer, etc.)
+   - Set date range using "From Date" and "To Date"
+   - Set amount range using "Min Amount" and "Max Amount"
+2. Results are sorted by date (newest first) by default
+3. Maximum 10 transactions per page (pagination supported)
+
+USER MANAGEMENT (ADMINS AND ROOT_ADMINS ONLY)
+-----------------------------
+NOTE: 
+- ROOT_ADMINS can create and manage both admins and agents
+- ADMINS can only create and manage agents (not other admins)
+- AGENTS cannot access user management
+
+How to Create a New Agent (ADMIN and ROOT_ADMIN roles):
+1. Navigate to "User Management" page
+2. Click "Add User" button
+3. Fill in user details:
+   - First Name and Last Name
+   - Email address
+   - Role: Select "Agent"
+   - Status: Will be set to PENDING initially
+4. The new agent will receive an email with setup instructions
+5. Both ADMIN and ROOT_ADMIN can create agents
+
+How to Create a New Admin (ROOT_ADMIN role ONLY):
+1. Navigate to "User Management" page
+2. Click "Add User" button
+3. Fill in user details:
+   - First Name and Last Name
+   - Email address
+   - Role: Select "Admin"
+   - Status: Will be set to PENDING initially
+4. The new admin will receive an email with setup instructions
+5. ONLY ROOT_ADMIN can create other admins (regular admins cannot)
+
+How to View All Users:
+1. Go to "User Management" page (visible only to ADMIN and ROOT_ADMIN)
+2. For ADMIN: You will see only agents you created
+3. For ROOT_ADMIN: You will see all users (admins and agents)
+4. User list shows: Name, Email, Role, Status, and Creation Date
+
+How to Update User Information:
+1. Click on a user in the User Management list
+2. Click "Edit User" button
+3. Modify user details:
+   - ADMIN can update: own profile and agent profiles
+   - ROOT_ADMIN can update: all users except other ROOT_ADMINs
+4. Click "Save Changes"
+
+How to Enable/Disable Users:
+1. In User Management page, find the user
+2. Click "Disable" to deactivate their account
+3. Click "Enable" to reactivate their account
+4. Disabled users cannot log into the system
+
+How to Reset User Password:
+1. Select a user from User Management
+2. Click "Reset Password" button
+3. The user will receive an email with password reset instructions
+
+AUTHENTICATION & SECURITY
+-------------------------
+How to Log In:
+1. Go to the Banking Buddy login page
+2. Enter your email address and password
+3. If MFA (Multi-Factor Authentication) is enabled, you will be prompted for a code
+4. After successful authentication, you will be redirected to the dashboard
+
+How to Reset Your Password:
+1. If you forgot your password, use the "Forgot Password" link on the login page
+2. Enter your email address
+3. Check your email for password reset instructions
+4. Follow the link in the email to set a new password
+
+How to Set Up Multi-Factor Authentication (MFA):
+1. After logging in, go to your profile settings
+2. Click "Enable MFA" or "Set Up MFA"
+3. Scan the QR code with an authenticator app (Google Authenticator, Authy, etc.)
+4. Enter the verification code from the app
+5. MFA will be enabled for your account
+
+DASHBOARD
+---------
+The Dashboard is your main landing page after login:
+1. Overview cards show: Total Clients, Total Accounts, Recent Transactions, and System Alerts
+2. Quick Actions: Create Client, Create Account, View Transactions
+3. Recent Activity: Lists your recent actions and important updates
+4. AI Features Section:
+   - AI Help Guide: Ask questions about how to use the system
+   - Natural Language Query: Query data using natural language (e.g., "Show transactions for client John")
+
+AUTHORIZATION RULES
+------------------
+Important Security Restrictions:
+
+ROLE HIERARCHY: ROOT_ADMIN → ADMIN → AGENT → Clients
+
+FOR AGENTS:
+- Manage clients: Can ONLY view and manage clients they created (client.agent_id must match your user ID)
+- Manage accounts: Can create and view accounts for their own clients (via UI)
+- View transactions: Can ONLY view transactions for their own clients (full operational access)
+- Query clients: "show me all clients" returns only your clients
+- Query transactions: "show transactions" returns transactions for your clients
+- Query accounts (personal scope): "accounts I manage" or "my accounts" returns accounts for your clients
+- CANNOT query ALL accounts in the system without personal scope
+- CANNOT access other agents' clients or transactions
+- CANNOT view, create, or manage users (agents/admins)
+- CANNOT directly access admin functions
+
+FOR ADMINS:
+- Manage users: Can create and manage AGENTS they created (cannot manage other admins or root admins)
+- Query agents: Can query and view ONLY agents they created/manage
+- CANNOT view account data (only ROOT_ADMIN can view accounts)
+- CANNOT see agents created by other admins
+- CANNOT create or manage client profiles directly (that's the agent's responsibility)
+- CANNOT view transaction data at all (transactions are operational data for agents only)
+- CANNOT manage other admins or root admins
+
+FOR ROOT_ADMINS:
+- Manage users: Can create and manage ALL users (both admins and agents)
+- View accounts: Can view ALL accounts across the entire system for oversight purposes
+- Query accounts: "show me all accounts" returns all accounts in the system
+- Query users: Can query both admins and agents in the system
+- Full system oversight and user management
+- CANNOT create or manage client profiles directly (that's the agent's responsibility)
+- CANNOT view transaction data at all (transactions are operational data for agents only)
+- CANNOT modify other ROOT_ADMIN accounts (security restriction)
+
+NATURAL LANGUAGE QUERY (AI Feature)
+------------------------------------
+The Natural Language Query feature allows you to search for data using plain English.
+
+Examples by Role:
+
+FOR AGENTS:
+- "Show me all my clients"
+- "Find client named John"
+- "Show accounts I manage" (personal scope - shows your clients' accounts)
+- "Show my accounts" (personal scope - shows your clients' accounts)
+- "Show accounts for my clients" (personal scope)
+- "Show transactions for client Paul"
+- "Show all transactions from last month"
+- "List my clients who are verified"
+- NOTE: You CAN query accounts with personal scope ("I manage", "my accounts")
+- NOTE: You CANNOT query "all accounts" without personal scope
+
+FOR ADMINS:
+- "Show agents I manage" (shows ONLY agents you created/manage)
+- "Find agent named John" (searches within agents you manage)
+- "Display all agents I manage"
+- "How many agents do I have" (counts agents you manage)
+- NOTE: You CANNOT query accounts or transaction data
+- NOTE: You can ONLY see agents you created
+
+FOR ROOT_ADMINS:
+- "Show me all admins" (shows ONLY admins in system - not agents)
+- "Show me all agents" (shows ONLY agents in system - not admins)
+- "Show all accounts" (shows all accounts in system)
+- "Show me account balances" (all accounts in system)
+- NOTE: Agents and admins are SEPARATE - be specific in your query
+- NOTE: You CANNOT query transaction data
+
+IMPORTANT FOR ROOT_ADMINS:
+- Asking for "agents" returns only agents
+- Asking for "admins" returns only administrators  
+- If you want both, ask two separate questions
+
+IMPORTANT: Queries automatically respect your role permissions:
+- AGENTS: Can query their own clients and transactions (NO account queries)
+- ADMINS: Can query ONLY agents they manage (NO account or transaction queries)
+- ROOT_ADMINS: Can query all admins, all agents, and all accounts for oversight (NO transaction queries)
+
+Transaction data is operational information accessible ONLY to agents who manage the clients.
+
+COMMON TASKS
+------------
+How to find a specific client:
+1. Go to Client Management page
+2. Use the search bar to filter by name, email, or client ID
+3. Click on the client in the results
+
+How to check account balance:
+1. Open the client detail page
+2. Scroll to the "Accounts" section
+3. Account balance is displayed next to each account
+4. For admins: Use Account Management page to view all account balances
+
+How to view transaction history for a client (AGENTS ONLY):
+1. Navigate to the Transactions page
+2. Select the specific client from the client filter dropdown
+3. Optionally add date range or transaction type filters
+4. Results will show all transactions for that client
+Note: Only agents can view transaction data
+
+How to contact support:
+- Use the AI Help Guide (available on Dashboard) to ask questions
+- Check system notifications for important updates
+- Contact your system administrator for account-related issues
+
+ERROR HANDLING
+-------------
+Common Errors and Solutions:
+
+"Unauthorized access" error:
+- You are trying to access a resource you don't have permission for
+- AGENTS: Make sure you're accessing your own clients only
+- Contact your administrator if you believe this is an error
+
+"Cannot delete client - accounts have balance":
+- All client accounts must have balance = $0 before deletion
+- First delete or zero out all accounts, then delete the client
+
+"Cannot delete account - balance not zero":
+- Account balance must be exactly $0.00 to delete
+- Process withdrawals or transfers first to zero the balance
+
+"Client not found":
+- The client ID may be incorrect
+- The client may have been soft-deleted
+- AGENTS: Make sure you're looking for a client you created
+
+"Transaction not found" (AGENTS ONLY):
+- Check that you're querying transactions for your own clients
+- Verify the transaction ID is correct
+- Check date range filters
+- If you're an admin/root admin: Transaction data is not accessible to administrators
+
+BEST PRACTICES
+--------------
+1. Always verify clients before processing important transactions
+2. Keep client information up-to-date
+3. Review transaction history regularly
+4. Use filters to efficiently find specific records
+5. Take advantage of the AI Help Guide and Natural Language Query for faster navigation
+6. For admins: Regularly review agents' activities through the audit logs
+7. Keep account balances accurate and verify before deletions
+
+SYSTEM LIMITATIONS
+------------------
+- Maximum 10 records per page for pagination (clients, transactions, accounts)
+- Agent-created clients cannot be transferred to other agents
+- Account deletion requires zero balance
+- Client deletion requires all accounts to have zero balance
+- Soft-deleted records (clients/accounts) are hidden but preserved in the database

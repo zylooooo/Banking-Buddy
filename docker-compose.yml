@@ -119,6 +119,26 @@ services:
       timeout: 10s
       retries: 10
       start_period: 30s
+
+  # AI Service
+  ai-service:
+    build:
+      context: ./services/ai-service
+      dockerfile: Dockerfile
+    container_name: banking-buddy-ai-service
+    restart: unless-stopped
+    ports:
+      - '8083:8083'
+    env_file:
+      - ./services/ai-service/.env.ai-service
+    networks:
+      - banking-buddy-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 3s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
   
   # Frontend
   frontend:

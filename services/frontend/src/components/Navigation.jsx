@@ -6,7 +6,8 @@ import {
     ClientManagementIcon,
     TransactionsIcon,
     CommunicationsIcon,
-    UserManagementIcon
+    UserManagementIcon,
+    AiFeaturesIcon
 } from './Icons';
 
 export default function Navigation({ user }) {
@@ -47,7 +48,12 @@ export default function Navigation({ user }) {
             icon: <UserManagementIcon />,
             roles: ['rootAdministrator', 'admin']
         },
-        // ...existing code...
+        {
+            path: '/ai-features',
+            label: 'AI Features',
+            icon: <AiFeaturesIcon />,
+            roles: ['rootAdministrator', 'admin', 'agent']
+        }
     ];
 
     const availableNavItems = navItems.filter(item => {

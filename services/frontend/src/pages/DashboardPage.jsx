@@ -14,6 +14,7 @@ import {
 
 import axios from 'axios';
 import { clientApi } from '../services/apiService';
+
 // Helper to batch fetch user names and client names
 async function fetchNamesFromLogs(logs, jwt) {
     // Collate unique user IDs and client IDs
