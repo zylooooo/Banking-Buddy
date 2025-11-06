@@ -63,15 +63,14 @@ resource "null_resource" "audit_reader_package_builder" {
 
 # Lambda Function - Audit Reader
 resource "aws_lambda_function" "audit_reader" {
-  depends_on       = [null_resource.audit_reader_package_builder]
-  filename         = "${path.module}/lambda/audit-reader.zip"
-  function_name    = "${var.name_prefix}-audit-reader"
-  role             = aws_iam_role.lambda_reader.arn
-  handler          = "lambda_function.lambda_handler"
-  runtime          = "python3.12"
-  timeout          = 30
-  memory_size      = 256
-  source_code_hash = filebase64sha256("${path.module}/lambda/audit-reader.zip")
+  depends_on    = [null_resource.audit_reader_package_builder]
+  filename      = "${path.module}/lambda/audit-reader.zip"
+  function_name = "${var.name_prefix}-audit-reader"
+  role          = aws_iam_role.lambda_reader.arn
+  handler       = "lambda_function.lambda_handler"
+  runtime       = "python3.12"
+  timeout       = 30
+  memory_size   = 256
 
   environment {
     variables = {
