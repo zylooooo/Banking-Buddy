@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { getIdToken } from '../services/authService';
 
@@ -27,10 +27,23 @@ export default function NaturalLanguageQuery() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [typingText, setTypingText] = useState('');
+    const typingIntervalRef = useRef(null);
+
+    useEffect(() => {
+        return () => {
+            if (typingIntervalRef.current) {
+                clearInterval(typingIntervalRef.current);
+            }
+        };
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!query.trim()) return;
+
+        if (typingIntervalRef.current) {
+            clearInterval(typingIntervalRef.current);
+        }
 
         setLoading(true);
         setError(null);
@@ -57,24 +70,36 @@ export default function NaturalLanguageQuery() {
             }
 
             const data = await response.json();
-            const fullText = data.naturalLanguageResponse;
+            const fullText = data.naturalLanguageResponse || '';
+            
+            if (!fullText) {
+                setError('No response received from the server');
+                setLoading(false);
+                return;
+            }
+            
             let currentIndex = 0;
             
             setLoading(false);
             
-            const intervalId = setInterval(() => {
+            typingIntervalRef.current = setInterval(() => {
                 currentIndex += 3;
                 
                 if (currentIndex >= fullText.length) {
                     setTypingText(fullText);
                     setResponse(data);
-                    clearInterval(intervalId);
+                    clearInterval(typingIntervalRef.current);
+                    typingIntervalRef.current = null;
                 } else {
                     setTypingText(fullText.substring(0, currentIndex));
                 }
             }, 20);
 
         } catch (err) {
+            if (typingIntervalRef.current) {
+                clearInterval(typingIntervalRef.current);
+                typingIntervalRef.current = null;
+            }
             setError(err.message || 'Failed to process query');
             console.error('NL Query error:', err);
             setLoading(false);
@@ -130,15 +155,19 @@ export default function NaturalLanguageQuery() {
                         <p className="text-slate-200 mb-2 font-semibold">Response:</p>
                         <div className="text-slate-300 prose prose-invert prose-sm max-w-none">
                             <ReactMarkdown components={markdownComponents}>
-                                {response.naturalLanguageResponse}
+                                {response.naturalLanguageResponse || 'No response content available'}
                             </ReactMarkdown>
                         </div>
-                        <p className="text-xs text-slate-500 mt-2">
-                            Query Type: {response.queryType} | API: {response.sqlQuery}
-                        </p>
+                        {(response.queryType || response.sqlQuery) && (
+                            <p className="text-xs text-slate-500 mt-2">
+                                {response.queryType && `Query Type: ${response.queryType}`}
+                                {response.queryType && response.sqlQuery && ' | '}
+                                {response.sqlQuery && `API: ${response.sqlQuery}`}
+                            </p>
+                        )}
                     </div>
 
-                    {response.results && response.results.length > 0 && (
+                    {response.results && response.results.length > 0 && response.results[0] && (
                         <div>
                             <p className="text-sm text-slate-400 mb-2">Results ({response.results.length}):</p>
                             <div className="bg-slate-700 rounded-md overflow-x-auto">
@@ -154,13 +183,15 @@ export default function NaturalLanguageQuery() {
                                     </thead>
                                     <tbody>
                                         {response.results.map((result, idx) => (
-                                            <tr key={idx} className="border-t border-slate-600 text-slate-300">
-                                                {Object.values(result).map((value, valIdx) => (
-                                                    <td key={valIdx} className="px-4 py-2">
-                                                        {String(value)}
-                                                    </td>
-                                                ))}
-                                            </tr>
+                                            result && (
+                                                <tr key={idx} className="border-t border-slate-600 text-slate-300">
+                                                    {Object.values(result).map((value, valIdx) => (
+                                                        <td key={valIdx} className="px-4 py-2">
+                                                            {String(value)}
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            )
                                         ))}
                                     </tbody>
                                 </table>

@@ -25,9 +25,7 @@ public class ApiResponse<T> {
 
     private String errorCode;
 
-    /**
-     * Create a success response with data
-     */
+    // Create success response with data
     public static <T> ApiResponse<T> success(T data, String message) {
         return ApiResponse.<T>builder()
                 .success(true)
@@ -37,9 +35,7 @@ public class ApiResponse<T> {
                 .build();
     }
 
-    /**
-     * Create a success response without data
-     */
+    // Create success response without data
     public static <T> ApiResponse<T> success(String message) {
         return ApiResponse.<T>builder()
                 .success(true)
@@ -48,9 +44,7 @@ public class ApiResponse<T> {
                 .build();
     }
 
-    /**
-     * Create an error response with error code
-     */
+    // Create error response with error code
     public static <T> ApiResponse<T> error(String message, String errorCode) {
         return ApiResponse.<T>builder()
                 .success(false)
@@ -60,9 +54,7 @@ public class ApiResponse<T> {
                 .build();
     }
 
-    /**
-     * Create an error response without error code
-     */
+    // Create error response without error code
     public static <T> ApiResponse<T> error(String message) {
         return ApiResponse.<T>builder()
                 .success(false)

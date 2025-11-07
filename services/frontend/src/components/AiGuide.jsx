@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { aiApi } from '../services/apiService';
 
@@ -28,10 +28,23 @@ export default function AiGuide() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [typingText, setTypingText] = useState('');
+    const typingIntervalRef = useRef(null);
+
+    useEffect(() => {
+        return () => {
+            if (typingIntervalRef.current) {
+                clearInterval(typingIntervalRef.current);
+            }
+        };
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!question.trim()) return;
+
+        if (typingIntervalRef.current) {
+            clearInterval(typingIntervalRef.current);
+        }
 
         setLoading(true);
         setError(null);
@@ -40,27 +53,38 @@ export default function AiGuide() {
 
         try {
             const response = await aiApi.askGuide(question);
-            const fullText = response.data.data.answer;
-            const topics = response.data.data.relatedTopics || [];
+            const fullText = response?.data?.data?.answer || '';
+            const topics = response?.data?.data?.relatedTopics || [];
+            
+            if (!fullText) {
+                setError('No answer received from the server');
+                setLoading(false);
+                return;
+            }
             
             setLoading(false);
             
             let currentIndex = 0;
             
-            const intervalId = setInterval(() => {
+            typingIntervalRef.current = setInterval(() => {
                 currentIndex += 3;
                 
                 if (currentIndex >= fullText.length) {
                     setTypingText(fullText);
                     setAnswer(fullText);
                     setRelatedTopics(topics);
-                    clearInterval(intervalId);
+                    clearInterval(typingIntervalRef.current);
+                    typingIntervalRef.current = null;
                 } else {
                     setTypingText(fullText.substring(0, currentIndex));
                 }
             }, 20);
 
         } catch (err) {
+            if (typingIntervalRef.current) {
+                clearInterval(typingIntervalRef.current);
+                typingIntervalRef.current = null;
+            }
             setError(err.response?.data?.message || 'Failed to get answer');
             console.error('AI Guide error:', err);
             setLoading(false);
