@@ -5,18 +5,21 @@ AI-powered features for Banking Buddy CRM System, providing intelligent assistan
 ## Overview
 
 The AI Service integrates OpenAI's language models to provide two main features:
+
 1. **AI Help Guide** - Contextual help and documentation assistance
 2. **CRM Assistant** - Natural language queries for CRM data
 
 ## Features
 
 ### 1. AI Help Guide
+
 - Role-based documentation filtering
 - Context-aware help responses
 - Guides users through CRM operations
 - Markdown-formatted responses
 
 ### 2. CRM Assistant (Natural Language Query)
+
 - Query CRM data using natural language
 - Role-based query restrictions
 - Intelligent intent parsing with name filtering
@@ -28,7 +31,7 @@ The AI Service integrates OpenAI's language models to provide two main features:
 
 ### Components
 
-```
+```text
 ai-service/
 ├── controller/
 │   ├── AiGuideController.java         # AI Help Guide endpoints
@@ -49,6 +52,7 @@ ai-service/
 ### Service Communication
 
 The AI Service communicates with other microservices:
+
 - **User Service** - User and agent management queries
 - **Client Service** - Client and account queries
 - **Transaction Service** - Transaction queries
@@ -56,35 +60,44 @@ The AI Service communicates with other microservices:
 ## Role-Based Access Control
 
 ### AGENT
+
 **Can Query:**
+
 - Own clients: `"show my clients"`
 - Client transactions: `"show transactions for client John"`
 - Personal accounts: `"show accounts I manage"` (routes to clients)
 
 **Cannot Query:**
+
 - All accounts (system-wide)
 - Other agents' data
 - Agent or admin information
 
 ### ADMIN
+
 **Can Query:**
+
 - Agents they created: `"show agents I manage"`
 - Personal accounts: `"show my accounts"` (routes to their agents)
 
 **Cannot Query:**
+
 - All accounts (system-wide)
 - Client information directly
 - Transaction data
 - Other admins' agents
 
 ### ROOT_ADMIN
+
 **Can Query:**
+
 - All agents: `"show all agents"`
 - All admins: `"show all admins"`
 - Combined users: `"show agents and admins"`
 - All accounts: `"show all accounts"` (system-wide)
 
 **Cannot Query:**
+
 - Transaction data (agent-only operational data)
 - Client information directly
 
@@ -92,7 +105,7 @@ The AI Service communicates with other microservices:
 
 ### Query Flow
 
-```
+```text
 1. User submits query
    ↓
 2. OpenAI parses intent & extracts parameters
@@ -123,10 +136,12 @@ The system interprets "accounts" contextually based on role:
 ### Scope Detection
 
 **Personal Scope** (allowed for all roles):
+
 - Keywords: `my`, `mine`, `I manage`, `I have`, `for my`, `under me`
 - Example: `"show my accounts"` → Routes to role-appropriate entity
 
 **Broad Scope** (ROOT_ADMIN only):
+
 - Keywords: `all`, `every`, or no personal keywords
 - Example: `"show all accounts"` → System-wide query
 
@@ -135,6 +150,7 @@ The system interprets "accounts" contextually based on role:
 ### AI Help Guide
 
 #### Ask Question
+
 ```http
 POST /api/ai/guide/ask
 Content-Type: application/json
@@ -146,6 +162,7 @@ Authorization: Bearer <token>
 ```
 
 **Response:**
+
 ```json
 {
   "answer": "To create a client...",
@@ -156,6 +173,7 @@ Authorization: Bearer <token>
 ### CRM Assistant
 
 #### Process Query
+
 ```http
 POST /api/ai/query
 Content-Type: application/json
@@ -167,6 +185,7 @@ Authorization: Bearer <token>
 ```
 
 **Response:**
+
 ```json
 {
   "naturalLanguageResponse": "Found 5 clients.",
@@ -199,6 +218,7 @@ Authorization: Bearer <token>
 ### OpenAI Configuration
 
 The service uses OpenAI for:
+
 1. **Intent Parsing** - Determining query type, extracting parameters (names, dates, etc.)
 2. **Response Generation** - Creating natural language summaries for ALL query types (clients, transactions, agents, admins)
 3. **Help Documentation** - Providing contextual assistance
@@ -210,11 +230,13 @@ Model: `gpt-4o-mini` (configurable via `OPENAI_MODEL`)
 ### Security
 
 Authentication is handled via:
+
 - AWS ALB with Cognito integration
 - JWT token validation
 - Role-based authorization interceptor
 
 Headers:
+
 - `Authorization: Bearer <token>`
 - `x-amzn-oidc-data: <token>` (ALB)
 
@@ -222,7 +244,7 @@ Headers:
 
 ### Agent Examples
 
-```
+```text
 ✅ "Show me all my clients"
 ✅ "Find client named John"
 ✅ "Show Pablo's transactions"
@@ -237,7 +259,7 @@ Headers:
 
 ### Admin Examples
 
-```
+```text
 ✅ "Show agents I manage"
 ✅ "How many agents do I have"
 ✅ "Show my accounts" (routes to agents)
@@ -252,7 +274,7 @@ Headers:
 
 ### Root Admin Examples
 
-```
+```text
 ✅ "Show me all agents"
 ✅ "Show me all admins"
 ✅ "Show agents and admins"
@@ -324,15 +346,18 @@ mvn verify
 The service handles errors gracefully:
 
 ### Authentication Errors
+
 - Missing/invalid token → `401 Unauthorized`
 - Invalid role → `403 Forbidden`
 
 ### Query Errors
+
 - Permission denied → Helpful message with suggestions
 - Unknown query → Guided response with examples
 - Service unavailable → Error message with retry suggestion
 
 ### OpenAI Errors
+
 - API failure → Fallback to keyword-based parsing
 - Rate limit → Retry with exponential backoff
 - Timeout → Error message after 10 seconds
@@ -340,6 +365,7 @@ The service handles errors gracefully:
 ## Logging
 
 The service logs:
+
 - User queries (sanitized)
 - Intent classification results
 - Query routing decisions
@@ -348,6 +374,7 @@ The service logs:
 - Authorization checks
 
 Log levels:
+
 - `INFO` - Normal operations, query flow
 - `WARN` - Fallback scenarios, missing data
 - `ERROR` - API failures, exceptions
@@ -363,17 +390,20 @@ Log levels:
 
 ### Common Issues
 
-**"I cannot query..."**
+#### "I cannot query..."
+
 - Check user role and permissions
 - Verify query scope (personal vs broad)
 - See role-specific examples above
 
-**"Encountered an error while searching..."**
+#### "Encountered an error while searching..."
+
 - Check microservice availability
 - Verify authentication token
 - Check network connectivity
 
-**"AI parsed query as 'unknown'..."**
+#### "AI parsed query as 'unknown'..."
+
 - Query may be too vague
 - Try using examples from documentation
 - Check for typos
@@ -381,6 +411,7 @@ Log levels:
 ## Contributing
 
 When adding new query types:
+
 1. Add intent parsing rules to `NaturalLanguageQueryService`
 2. Create handler method (e.g., `handleXQuery`)
 3. Implement name filtering if applicable (search by firstName, lastName, fullName)
@@ -396,7 +427,7 @@ Part of the Banking Buddy CRM System. Internal use only.
 ## Support
 
 For issues or questions:
+
 - Check the AI Help Guide in the application
 - Review query examples in this README
 - Contact the development team
-
