@@ -154,7 +154,6 @@ public class NaturalLanguageQueryService {
                 return tryFallbackParsing(request.getQuery(), authToken, userContext);
             }
         } catch (RuntimeException e) {
-            // This might be from OpenAI API failure
             log.error("Failed to process query due to OpenAI API error: {}", e.getMessage(), e);
             throw e; // Re-throw so controller can handle it
         } catch (Exception e) {

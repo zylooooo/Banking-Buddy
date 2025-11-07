@@ -51,7 +51,6 @@ export default function NaturalLanguageQuery() {
         setTypingText('');
 
         try {
-            // Get complete response from API
             const token = await getIdToken();
             
             const response = await fetch(`${import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:8083'}/api/ai/query`, {

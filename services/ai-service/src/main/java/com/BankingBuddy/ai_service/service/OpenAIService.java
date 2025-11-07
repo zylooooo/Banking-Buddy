@@ -43,7 +43,7 @@ public class OpenAIService {
         this.apiKey = (apiKey != null) ? apiKey.trim() : "";
         this.hasApiKey = !this.apiKey.isEmpty() && !this.apiKey.isBlank();
         
-        // Build WebClient - conditionally add Authorization header
+        // Build WebClient
         WebClient.Builder builder = webClientBuilder
                 .baseUrl(apiUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
