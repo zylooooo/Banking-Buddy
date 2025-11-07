@@ -152,4 +152,29 @@ export const auditApi = {
 
 // Communication API endpoints
 
+// AI Service API endpoints (port 8083)
+const AI_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api').replace('8080', '8083');
+
+const aiApiClient = axios.create({
+    baseURL: AI_API_BASE_URL,
+    headers: { 'Content-Type': 'application/json' }
+});
+
+aiApiClient.interceptors.request.use(async (config) => {
+    const token = await getIdToken();
+    if (token) {
+        config.headers['x-amzn-oidc-data'] = token;
+        config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+});
+
+export const aiApi = {
+    // AI Guide
+    askGuide: (question) => aiApiClient.post('/ai/guide/ask', { question }),
+    
+    // Natural Language Query
+    processQuery: (query) => aiApiClient.post('/ai/query', { query }),
+};
+
 export default apiClient;

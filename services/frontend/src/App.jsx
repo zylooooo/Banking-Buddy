@@ -10,6 +10,7 @@ import UserManagementPage from './pages/UserManagementPage';
 import AccountManagementPage from './pages/AccountManagementPage';
 import TransactionManagementPage from './pages/TransactionManagementPage';
 import CommunicationPage from './pages/CommunicationPage';
+import AiFeaturesPage from './pages/AiFeaturesPage';
 import { isAuthenticated, getUserFromToken } from './services/authService';
 
 function ProtectedRoute({ children }) {
@@ -158,6 +159,14 @@ function App() {
           element={
             <ProtectedRoute>
               <CommunicationPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ai-features"
+          element={
+            <ProtectedRoute>
+              <AiFeaturesPage />
             </ProtectedRoute>
           }
         />
