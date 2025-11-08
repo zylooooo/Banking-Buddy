@@ -20,14 +20,7 @@ public class ALBUserContextExtractor {
 
     public UserContext extractUserContext(HttpServletRequest request) {
 
-        // Try ALB format first (production with ALB)
-        String oidcDataHeader = request.getHeader(ALB_OIDC_DATA_HEADER);
-        if (oidcDataHeader != null && !oidcDataHeader.isEmpty()) {
-            log.debug("Found ALB OIDC header, extracting user context from ALB format");
-            return extractFromALBHeader(oidcDataHeader);
-        }
-
-        // Try standard Authorization Bearer token (Postman/direct testing)
+        // Try standard Authorization Bearer token first (primary method, consistent with other services)
         String authorizationHeader = request.getHeader(AUTHORIZATION_HEADER);
         if (authorizationHeader != null && authorizationHeader.startsWith(BEARER_PREFIX)) {
             log.debug("Found Authorization Bearer header, extracting user context from JWT");
@@ -35,7 +28,14 @@ public class ALBUserContextExtractor {
             return extractFromJWT(jwtToken);
         }
 
-        throw new UnauthorizedException("Missing authentication header (x-amzn-oidc-data or Authorization)");
+        // Fallback: Try ALB format (for backward compatibility or if ALB adds it automatically)
+        String oidcDataHeader = request.getHeader(ALB_OIDC_DATA_HEADER);
+        if (oidcDataHeader != null && !oidcDataHeader.isEmpty()) {
+            log.debug("Found ALB OIDC header, extracting user context from ALB format");
+            return extractFromALBHeader(oidcDataHeader);
+        }
+
+        throw new UnauthorizedException("Missing authentication header (Authorization Bearer or x-amzn-oidc-data)");
     }
 
     // Extract user context from ALB OIDC header

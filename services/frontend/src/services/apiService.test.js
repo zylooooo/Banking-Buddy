@@ -196,7 +196,7 @@ describe('apiService', () => {
   });
 
   describe('API interceptors', () => {
-    it('adds authorization token to requests', async () => {
+    it('adds authorization Bearer token to requests', async () => {
       const config = { headers: {} };
       
       // Call the interceptor
@@ -205,7 +205,7 @@ describe('apiService', () => {
       }
 
       expect(authService.getIdToken).toHaveBeenCalled();
-      expect(config.headers['x-amzn-oidc-data']).toBe('mock-token');
+      expect(config.headers['Authorization']).toBe('Bearer mock-token');
     });
 
     it('handles missing token gracefully', async () => {
@@ -217,7 +217,7 @@ describe('apiService', () => {
         await mockAxiosInstance._requestInterceptor(config);
       }
 
-      expect(config.headers['x-amzn-oidc-data']).toBeUndefined();
+      expect(config.headers['Authorization']).toBeUndefined();
     });
   });
 });

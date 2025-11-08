@@ -163,7 +163,7 @@ const aiApiClient = axios.create({
 aiApiClient.interceptors.request.use(async (config) => {
     const token = await getIdToken();
     if (token) {
-        config.headers['x-amzn-oidc-data'] = token;
+        // Primary: Send Bearer token for API Gateway Cognito authorizer
         config.headers['Authorization'] = `Bearer ${token}`;
     }
     return config;

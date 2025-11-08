@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { getIdToken } from '../services/authService';
+import { aiApi } from '../services/apiService';
 
 const markdownComponents = {
     h1: ({...props}) => <h1 className="text-2xl font-bold text-white mt-4 mb-2" {...props} />,
@@ -55,24 +55,8 @@ export default function NaturalLanguageQuery({ onActive }) {
         setTypingText('');
 
         try {
-            const token = await getIdToken();
-            
-            const response = await fetch(`${import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:8083'}/api/ai/query`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': token ? `Bearer ${token}` : '',
-                    'x-amzn-oidc-data': token || ''
-                },
-                body: JSON.stringify({ query: query })
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Request failed: ${response.status} - ${errorText}`);
-            }
-
-            const data = await response.json();
+            const response = await aiApi.processQuery(query);
+            const data = response?.data || {};
             const fullText = data.naturalLanguageResponse || '';
             
             if (!fullText) {
@@ -103,7 +87,7 @@ export default function NaturalLanguageQuery({ onActive }) {
                 clearInterval(typingIntervalRef.current);
                 typingIntervalRef.current = null;
             }
-            setError(err.message || 'Failed to process query');
+            setError(err.response?.data?.message || err.message || 'Failed to process query');
             console.error('NL Query error:', err);
             setLoading(false);
         }
