@@ -4,69 +4,69 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Profile;
-import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.MapPropertySource;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 
-import java.util.HashMap;
-import java.util.Map;
-
+/**
+ * Configuration to fetch OpenAI API key from AWS Secrets Manager.
+ * Follows the same pattern as client-service's SecretsManagerConfig.
+ * Creates a bean that provides the API key, which Spring injects where needed.
+ */
 @Configuration
 @Profile("aws") // Only active in AWS environment
 @Slf4j
 public class SecretsManagerConfig {
-    
-    @Value("${OPENAI_API_KEY_SECRET_NAME:}")
+
+    @Value("${aws.secrets.openai-api-key-secret-name}")
     private String openaiApiKeySecretName;
-    
+
     @Value("${AWS_REGION:ap-southeast-1}")
     private String awsRegion;
-    
-    private final ConfigurableEnvironment environment;
-    private final SecretsManagerClient secretsManagerClient;
-    
-    public SecretsManagerConfig(ConfigurableEnvironment environment, SecretsManagerClient secretsManagerClient) {
-        this.environment = environment;
-        this.secretsManagerClient = secretsManagerClient;
-    }
-    
-    @Bean
-    @DependsOn("secretsManagerClient")
-    public String openaiApiKeyFromSecretsManager() {
+
+    /**
+     * Fetches the OpenAI API key from AWS Secrets Manager and provides it as a Spring bean.
+     * This bean can be injected wherever needed with @Value("${openai.api.key}")
+     * 
+     * @return The OpenAI API key
+     */
+    @Bean(name = "openaiApiKey")
+    public String openaiApiKey() {
         if (openaiApiKeySecretName == null || openaiApiKeySecretName.isEmpty()) {
-            log.warn("OPENAI_API_KEY_SECRET_NAME not set - OpenAI API key will not be fetched from Secrets Manager");
-            return "";
+            log.error("OPENAI_API_KEY_SECRET_NAME is required in AWS environment");
+            log.error("Current value: '{}'", openaiApiKeySecretName);
+            throw new RuntimeException("OPENAI_API_KEY_SECRET_NAME is required in AWS environment");
         }
-        
+
         try {
             log.info("Fetching OpenAI API key from Secrets Manager: {}", openaiApiKeySecretName);
+            log.info("Using AWS Region: {}", awsRegion);
             
+            // Retrieve credentials from AWS Secrets Manager
+            SecretsManagerClient client = SecretsManagerClient.builder()
+                    .region(Region.of(awsRegion))
+                    .build();
+
             GetSecretValueRequest request = GetSecretValueRequest.builder()
                     .secretId(openaiApiKeySecretName)
                     .build();
-            
-            GetSecretValueResponse response = secretsManagerClient.getSecretValue(request);
+
+            GetSecretValueResponse response = client.getSecretValue(request);
             String apiKey = response.secretString().trim();
+
+            log.info("Successfully retrieved OpenAI API key from Secrets Manager (length: {})", apiKey.length());
             
-            log.info("Successfully retrieved OpenAI API key from Secrets Manager (length: {})", 
-                    apiKey.length());
-            
-            // Add the property to Spring's environment so @Value can read it
-            Map<String, Object> properties = new HashMap<>();
-            properties.put("openai.api.key", apiKey);
-            MapPropertySource propertySource = new MapPropertySource("secretsManager", properties);
-            environment.getPropertySources().addFirst(propertySource);
-            
-            log.info("OpenAI API key has been added to Spring environment");
-            
+            // Close the client
+            client.close();
+
             return apiKey;
-            
+
         } catch (Exception e) {
             log.error("Failed to retrieve OpenAI API key from Secrets Manager: {}", e.getMessage(), e);
+            log.error("Secret name attempted: {}", openaiApiKeySecretName);
+            log.error("AWS Region: {}", awsRegion);
             throw new RuntimeException("Failed to retrieve OpenAI API key from Secrets Manager", e);
         }
     }
