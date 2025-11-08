@@ -1,0 +1,166 @@
+name: Deploy AI Service
+
+on:
+  push:
+    branches: [master, integration]
+    paths:
+      - 'services/ai-service/**'
+      - '.github/workflows/deploy-ai-service.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+env:
+  AWS_REGION: ap-southeast-1
+  SERVICE_PATH: services/ai-service
+
+permissions:
+  contents: read    # Required to checkout code
+
+jobs:
+  # Job 1: Build (Runs automatically on push)
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'corretto'
+          cache: 'maven'
+      
+      - name: Build with Maven
+        run: |
+          cd ${{ env.SERVICE_PATH }}
+          mvn clean package -DskipTests
+      
+      - name: Verify JAR exists
+        run: |
+          if [ ! -f "${{ env.SERVICE_PATH }}/target/ai-service-0.0.1-SNAPSHOT.jar" ]; then
+            echo "Error: JAR file not found!"
+            exit 1
+          fi
+          ls -lh ${{ env.SERVICE_PATH }}/target/*.jar
+          echo "Build completed successfully! ✅"
+      
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-service-jar
+          path: ${{ env.SERVICE_PATH }}/target/ai-service-0.0.1-SNAPSHOT.jar
+          retention-days: 7
+
+  # Job 2: Deploy (Automated for dev, manual approval for staging/prod)
+  deploy:
+    name: Deploy to Elastic Beanstalk
+    needs: build
+    runs-on: ubuntu-latest
+    # Uses GitHub Environments for manual approval on staging/prod
+    # Dev deployments are fully automated (no environment protection)
+    environment: 
+      name: ${{ github.event.inputs.environment || 'dev' }}
+    
+    env:
+      DEPLOY_ENV: ${{ github.event.inputs.environment || 'dev' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Verify Elastic Beanstalk environment exists
+        run: |
+          echo "Checking if Elastic Beanstalk environment exists..."
+          ENV_STATUS=$(aws elasticbeanstalk describe-environments \
+            --environment-names banking-buddy-${{ env.DEPLOY_ENV }}-ai-env \
+            --region ${{ env.AWS_REGION }} \
+            --query 'Environments[0].Status' \
+            --output text 2>/dev/null || echo "NotFound")
+          
+          if [ "$ENV_STATUS" = "NotFound" ] || [ -z "$ENV_STATUS" ] || [ "$ENV_STATUS" = "None" ]; then
+            echo "❌ Infrastructure does not exist."
+            echo "Please provision infrastructure first with: cd infrastructure/terraform && terraform apply"
+            exit 1
+          elif echo "$ENV_STATUS" | grep -q "Ready\|Updating"; then
+            echo "✅ Infrastructure exists and is ready: $ENV_STATUS"
+          else
+            echo "⚠️ Infrastructure exists but status is: $ENV_STATUS"
+            echo "Proceeding with deployment..."
+          fi
+      
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ai-service-jar
+          path: ${{ env.SERVICE_PATH }}/target/
+      
+      - name: Verify artifact downloaded
+        run: |
+          if [ ! -f "${{ env.SERVICE_PATH }}/target/ai-service-0.0.1-SNAPSHOT.jar" ]; then
+            echo "Error: JAR file not found in artifacts!"
+            exit 1
+          fi
+          ls -lh ${{ env.SERVICE_PATH }}/target/*.jar
+      
+      - name: Deploy to Elastic Beanstalk
+        uses: ./.github/actions/deploy-to-eb
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          application-name: banking-buddy-${{ env.DEPLOY_ENV }}-ai-service
+          environment-name: banking-buddy-${{ env.DEPLOY_ENV }}-ai-env
+          deployment-package: ${{ env.SERVICE_PATH }}/target/ai-service-0.0.1-SNAPSHOT.jar
+      
+      - name: Get environment URL
+        run: |
+          ENV_URL=$(aws elasticbeanstalk describe-environments \
+            --environment-names banking-buddy-${{ env.DEPLOY_ENV }}-ai-env \
+            --region ${{ env.AWS_REGION }} \
+            --query 'Environments[0].CNAME' \
+            --output text)
+          echo "🚀 Deployment completed successfully!"
+          echo "📍 Environment URL: http://${ENV_URL}"
+          echo "🏥 Health check: http://${ENV_URL}/actuator/health"
+          echo ""
+          echo "Test the deployment:"
+          echo "curl http://${ENV_URL}/actuator/health"
+      
+      - name: Verify deployment health
+        run: |
+          ENV_URL=$(aws elasticbeanstalk describe-environments \
+            --environment-names banking-buddy-${{ env.DEPLOY_ENV }}-ai-env \
+            --region ${{ env.AWS_REGION }} \
+            --query 'Environments[0].CNAME' \
+            --output text)
+          
+          echo "Waiting for service to be healthy..."
+          sleep 30
+          
+          HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://${ENV_URL}/actuator/health || echo "000")
+          
+          if [ "$HEALTH_STATUS" = "200" ]; then
+            echo "✅ Service is healthy! Health check returned 200"
+          else
+            echo "⚠️ Health check returned: $HEALTH_STATUS"
+            echo "Service may still be starting up. Check logs if issues persist."
+          fi

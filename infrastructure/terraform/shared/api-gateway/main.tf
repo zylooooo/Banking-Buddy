@@ -192,6 +192,10 @@ resource "aws_api_gateway_deployment" "main" {
       aws_api_gateway_resource.clients_proxy.id,
       aws_api_gateway_resource.accounts.id,
       aws_api_gateway_resource.accounts_proxy.id,
+      aws_api_gateway_resource.ai.id,
+      aws_api_gateway_resource.ai_guide.id,
+      aws_api_gateway_resource.ai_guide_proxy.id,
+      aws_api_gateway_resource.ai_query.id,
       # OPTIONS methods (for CORS preflight)
       aws_api_gateway_method.users_options.id,
       aws_api_gateway_method.transactions_options.id,
@@ -201,6 +205,9 @@ resource "aws_api_gateway_deployment" "main" {
       aws_api_gateway_method.transactions_proxy_options.id,
       aws_api_gateway_method.clients_proxy_options.id,
       aws_api_gateway_method.accounts_proxy_options.id,
+      aws_api_gateway_method.ai_guide_options.id,
+      aws_api_gateway_method.ai_guide_proxy_options.id,
+      aws_api_gateway_method.ai_query_options.id,
       # OPTIONS integrations (for CORS preflight)
       aws_api_gateway_integration.users_options.id,
       aws_api_gateway_integration.transactions_options.id,
@@ -210,6 +217,9 @@ resource "aws_api_gateway_deployment" "main" {
       aws_api_gateway_integration.transactions_proxy_options.id,
       aws_api_gateway_integration.clients_proxy_options.id,
       aws_api_gateway_integration.accounts_proxy_options.id,
+      aws_api_gateway_integration.ai_guide_options.id,
+      aws_api_gateway_integration.ai_guide_proxy_options.id,
+      aws_api_gateway_integration.ai_query_options.id,
       # OPTIONS method responses (for CORS headers)
       aws_api_gateway_method_response.users_options.id,
       aws_api_gateway_method_response.transactions_options.id,
@@ -219,6 +229,9 @@ resource "aws_api_gateway_deployment" "main" {
       aws_api_gateway_method_response.transactions_proxy_options.id,
       aws_api_gateway_method_response.clients_proxy_options.id,
       aws_api_gateway_method_response.accounts_proxy_options.id,
+      aws_api_gateway_method_response.ai_guide_options.id,
+      aws_api_gateway_method_response.ai_guide_proxy_options.id,
+      aws_api_gateway_method_response.ai_query_options.id,
       # OPTIONS integration responses (for CORS headers - CRITICAL!)
       aws_api_gateway_integration_response.users_options.id,
       aws_api_gateway_integration_response.transactions_options.id,
@@ -228,6 +241,9 @@ resource "aws_api_gateway_deployment" "main" {
       aws_api_gateway_integration_response.transactions_proxy_options.id,
       aws_api_gateway_integration_response.clients_proxy_options.id,
       aws_api_gateway_integration_response.accounts_proxy_options.id,
+      aws_api_gateway_integration_response.ai_guide_options.id,
+      aws_api_gateway_integration_response.ai_guide_proxy_options.id,
+      aws_api_gateway_integration_response.ai_query_options.id,
       # ANY methods (for actual API requests)
       aws_api_gateway_method.users_any.id,
       aws_api_gateway_method.transactions_any.id,
@@ -237,6 +253,9 @@ resource "aws_api_gateway_deployment" "main" {
       aws_api_gateway_method.transactions_proxy_any.id,
       aws_api_gateway_method.clients_proxy_any.id,
       aws_api_gateway_method.accounts_proxy_any.id,
+      aws_api_gateway_method.ai_guide_any.id,
+      aws_api_gateway_method.ai_guide_proxy_any.id,
+      aws_api_gateway_method.ai_query_post.id,
       # ANY integrations
       aws_api_gateway_integration.users_any.id,
       aws_api_gateway_integration.transactions_any.id,
@@ -246,6 +265,9 @@ resource "aws_api_gateway_deployment" "main" {
       aws_api_gateway_integration.transactions_proxy_any.id,
       aws_api_gateway_integration.clients_proxy_any.id,
       aws_api_gateway_integration.accounts_proxy_any.id,
+      aws_api_gateway_integration.ai_guide_any.id,
+      aws_api_gateway_integration.ai_guide_proxy_any.id,
+      aws_api_gateway_integration.ai_query_post.id,
       # ANY method responses
       aws_api_gateway_method_response.users_any.id,
       aws_api_gateway_method_response.transactions_any.id,
@@ -255,6 +277,9 @@ resource "aws_api_gateway_deployment" "main" {
       aws_api_gateway_method_response.transactions_proxy_any.id,
       aws_api_gateway_method_response.clients_proxy_any.id,
       aws_api_gateway_method_response.accounts_proxy_any.id,
+      aws_api_gateway_method_response.ai_guide_any.id,
+      aws_api_gateway_method_response.ai_guide_proxy_any.id,
+      aws_api_gateway_method_response.ai_query_post.id,
       # ANY integration responses (success)
       aws_api_gateway_integration_response.users_any.id,
       aws_api_gateway_integration_response.transactions_any.id,
@@ -264,6 +289,9 @@ resource "aws_api_gateway_deployment" "main" {
       aws_api_gateway_integration_response.transactions_proxy_any.id,
       aws_api_gateway_integration_response.clients_proxy_any.id,
       aws_api_gateway_integration_response.accounts_proxy_any.id,
+      aws_api_gateway_integration_response.ai_guide_any.id,
+      aws_api_gateway_integration_response.ai_guide_proxy_any.id,
+      aws_api_gateway_integration_response.ai_query_post.id,
       # ANY integration responses (error responses - backend 4xx/5xx)
       # Users service
       aws_api_gateway_method_response.users_any_4xx.id,
@@ -301,6 +329,19 @@ resource "aws_api_gateway_deployment" "main" {
       aws_api_gateway_integration_response.transactions_any_5xx.id,
       aws_api_gateway_integration_response.transactions_proxy_any_4xx.id,
       aws_api_gateway_integration_response.transactions_proxy_any_5xx.id,
+      # AI service
+      aws_api_gateway_method_response.ai_guide_any_4xx.id,
+      aws_api_gateway_method_response.ai_guide_any_5xx.id,
+      aws_api_gateway_method_response.ai_guide_proxy_any_4xx.id,
+      aws_api_gateway_method_response.ai_guide_proxy_any_5xx.id,
+      aws_api_gateway_method_response.ai_query_post_4xx.id,
+      aws_api_gateway_method_response.ai_query_post_5xx.id,
+      aws_api_gateway_integration_response.ai_guide_any_4xx.id,
+      aws_api_gateway_integration_response.ai_guide_any_5xx.id,
+      aws_api_gateway_integration_response.ai_guide_proxy_any_4xx.id,
+      aws_api_gateway_integration_response.ai_guide_proxy_any_5xx.id,
+      aws_api_gateway_integration_response.ai_query_post_4xx.id,
+      aws_api_gateway_integration_response.ai_query_post_5xx.id,
     ]))
   }
 
@@ -316,6 +357,9 @@ resource "aws_api_gateway_deployment" "main" {
     aws_api_gateway_method.users_proxy_options,
     aws_api_gateway_method.transactions_proxy_options,
     aws_api_gateway_method.clients_proxy_options,
+    aws_api_gateway_method.ai_guide_options,
+    aws_api_gateway_method.ai_guide_proxy_options,
+    aws_api_gateway_method.ai_query_options,
     # OPTIONS integrations (for CORS preflight)
     aws_api_gateway_integration.users_options,
     aws_api_gateway_integration.transactions_options,
@@ -323,6 +367,9 @@ resource "aws_api_gateway_deployment" "main" {
     aws_api_gateway_integration.users_proxy_options,
     aws_api_gateway_integration.transactions_proxy_options,
     aws_api_gateway_integration.clients_proxy_options,
+    aws_api_gateway_integration.ai_guide_options,
+    aws_api_gateway_integration.ai_guide_proxy_options,
+    aws_api_gateway_integration.ai_query_options,
     # OPTIONS method responses (for CORS headers)
     aws_api_gateway_method_response.users_options,
     aws_api_gateway_method_response.transactions_options,
@@ -330,6 +377,9 @@ resource "aws_api_gateway_deployment" "main" {
     aws_api_gateway_method_response.users_proxy_options,
     aws_api_gateway_method_response.transactions_proxy_options,
     aws_api_gateway_method_response.clients_proxy_options,
+    aws_api_gateway_method_response.ai_guide_options,
+    aws_api_gateway_method_response.ai_guide_proxy_options,
+    aws_api_gateway_method_response.ai_query_options,
     # OPTIONS integration responses (for CORS headers - CRITICAL!)
     aws_api_gateway_integration_response.users_options,
     aws_api_gateway_integration_response.transactions_options,
@@ -337,6 +387,9 @@ resource "aws_api_gateway_deployment" "main" {
     aws_api_gateway_integration_response.users_proxy_options,
     aws_api_gateway_integration_response.transactions_proxy_options,
     aws_api_gateway_integration_response.clients_proxy_options,
+    aws_api_gateway_integration_response.ai_guide_options,
+    aws_api_gateway_integration_response.ai_guide_proxy_options,
+    aws_api_gateway_integration_response.ai_query_options,
     # ANY methods (for actual API requests)
     aws_api_gateway_method.users_any,
     aws_api_gateway_method.transactions_any,
@@ -344,6 +397,9 @@ resource "aws_api_gateway_deployment" "main" {
     aws_api_gateway_method.users_proxy_any,
     aws_api_gateway_method.transactions_proxy_any,
     aws_api_gateway_method.clients_proxy_any,
+    aws_api_gateway_method.ai_guide_any,
+    aws_api_gateway_method.ai_guide_proxy_any,
+    aws_api_gateway_method.ai_query_post,
     # ANY integrations
     aws_api_gateway_integration.users_any,
     aws_api_gateway_integration.transactions_any,
@@ -351,6 +407,9 @@ resource "aws_api_gateway_deployment" "main" {
     aws_api_gateway_integration.users_proxy_any,
     aws_api_gateway_integration.transactions_proxy_any,
     aws_api_gateway_integration.clients_proxy_any,
+    aws_api_gateway_integration.ai_guide_any,
+    aws_api_gateway_integration.ai_guide_proxy_any,
+    aws_api_gateway_integration.ai_query_post,
     # ANY method responses
     aws_api_gateway_method_response.users_any,
     aws_api_gateway_method_response.transactions_any,
@@ -358,6 +417,9 @@ resource "aws_api_gateway_deployment" "main" {
     aws_api_gateway_method_response.users_proxy_any,
     aws_api_gateway_method_response.transactions_proxy_any,
     aws_api_gateway_method_response.clients_proxy_any,
+    aws_api_gateway_method_response.ai_guide_any,
+    aws_api_gateway_method_response.ai_guide_proxy_any,
+    aws_api_gateway_method_response.ai_query_post,
     # ANY integration responses (success)
     aws_api_gateway_integration_response.users_any,
     aws_api_gateway_integration_response.transactions_any,
@@ -365,6 +427,9 @@ resource "aws_api_gateway_deployment" "main" {
     aws_api_gateway_integration_response.users_proxy_any,
     aws_api_gateway_integration_response.transactions_proxy_any,
     aws_api_gateway_integration_response.clients_proxy_any,
+    aws_api_gateway_integration_response.ai_guide_any,
+    aws_api_gateway_integration_response.ai_guide_proxy_any,
+    aws_api_gateway_integration_response.ai_query_post,
     # ANY integration responses (error responses - backend 4xx/5xx)
     # Users service
     aws_api_gateway_method_response.users_any_4xx,
@@ -393,6 +458,19 @@ resource "aws_api_gateway_deployment" "main" {
     aws_api_gateway_integration_response.transactions_any_5xx,
     aws_api_gateway_integration_response.transactions_proxy_any_4xx,
     aws_api_gateway_integration_response.transactions_proxy_any_5xx,
+    # AI service error responses
+    aws_api_gateway_method_response.ai_guide_any_4xx,
+    aws_api_gateway_method_response.ai_guide_any_5xx,
+    aws_api_gateway_method_response.ai_guide_proxy_any_4xx,
+    aws_api_gateway_method_response.ai_guide_proxy_any_5xx,
+    aws_api_gateway_method_response.ai_query_post_4xx,
+    aws_api_gateway_method_response.ai_query_post_5xx,
+    aws_api_gateway_integration_response.ai_guide_any_4xx,
+    aws_api_gateway_integration_response.ai_guide_any_5xx,
+    aws_api_gateway_integration_response.ai_guide_proxy_any_4xx,
+    aws_api_gateway_integration_response.ai_guide_proxy_any_5xx,
+    aws_api_gateway_integration_response.ai_query_post_4xx,
+    aws_api_gateway_integration_response.ai_query_post_5xx,
   ]
 }
 

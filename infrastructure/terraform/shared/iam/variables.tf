@@ -43,6 +43,11 @@ variable "crm_clients_db_secret_arn" {
   type        = string
 }
 
+variable "openai_api_key_secret_arn" {
+  description = "ARN of OpenAI API key secret"
+  type        = string
+}
+
 variable "audit_dynamodb_table_arn" {
   description = "ARN of the audit DynamoDB table (empty string to skip policy creation and break circular dependency)"
   type        = string

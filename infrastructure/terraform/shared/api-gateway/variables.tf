@@ -28,6 +28,11 @@ variable "client_service_endpoint" {
   type        = string
 }
 
+variable "ai_service_endpoint" {
+  description = "AI service endpoint URL"
+  type        = string
+}
+
 variable "api_domain_name" {
   description = "Custom domain name for API (e.g., api.bankingbuddy.com)"
   type        = string

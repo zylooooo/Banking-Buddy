@@ -33,6 +33,7 @@ module "iam" {
   crm_users_db_secret_arn        = module.secrets-manager.crm_users_db_secret_arn
   crm_transactions_db_secret_arn = module.secrets-manager.crm_transactions_db_secret_arn
   crm_clients_db_secret_arn      = module.secrets-manager.crm_clients_db_secret_arn
+  openai_api_key_secret_arn      = module.secrets-manager.openai_api_key_secret_arn
   aws_region                     = var.aws_region
   github_org                     = var.github_org
   github_repo                    = var.github_repo
@@ -84,6 +85,7 @@ module "secrets-manager" {
   crm_transactions_db_password = var.crm_transactions_db_password
   crm_clients_db_username      = var.crm_clients_db_username
   crm_clients_db_password      = var.crm_clients_db_password
+  openai_api_key                = var.openai_api_key
 
   depends_on = [module.rds]
 }
@@ -279,6 +281,31 @@ module "client-service" {
   depends_on = [module.security_groups, module.elasticache]
 }
 
+# Call the ai-service module
+module "ai-service" {
+  source = "./services/ai-service"
+
+  name_prefix                  = local.name_prefix
+  vpc_id                       = module.vpc.vpc_id
+  public_subnet_ids            = module.vpc.public_subnet_ids
+  private_subnet_ids           = module.vpc.private_subnet_ids
+  alb_security_group_id        = module.security_groups.alb_id
+  eb_security_group_id         = module.security_groups.elastic_beanstalk_id
+  eb_instance_profile_name     = module.iam.elastic_beanstalk_instance_profile_name
+  eb_service_role_arn          = module.iam.elastic_beanstalk_service_role_arn
+  aws_region                   = var.aws_region
+  audit_sqs_queue_url          = module.audit_logging.sqs_queue_url
+  redis_endpoint               = module.elasticache.redis_endpoint
+  ec2_key_pair_name            = var.ec2_key_pair_name
+  openai_api_key_secret_name   = module.secrets-manager.openai_api_key_secret_name
+  client_service_endpoint      = module.client-service.endpoint_url
+  transaction_service_endpoint = module.transaction-service.endpoint_url
+  user_service_endpoint        = module.user-service.endpoint_url
+  common_tags                  = local.common_tags
+
+  depends_on = [module.security_groups, module.elasticache, module.client-service, module.transaction-service, module.user-service]
+}
+
 # Call the WAF module
 module "waf" {
   source = "./shared/waf"
@@ -381,6 +408,7 @@ module "api_gateway" {
   user_service_endpoint        = module.user-service.endpoint_url
   transaction_service_endpoint = module.transaction-service.endpoint_url
   client_service_endpoint      = module.client-service.endpoint_url
+  ai_service_endpoint          = module.ai-service.endpoint_url
   api_domain_name              = var.api_domain_name
   certificate_arn              = var.root_domain_name != "" ? module.acm[0].certificate_arn : null
   waf_web_acl_arn              = module.waf.web_acl_arn
@@ -390,6 +418,7 @@ module "api_gateway" {
     module.user-service,
     module.transaction-service,
     module.client-service,
+    module.ai-service,
     module.cognito,
     module.waf
   ]

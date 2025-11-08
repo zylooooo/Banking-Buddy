@@ -236,3 +236,9 @@ variable "ses_source_service" {
   type        = string
   default     = "client-service"
 }
+
+variable "openai_api_key" {
+  description = "OpenAI API key for AI service"
+  type        = string
+  sensitive   = true
+}

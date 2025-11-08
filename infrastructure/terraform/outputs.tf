@@ -168,3 +168,19 @@ output "route53_frontend_record" {
   description = "Route53 frontend record name (null if custom domain not configured)"
   value       = var.root_domain_name != "" && var.frontend_domain_name != "" ? module.route53[0].frontend_record_name : null
 }
+
+# AI Service Outputs
+output "ai_service_alb_dns" {
+  description = "DNS name of the AI Service ALB"
+  value       = module.ai-service.alb_dns_name
+}
+
+output "ai_service_endpoint" {
+  description = "Full endpoint URL for AI Service"
+  value       = module.ai-service.endpoint_url
+}
+
+output "ai_service_environment_name" {
+  description = "Name of the AI Service EB environment"
+  value       = module.ai-service.environment_name
+}

@@ -47,3 +47,13 @@ output "crm_clients_db_secret_arn" {
   description = "ARN of CRM clients DB secret"
   value = aws_secretsmanager_secret.crm_clients_db.arn
 }
+
+output "openai_api_key_secret_name" {
+  description = "Name of the OpenAI API key secret"
+  value       = aws_secretsmanager_secret.openai_api_key.name
+}
+
+output "openai_api_key_secret_arn" {
+  description = "ARN of the OpenAI API key secret"
+  value       = aws_secretsmanager_secret.openai_api_key.arn
+}

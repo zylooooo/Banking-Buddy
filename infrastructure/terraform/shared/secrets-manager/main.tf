@@ -96,3 +96,16 @@ resource "aws_secretsmanager_secret_version" "crm_clients_db" {
     dbname   = "crm_clients"
   })
 }
+
+# OpenAI API Key Secret
+resource "aws_secretsmanager_secret" "openai_api_key" {
+  name        = "${var.name_prefix}-openai-api-key-${random_string.secret_suffix.result}"
+  description = "OpenAI API key for AI service"
+
+  tags = var.common_tags
+}
+
+resource "aws_secretsmanager_secret_version" "openai_api_key" {
+  secret_id     = aws_secretsmanager_secret.openai_api_key.id
+  secret_string = var.openai_api_key
+}
