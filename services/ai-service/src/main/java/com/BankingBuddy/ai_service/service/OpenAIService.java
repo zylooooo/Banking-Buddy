@@ -3,6 +3,7 @@ package com.BankingBuddy.ai_service.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -25,10 +26,23 @@ public class OpenAIService {
     private final int maxTokens;
     private final int timeoutSeconds;
     
+    /**
+     * Constructor for OpenAIService.
+     * Follows client-service pattern: API key bean is injected directly.
+     * 
+     * @param webClientBuilder WebClient builder  
+     * @param objectMapper ObjectMapper for JSON parsing
+     * @param apiKey OpenAI API key bean (from Secrets Manager in AWS, from properties in local)
+     * @param apiUrl OpenAI API URL
+     * @param model OpenAI model to use
+     * @param temperature Temperature setting for AI responses
+     * @param maxTokens Maximum tokens in response
+     * @param timeoutSeconds Request timeout in seconds
+     */
     public OpenAIService(
             WebClient.Builder webClientBuilder,
             ObjectMapper objectMapper,
-            @Value("${openai.api.key}") String apiKey,
+            @Qualifier("openaiApiKey") String apiKey,
             @Value("${openai.api.url}") @NonNull String apiUrl,
             @Value("${openai.model}") @NonNull String model,
             @Value("${openai.temperature}") double temperature,
