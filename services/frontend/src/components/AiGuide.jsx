@@ -21,7 +21,7 @@ const markdownComponents = {
     a: ({node, ...props}) => <a className="text-blue-400 hover:text-blue-300 underline" {...props} />,
 };
 
-export default function AiGuide() {
+export default function AiGuide({ onActive }) {
     const [question, setQuestion] = useState('');
     const [answer, setAnswer] = useState('');
     const [relatedTopics, setRelatedTopics] = useState([]);
@@ -41,6 +41,10 @@ export default function AiGuide() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!question.trim()) return;
+
+        if (onActive) {
+            onActive();
+        }
 
         if (typingIntervalRef.current) {
             clearInterval(typingIntervalRef.current);
@@ -92,72 +96,99 @@ export default function AiGuide() {
     };
 
     return (
-        <div className="bg-slate-800 border border-slate-700 rounded-md p-6">
-            <h3 className="text-xl font-semibold text-white mb-4">AI Help Guide</h3>
+        <div className="h-full flex flex-col bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden">
+            <div className="p-4 lg:p-6 border-b border-slate-700 bg-gradient-to-r from-slate-800 to-slate-750">
+                <h3 className="text-xl lg:text-2xl font-semibold text-white mb-1 flex items-center gap-2">
+                    <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></span>
+                    AI Help Guide
+                </h3>
+                <p className="text-xs lg:text-sm text-slate-400">Get help with using the CRM system</p>
+            </div>
             
-            <form onSubmit={handleSubmit} className="mb-4">
-                <div className="flex gap-2">
-                    <input
-                        type="text"
-                        value={question}
-                        onChange={(e) => setQuestion(e.target.value)}
-                        placeholder="Ask: How do I reset my password?"
-                        className="flex-1 px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                    >
-                        {loading ? 'Asking...' : 'Ask'}
-                    </button>
-                </div>
-            </form>
+            <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-4">
+                <form onSubmit={handleSubmit} className="mb-4">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <input
+                            type="text"
+                            value={question}
+                            onChange={(e) => setQuestion(e.target.value)}
+                            placeholder="Ask: How do I reset my password?"
+                            className="flex-1 px-4 py-2.5 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        />
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-blue-500/50 font-medium"
+                        >
+                            {loading ? (
+                                <span className="flex items-center gap-2">
+                                    <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                                    Asking...
+                                </span>
+                            ) : 'Ask'}
+                        </button>
+                    </div>
+                </form>
 
-            {error && (
-                <div className="mb-4 p-3 bg-red-900/50 border border-red-700 rounded-md text-red-300">
-                    {error}
-                </div>
-            )}
+                {error && (
+                    <div className="p-4 bg-red-900/30 border border-red-700/50 rounded-lg text-red-300 backdrop-blur-sm animate-fade-in">
+                        <div className="flex items-center gap-2">
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                            </svg>
+                            <span className="font-medium">Error</span>
+                        </div>
+                        <p className="mt-1 text-sm">{error}</p>
+                    </div>
+                )}
 
-            {typingText && !answer && (
-                <div className="mb-4">
-                    <div className="p-4 bg-slate-700 rounded-md text-slate-200">
-                        <p className="text-slate-200 mb-2 font-semibold flex items-center gap-2">
+                {typingText && !answer && (
+                    <div className="p-4 lg:p-5 bg-slate-700/50 rounded-lg border border-slate-600 backdrop-blur-sm animate-fade-in">
+                        <p className="text-slate-200 mb-3 font-semibold flex items-center gap-2">
+                            <span className="inline-block w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
                             Answer (typing...):
-                            <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                         </p>
-                        <ReactMarkdown components={markdownComponents}>
-                            {typingText}
-                        </ReactMarkdown>
+                        <div className="text-slate-300 prose prose-invert prose-sm max-w-none">
+                            <ReactMarkdown components={markdownComponents}>
+                                {typingText}
+                            </ReactMarkdown>
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {answer && (
-                <div className="mb-4">
-                    <div className="p-4 bg-slate-700 rounded-md text-slate-200">
-                        <ReactMarkdown components={markdownComponents}>
-                            {answer}
-                        </ReactMarkdown>
-                    </div>
-                    {relatedTopics.length > 0 && (
-                        <div className="mt-3">
-                            <p className="text-sm text-slate-400 mb-2">Related topics:</p>
-                            <div className="flex flex-wrap gap-2">
-                                {relatedTopics.map((topic, idx) => (
-                                    <span
-                                        key={idx}
-                                        className="px-3 py-1 bg-blue-900/50 text-blue-300 rounded-full text-sm"
-                                    >
-                                        {topic}
-                                    </span>
-                                ))}
+                {answer && (
+                    <div className="space-y-4 animate-fade-in">
+                        <div className="p-4 lg:p-5 bg-slate-700/50 rounded-lg border border-slate-600 backdrop-blur-sm">
+                            <p className="text-slate-200 mb-3 font-semibold flex items-center gap-2">
+                                <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                                Answer:
+                            </p>
+                            <div className="text-slate-300 prose prose-invert prose-sm max-w-none">
+                                <ReactMarkdown components={markdownComponents}>
+                                    {answer}
+                                </ReactMarkdown>
                             </div>
                         </div>
-                    )}
-                </div>
-            )}
+                        {relatedTopics.length > 0 && (
+                            <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                                <p className="text-sm text-slate-400 mb-3 font-medium">Related topics:</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {relatedTopics.map((topic, idx) => (
+                                        <span
+                                            key={idx}
+                                            className="px-3 py-1.5 bg-blue-900/50 text-blue-300 rounded-full text-sm font-medium hover:bg-blue-800/50 transition-colors cursor-default"
+                                        >
+                                            {topic}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

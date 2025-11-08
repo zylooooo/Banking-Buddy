@@ -21,7 +21,7 @@ const markdownComponents = {
     a: ({node, ...props}) => <a className="text-blue-400 hover:text-blue-300 underline" {...props} />,
 };
 
-export default function NaturalLanguageQuery() {
+export default function NaturalLanguageQuery({ onActive }) {
     const [query, setQuery] = useState('');
     const [response, setResponse] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -40,6 +40,10 @@ export default function NaturalLanguageQuery() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!query.trim()) return;
+
+        if (onActive) {
+            onActive();
+        }
 
         if (typingIntervalRef.current) {
             clearInterval(typingIntervalRef.current);
@@ -105,100 +109,230 @@ export default function NaturalLanguageQuery() {
         }
     };
 
+    // Format currency for display
+    const formatCurrency = (value) => {
+        if (!value) return '';
+        // If already formatted as currency, return as is
+        if (typeof value === 'string' && value.includes('$')) {
+            return value;
+        }
+        // Otherwise format it
+        const num = parseFloat(value);
+        if (isNaN(num)) return value;
+        return new Intl.NumberFormat('en-SG', {
+            style: 'currency',
+            currency: 'SGD'
+        }).format(num);
+    };
+
+    // Format date for display
+    const formatDate = (value) => {
+        if (!value) return '';
+        // If already in DD/MM/YYYY format, return as is
+        if (typeof value === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+            return value;
+        }
+        try {
+            const date = new Date(value);
+            if (isNaN(date.getTime())) return value;
+            return date.toLocaleDateString('en-SG', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        } catch {
+            return value;
+        }
+    };
+
+    // Get badge styling for transaction type and status (matching TransactionManagementPage)
+    const getTypeBadgeClass = (type) => {
+        if (!type) return 'bg-slate-700 text-slate-300';
+        const lowerType = type.toLowerCase();
+        if (lowerType === 'deposit') return 'bg-green-500 text-white';
+        if (lowerType === 'withdrawal') return 'bg-blue-500 text-white';
+        return 'bg-slate-700 text-slate-300';
+    };
+
+    const getStatusBadgeClass = (status) => {
+        if (!status) return 'bg-slate-700 text-slate-300';
+        const lowerStatus = status.toLowerCase();
+        if (lowerStatus === 'completed') return 'bg-green-500 text-white';
+        if (lowerStatus === 'pending') return 'bg-orange-500 text-white';
+        if (lowerStatus === 'failed') return 'bg-red-500 text-white';
+        // For client status: Verified/Unverified
+        if (lowerStatus === 'verified') return 'bg-green-900 text-green-300';
+        if (lowerStatus === 'unverified') return 'bg-yellow-900 text-yellow-300';
+        return 'bg-slate-700 text-slate-300';
+    };
+
     return (
-        <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
-            <h3 className="text-xl font-semibold text-white mb-4">CRM Assistant</h3>
+        <div className="h-full flex flex-col bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden">
+            <div className="p-4 lg:p-6 border-b border-slate-700 bg-gradient-to-r from-slate-800 to-slate-750">
+                <h3 className="text-xl lg:text-2xl font-semibold text-white mb-1 flex items-center gap-2">
+                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                    CRM Assistant
+                </h3>
+                <p className="text-xs lg:text-sm text-slate-400">Query your CRM data using natural language</p>
+            </div>
             
-            <form onSubmit={handleSubmit} className="mb-4">
-                <div className="flex gap-2">
-                    <input
-                        type="text"
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Ask me anything!"
-                        className="flex-1 px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                    >
-                        {loading ? 'Querying...' : 'Query'}
-                    </button>
-                </div>
-            </form>
-
-            {error && (
-                <div className="mb-4 p-3 bg-red-900/50 border border-red-700 rounded-md text-red-300">
-                    {error}
-                </div>
-            )}
-
-            {typingText && !response && (
-                <div className="mb-4 p-4 bg-slate-700 rounded-md">
-                    <p className="text-slate-200 mb-2 font-semibold flex items-center gap-2">
-                        Response (typing...):
-                        <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                    </p>
-                    <div className="text-slate-300 prose prose-invert prose-sm max-w-none">
-                        <ReactMarkdown components={markdownComponents}>
-                            {typingText}
-                        </ReactMarkdown>
+            <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-4">
+                <form onSubmit={handleSubmit} className="mb-4">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <input
+                            type="text"
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            placeholder="Ask me anything! (e.g., Show me all my clients)"
+                            className="flex-1 px-4 py-2.5 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                        />
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="px-6 py-2.5 bg-gradient-to-r from-green-600 to-green-500 text-white rounded-lg hover:from-green-700 hover:to-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-green-500/50 font-medium"
+                        >
+                            {loading ? (
+                                <span className="flex items-center gap-2">
+                                    <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                                    Querying...
+                                </span>
+                            ) : 'Query'}
+                        </button>
                     </div>
-                </div>
-            )}
+                </form>
 
-            {response && (
-                <div className="space-y-4">
-                    <div className="p-4 bg-slate-700 rounded-md">
-                        <p className="text-slate-200 mb-2 font-semibold">Response:</p>
+                {error && (
+                    <div className="p-4 bg-red-900/30 border border-red-700/50 rounded-lg text-red-300 backdrop-blur-sm animate-fade-in">
+                        <div className="flex items-center gap-2">
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                            </svg>
+                            <span className="font-medium">Error</span>
+                        </div>
+                        <p className="mt-1 text-sm">{error}</p>
+                    </div>
+                )}
+
+                {typingText && !response && (
+                    <div className="p-4 lg:p-5 bg-slate-700/50 rounded-lg border border-slate-600 backdrop-blur-sm animate-fade-in">
+                        <p className="text-slate-200 mb-3 font-semibold flex items-center gap-2">
+                            <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                            Response (typing...):
+                        </p>
                         <div className="text-slate-300 prose prose-invert prose-sm max-w-none">
                             <ReactMarkdown components={markdownComponents}>
-                                {response.naturalLanguageResponse || 'No response content available'}
+                                {typingText}
                             </ReactMarkdown>
                         </div>
-                        {(response.queryType || response.sqlQuery) && (
-                            <p className="text-xs text-slate-500 mt-2">
-                                {response.queryType && `Query Type: ${response.queryType}`}
-                                {response.queryType && response.sqlQuery && ' | '}
-                                {response.sqlQuery && `API: ${response.sqlQuery}`}
-                            </p>
-                        )}
                     </div>
+                )}
 
-                    {response.results && response.results.length > 0 && response.results[0] && (
-                        <div>
-                            <p className="text-sm text-slate-400 mb-2">Results ({response.results.length}):</p>
-                            <div className="bg-slate-700 rounded-md overflow-x-auto">
-                                <table className="w-full text-sm text-left">
-                                    <thead className="bg-slate-600 text-slate-300">
-                                        <tr>
-                                            {Object.keys(response.results[0]).map((key) => (
-                                                <th key={key} className="px-4 py-2 capitalize">
-                                                    {key.replace(/([A-Z])/g, ' $1').trim()}
-                                                </th>
-                                            ))}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {response.results.map((result, idx) => (
-                                            result && (
-                                                <tr key={idx} className="border-t border-slate-600 text-slate-300">
-                                                    {Object.values(result).map((value, valIdx) => (
-                                                        <td key={valIdx} className="px-4 py-2">
-                                                            {String(value)}
-                                                        </td>
+                {response && (
+                    <div className="space-y-4 animate-fade-in">
+                        <div className="p-4 lg:p-5 bg-slate-700/50 rounded-lg border border-slate-600 backdrop-blur-sm">
+                            <p className="text-slate-200 mb-3 font-semibold flex items-center gap-2">
+                                <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                                Response:
+                            </p>
+                            <div className="text-slate-300 prose prose-invert prose-sm max-w-none">
+                                <ReactMarkdown components={markdownComponents}>
+                                    {response.naturalLanguageResponse || 'No response content available'}
+                                </ReactMarkdown>
+                            </div>
+                            {(response.queryType || response.sqlQuery) && (
+                                <div className="mt-3 pt-3 border-t border-slate-600">
+                                    <p className="text-xs text-slate-500 flex flex-wrap gap-2">
+                                        {response.queryType && (
+                                            <span className="px-2 py-1 bg-blue-900/50 text-blue-300 rounded-md">
+                                                Type: {response.queryType}
+                                            </span>
+                                        )}
+                                        {response.sqlQuery && (
+                                            <span className="px-2 py-1 bg-purple-900/50 text-purple-300 rounded-md">
+                                                API: {response.sqlQuery}
+                                            </span>
+                                        )}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        {response.results && response.results.length > 0 && response.results[0] && (
+                            <div className="animate-fade-in">
+                                <p className="text-sm text-slate-400 mb-3 font-medium">
+                                    Results ({response.results.length}):
+                                </p>
+                                <div className="bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full">
+                                            <thead>
+                                                <tr className="border-b border-slate-700">
+                                                    {Object.keys(response.results[0]).map((key) => (
+                                                        <th key={key} className="text-left p-4 text-slate-300 font-medium whitespace-nowrap">
+                                                            {key.replace(/([A-Z])/g, ' $1').trim()}
+                                                        </th>
                                                     ))}
                                                 </tr>
-                                            )
-                                        ))}
-                                    </tbody>
-                                </table>
+                                            </thead>
+                                            <tbody>
+                                                {response.results.map((result, idx) => (
+                                                    result && (
+                                                        <tr key={idx} className="border-b border-slate-700 hover:bg-slate-750">
+                                                            {Object.entries(result).map(([key, value], valIdx) => {
+                                                                const stringValue = String(value);
+                                                                let displayValue = stringValue;
+                                                                
+                                                                // Format based on column name
+                                                                if (key.toLowerCase().includes('amount')) {
+                                                                    displayValue = formatCurrency(stringValue);
+                                                                } else if (key.toLowerCase().includes('date')) {
+                                                                    displayValue = formatDate(stringValue);
+                                                                }
+                                                                
+                                                                // Check if it's a badge (Type or Status)
+                                                                const isType = key.toLowerCase().includes('type');
+                                                                const isStatus = key.toLowerCase().includes('status');
+                                                                
+                                                                // Determine text color based on column type
+                                                                const isId = key.toLowerCase().includes('id');
+                                                                const isEmail = key.toLowerCase().includes('email');
+                                                                const isName = key.toLowerCase().includes('name');
+                                                                
+                                                                return (
+                                                                    <td key={valIdx} className={`p-4 ${
+                                                                        isId ? 'text-white font-mono text-sm' :
+                                                                        isName ? 'text-white' :
+                                                                        isEmail ? 'text-slate-300' :
+                                                                        'text-slate-300'
+                                                                    }`}>
+                                                                        {isType ? (
+                                                                            <span className={`px-2 py-1 text-xs rounded-full ${getTypeBadgeClass(stringValue)}`}>
+                                                                                {stringValue}
+                                                                            </span>
+                                                                        ) : isStatus ? (
+                                                                            <span className={`px-2 py-1 text-xs rounded-full ${getStatusBadgeClass(stringValue)}`}>
+                                                                                {stringValue}
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="whitespace-nowrap">{displayValue}</span>
+                                                                        )}
+                                                                    </td>
+                                                                );
+                                                            })}
+                                                        </tr>
+                                                    )
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    )}
-                </div>
-            )}
+                        )}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
