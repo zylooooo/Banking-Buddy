@@ -9,9 +9,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
     
+    @NonNull
     private final AuthorizationInterceptor authorizationInterceptor;
     
-    public WebMvcConfig(AuthorizationInterceptor authorizationInterceptor) {
+    public WebMvcConfig(@NonNull AuthorizationInterceptor authorizationInterceptor) {
         this.authorizationInterceptor = authorizationInterceptor;
     }
     

@@ -10,11 +10,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.time.Duration;
 import java.util.*;
+import java.util.Objects;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @Service
 @Slf4j
@@ -31,9 +37,9 @@ public class NaturalLanguageQueryService {
             OpenAIService openAIService,
             WebClient.Builder webClientBuilder,
             ObjectMapper objectMapper,
-            @Value("${services.client-service.url}") String clientServiceUrl,
-            @Value("${services.transaction-service.url}") String transactionServiceUrl,
-            @Value("${services.user-service.url}") String userServiceUrl,
+            @Value("${services.client-service.url}") @NonNull String clientServiceUrl,
+            @Value("${services.transaction-service.url}") @NonNull String transactionServiceUrl,
+            @Value("${services.user-service.url}") @NonNull String userServiceUrl,
             @Value("${services.timeout}") int serviceTimeoutSeconds) {
 
         log.info("Service URLs configured:");
@@ -44,16 +50,32 @@ public class NaturalLanguageQueryService {
         this.openAIService = openAIService;
         this.objectMapper = objectMapper;
         this.serviceTimeoutSeconds = serviceTimeoutSeconds;
+        
+        // Validate service URLs are not null or empty
+        String validatedClientServiceUrl = Objects.requireNonNull(clientServiceUrl, "Client service URL cannot be null").trim();
+        String validatedTransactionServiceUrl = Objects.requireNonNull(transactionServiceUrl, "Transaction service URL cannot be null").trim();
+        String validatedUserServiceUrl = Objects.requireNonNull(userServiceUrl, "User service URL cannot be null").trim();
+        
+        if (validatedClientServiceUrl.isEmpty()) {
+            throw new IllegalArgumentException("Client service URL cannot be empty");
+        }
+        if (validatedTransactionServiceUrl.isEmpty()) {
+            throw new IllegalArgumentException("Transaction service URL cannot be empty");
+        }
+        if (validatedUserServiceUrl.isEmpty()) {
+            throw new IllegalArgumentException("User service URL cannot be empty");
+        }
+        
         this.clientServiceClient = webClientBuilder
-                .baseUrl(clientServiceUrl)
+                .baseUrl(validatedClientServiceUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .build();
         this.transactionServiceClient = webClientBuilder
-                .baseUrl(transactionServiceUrl)
+                .baseUrl(validatedTransactionServiceUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .build();
         this.userServiceClient = webClientBuilder
-                .baseUrl(userServiceUrl)
+                .baseUrl(validatedUserServiceUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }
@@ -328,48 +350,171 @@ public class NaturalLanguageQueryService {
                         .build();
             }
             
-            // Build transaction query
-            String uri = "/api/transactions/search?";
-            if (clientId != null) {
-                uri += "clientIds=" + clientId + "&";
-            } else if (!allowedClientIds.isEmpty()) {
-                uri += "clientIds=" + String.join(",", allowedClientIds) + "&";
-            }
+            // Create final copies for use in lambda (required for effectively final variables)
+            final String finalClientId = clientId;
+            final List<String> finalAllowedClientIds = new ArrayList<>(allowedClientIds);
             
-            // Add other filters from intent
-            if (params.has("dateFrom")) {
-                uri += "startDate=" + params.get("dateFrom").asText() + "&";
-            }
-            if (params.has("dateTo")) {
-                uri += "endDate=" + params.get("dateTo").asText() + "&";
-            }
-            if (params.has("transactionType")) {
-                uri += "transaction=" + params.get("transactionType").asText() + "&";
-            }
+            // Build transaction query using WebClient's uriBuilder (best practice for WebClient)
+            log.info("Building transaction search request with {} clientId(s)", 
+                    finalClientId != null ? 1 : finalAllowedClientIds.size());
             
-            uri += "limit=10&page=0";
-            
-            String response = transactionServiceClient.get()
-                    .uri(uri)
-                    .header("Authorization", "Bearer " + authToken)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .timeout(Duration.ofSeconds(serviceTimeoutSeconds))
-                    .block();
+            String response;
+            try {
+                response = transactionServiceClient.get()
+                        .uri(uriBuilder -> {
+                            var builder = uriBuilder.path("/api/transactions/search");
+                            
+                            // Add clientIds as repeated query parameters (Spring expects this format for List<String>)
+                            if (finalClientId != null) {
+                                builder.queryParam("clientIds", finalClientId);
+                                log.debug("Added single clientId: {}", finalClientId);
+                            } else if (!finalAllowedClientIds.isEmpty()) {
+                                // Add each clientId as a separate query parameter
+                                for (String id : finalAllowedClientIds) {
+                                    builder.queryParam("clientIds", id);
+                                }
+                                log.debug("Added {} clientIds as repeated query params: {}", 
+                                        finalAllowedClientIds.size(), finalAllowedClientIds);
+                            }
+                            
+                            // Add other filters from intent - only if they have valid non-empty values
+                            if (params.has("dateFrom") && !params.get("dateFrom").isNull()) {
+                                String dateFrom = params.get("dateFrom").asText();
+                                // Only add if not empty and not the string "null"
+                                if (!dateFrom.trim().isEmpty() && !"null".equalsIgnoreCase(dateFrom)) {
+                                    builder.queryParam("startDate", dateFrom);
+                                    log.debug("Added startDate filter: {}", dateFrom);
+                                }
+                            }
+                            if (params.has("dateTo") && !params.get("dateTo").isNull()) {
+                                String dateTo = params.get("dateTo").asText();
+                                // Only add if not empty and not the string "null"
+                                if (!dateTo.trim().isEmpty() && !"null".equalsIgnoreCase(dateTo)) {
+                                    builder.queryParam("endDate", dateTo);
+                                    log.debug("Added endDate filter: {}", dateTo);
+                                }
+                            }
+                            if (params.has("transactionType") && !params.get("transactionType").isNull()) {
+                                String transactionType = params.get("transactionType").asText();
+                                // Only add if not empty and not the string "null"
+                                if (!transactionType.trim().isEmpty() && !"null".equalsIgnoreCase(transactionType)) {
+                                    builder.queryParam("transaction", transactionType);
+                                    log.debug("Added transaction type filter: {}", transactionType);
+                                }
+                            }
+                            
+                            builder.queryParam("limit", 10);
+                            builder.queryParam("page", 0);
+                            
+                            var uri = builder.build();
+                            // Log the actual URI being sent for debugging
+                            log.info("Transaction search URI: {}", uri);
+                            return uri;
+                        })
+                        .header("Authorization", "Bearer " + authToken)
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .timeout(Duration.ofSeconds(serviceTimeoutSeconds))
+                        .block();
+            } catch (WebClientResponseException e) {
+                // Log the actual error response from transaction service
+                log.error("Transaction service returned error: Status={}, Response Body={}", 
+                        e.getStatusCode(), e.getResponseBodyAsString(), e);
+                
+                // Log request details for debugging
+                log.error("Request details - clientId: {}, allowedClientIds: {}", 
+                        finalClientId, finalAllowedClientIds);
+                
+                // Try to extract meaningful error message from response
+                String errorMessage = "I encountered an error while searching transactions.";
+                try {
+                    String responseBody = e.getResponseBodyAsString();
+                    if (responseBody != null && !responseBody.isEmpty()) {
+                        JsonNode errorResponse = objectMapper.readTree(responseBody);
+                        if (errorResponse.has("message")) {
+                            errorMessage = errorResponse.get("message").asText();
+                        } else if (errorResponse.has("error")) {
+                            errorMessage = errorResponse.get("error").asText();
+                        }
+                    }
+                } catch (Exception parseException) {
+                    log.warn("Could not parse error response: {}", parseException.getMessage());
+                }
+                
+                return QueryResponse.builder()
+                        .naturalLanguageResponse(errorMessage + " Please check your permissions and try again.")
+                        .queryType("transaction")
+                        .results(Collections.emptyList())
+                        .build();
+            } catch (Exception e) {
+                log.error("Unexpected error querying transactions: {}", e.getMessage(), e);
+                return QueryResponse.builder()
+                        .naturalLanguageResponse("I encountered an error while searching transactions. " +
+                               "Please check your permissions and try again.")
+                        .queryType("transaction")
+                        .results(Collections.emptyList())
+                        .build();
+            }
             
             JsonNode transactionsResponse = objectMapper.readTree(response);
             List<Map<String, Object>> results = new ArrayList<>();
+            
+            // Date formatter for DD/MM/YYYY format (matching frontend)
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            // Currency formatter for SGD (matching frontend)
+            java.text.NumberFormat currencyFormatter = java.text.NumberFormat.getCurrencyInstance(java.util.Locale.forLanguageTag("en-SG"));
             
             if (transactionsResponse.has("data") && transactionsResponse.get("data").has("content")) {
                 JsonNode transactions = transactionsResponse.get("data").get("content");
                 if (transactions.isArray()) {
                     for (JsonNode tx : transactions) {
                         Map<String, Object> txMap = new HashMap<>();
-                        txMap.put("transactionId", tx.has("id") ? tx.get("id").asText() : "");
-                        txMap.put("amount", tx.has("amount") ? tx.get("amount").asText() : "");
-                        txMap.put("type", tx.has("transaction") ? tx.get("transaction").asText() : "");
-                        txMap.put("date", tx.has("date") ? tx.get("date").asText() : "");
-                        txMap.put("clientId", tx.has("clientId") ? tx.get("clientId").asText() : "");
+                        
+                        // Transaction ID (first column)
+                        txMap.put("Transaction ID", tx.has("id") ? tx.get("id").asText() : "");
+                        
+                        // Client (second column) - use clientId for now, could be enhanced to fetch client name
+                        txMap.put("Client", tx.has("clientId") ? tx.get("clientId").asText() : "");
+                        
+                        // Type (third column) - transaction type (Deposit/Withdrawal)
+                        txMap.put("Type", tx.has("transaction") ? tx.get("transaction").asText() : "");
+                        
+                        // Amount (fourth column) - formatted as currency
+                        if (tx.has("amount") && !tx.get("amount").isNull()) {
+                            try {
+                                BigDecimal amount = new BigDecimal(tx.get("amount").asText());
+                                txMap.put("Amount", currencyFormatter.format(amount));
+                            } catch (Exception e) {
+                                log.warn("Could not format amount: {}", tx.get("amount").asText());
+                                txMap.put("Amount", tx.get("amount").asText());
+                            }
+                        } else {
+                            txMap.put("Amount", "");
+                        }
+                        
+                        // Date (fifth column) - formatted as DD/MM/YYYY
+                        if (tx.has("date") && !tx.get("date").isNull()) {
+                            try {
+                                LocalDateTime date = LocalDateTime.parse(tx.get("date").asText());
+                                txMap.put("Date", date.format(dateFormatter));
+                            } catch (Exception e) {
+                                // Try parsing as ISO string if LocalDateTime parsing fails
+                                try {
+                                    java.time.Instant instant = java.time.Instant.parse(tx.get("date").asText());
+                                    LocalDateTime date = LocalDateTime.ofInstant(instant, java.time.ZoneId.systemDefault());
+                                    txMap.put("Date", date.format(dateFormatter));
+                                } catch (Exception e2) {
+                                    log.warn("Could not format date: {}", tx.get("date").asText());
+                                    txMap.put("Date", tx.get("date").asText());
+                                }
+                            }
+                        } else {
+                            txMap.put("Date", "");
+                        }
+                        
+                        // Status (sixth column)
+                        txMap.put("Status", tx.has("status") ? tx.get("status").asText() : "");
+                        
                         results.add(txMap);
                     }
                 }

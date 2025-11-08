@@ -12,6 +12,7 @@ import org.springframework.util.StreamUtils;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.Objects;
 
 @Service
 @Slf4j
@@ -31,7 +32,7 @@ public class AiGuideService {
             ClassPathResource resource = new ClassPathResource("docs/guide.txt");
             if (resource.exists()) {
                 documentationContent = StreamUtils.copyToString(
-                    resource.getInputStream(), StandardCharsets.UTF_8);
+                    resource.getInputStream(), Objects.requireNonNull(StandardCharsets.UTF_8));
                 log.info("Loaded guide.txt successfully ({} characters)", documentationContent.length());
             } else {
                 // Fallback to hardcoded guide content

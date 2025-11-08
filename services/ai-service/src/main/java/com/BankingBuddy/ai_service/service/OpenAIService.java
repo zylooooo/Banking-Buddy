@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import java.time.Duration;
 import java.util.*;
+import org.springframework.lang.NonNull;
 
 @Service
 @Slf4j
@@ -28,8 +29,8 @@ public class OpenAIService {
             WebClient.Builder webClientBuilder,
             ObjectMapper objectMapper,
             @Value("${openai.api.key}") String apiKey,
-            @Value("${openai.api.url}") String apiUrl,
-            @Value("${openai.model}") String model,
+            @Value("${openai.api.url}") @NonNull String apiUrl,
+            @Value("${openai.model}") @NonNull String model,
             @Value("${openai.temperature}") double temperature,
             @Value("${openai.max-tokens}") int maxTokens,
             @Value("${openai.timeout-seconds}") int timeoutSeconds) {
