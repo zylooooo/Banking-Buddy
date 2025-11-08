@@ -19,19 +19,31 @@ public class OpenAIService {
     private final ObjectMapper objectMapper;
     private final String apiKey;
     private final boolean hasApiKey;
+    private final String model;
+    private final double temperature;
+    private final int maxTokens;
+    private final int timeoutSeconds;
     
     public OpenAIService(
             WebClient.Builder webClientBuilder,
             ObjectMapper objectMapper,
-            @Value("${OPENAI_API_KEY:}") String apiKey,
-            @Value("${OPENAI_API_URL:https://api.openai.com/v1}") String apiUrl) {
+            @Value("${openai.api.key}") String apiKey,
+            @Value("${openai.api.url}") String apiUrl,
+            @Value("${openai.model}") String model,
+            @Value("${openai.temperature}") double temperature,
+            @Value("${openai.max-tokens}") int maxTokens,
+            @Value("${openai.timeout-seconds}") int timeoutSeconds) {
         this.objectMapper = objectMapper;
+        this.model = model;
+        this.temperature = temperature;
+        this.maxTokens = maxTokens;
+        this.timeoutSeconds = timeoutSeconds;
         
         // Clean and validate API key
         this.apiKey = (apiKey != null) ? apiKey.trim() : "";
         this.hasApiKey = !this.apiKey.isEmpty() && !this.apiKey.isBlank();
         
-        // Build WebClient - conditionally add Authorization header
+        // Build WebClient
         WebClient.Builder builder = webClientBuilder
                 .baseUrl(apiUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
@@ -55,17 +67,17 @@ public class OpenAIService {
         
         try {
             Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("model", "gpt-4o-mini");
-            requestBody.put("temperature", 0.3);
-            requestBody.put("max_tokens", 1000);
+            requestBody.put("model", model);
+            requestBody.put("temperature", temperature);
+            requestBody.put("max_tokens", maxTokens);
             
             List<Map<String, String>> messages = new ArrayList<>();
             messages.add(Map.of("role", "system", "content", systemPrompt));
             messages.add(Map.of("role", "user", "content", userMessage));
             requestBody.put("messages", messages);
             
-            log.info("Calling OpenAI API - Model: gpt-4o-mini, User message length: {} chars, System prompt length: {} chars", 
-                     userMessage.length(), systemPrompt.length());
+            log.info("Calling OpenAI API - Model: {}, User message length: {} chars, System prompt length: {} chars", 
+                     model, userMessage.length(), systemPrompt.length());
             
             long startTime = System.currentTimeMillis();
             String response = webClient.post()
@@ -73,7 +85,7 @@ public class OpenAIService {
                     .bodyValue(requestBody)
                     .retrieve()
                     .bodyToMono(String.class)
-                    .timeout(Duration.ofSeconds(30))
+                    .timeout(Duration.ofSeconds(timeoutSeconds))
                     .block();
             long duration = System.currentTimeMillis() - startTime;
             

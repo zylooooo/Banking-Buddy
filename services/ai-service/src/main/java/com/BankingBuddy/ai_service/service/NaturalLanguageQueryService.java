@@ -25,14 +25,16 @@ public class NaturalLanguageQueryService {
     private final WebClient transactionServiceClient;
     private final WebClient userServiceClient;
     private final ObjectMapper objectMapper;
+    private final int serviceTimeoutSeconds;
     
     public NaturalLanguageQueryService(
             OpenAIService openAIService,
             WebClient.Builder webClientBuilder,
             ObjectMapper objectMapper,
-            @Value("${SERVICES_CLIENT_SERVICE_URL:http://client-service:8081}") String clientServiceUrl,
-            @Value("${SERVICES_TRANSACTION_SERVICE_URL:http://transaction-service:8082}") String transactionServiceUrl,
-            @Value("${SERVICES_USER_SERVICE_URL:http://user-service:8080}") String userServiceUrl) {
+            @Value("${services.client-service.url}") String clientServiceUrl,
+            @Value("${services.transaction-service.url}") String transactionServiceUrl,
+            @Value("${services.user-service.url}") String userServiceUrl,
+            @Value("${services.timeout}") int serviceTimeoutSeconds) {
 
         log.info("Service URLs configured:");
         log.info("  Client Service URL: {}", clientServiceUrl);
@@ -41,6 +43,7 @@ public class NaturalLanguageQueryService {
 
         this.openAIService = openAIService;
         this.objectMapper = objectMapper;
+        this.serviceTimeoutSeconds = serviceTimeoutSeconds;
         this.clientServiceClient = webClientBuilder
                 .baseUrl(clientServiceUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
@@ -151,7 +154,6 @@ public class NaturalLanguageQueryService {
                 return tryFallbackParsing(request.getQuery(), authToken, userContext);
             }
         } catch (RuntimeException e) {
-            // This might be from OpenAI API failure
             log.error("Failed to process query due to OpenAI API error: {}", e.getMessage(), e);
             throw e; // Re-throw so controller can handle it
         } catch (Exception e) {
@@ -195,7 +197,7 @@ public class NaturalLanguageQueryService {
                     .header("Authorization", "Bearer " + authToken)
                     .retrieve()
                     .bodyToMono(String.class)
-                    .timeout(Duration.ofSeconds(10))
+                    .timeout(Duration.ofSeconds(serviceTimeoutSeconds))
                     .block();
             
             JsonNode clientsResponse = objectMapper.readTree(response);
@@ -302,8 +304,14 @@ public class NaturalLanguageQueryService {
             if (clientName != null) {
                 List<String> matchingClientIds = findClientIdsByName(clientName, allowedClientIds, authToken, userContext);
                 if (matchingClientIds.isEmpty()) {
+                    log.info("No clients found matching '{}' for transaction query, generating helpful response via OpenAI", clientName);
+                    String nlResponse = openAIService.chatCompletion(
+                        "You are a CRM assistant. Help the user understand why their search returned no results.",
+                        "The user searched for transactions from a client named '" + clientName + "', but no matching clients were found in their accessible clients. " +
+                        "Provide a helpful response suggesting they check the client name spelling, or try 'show my clients' to see their complete client list."
+                    );
                     return QueryResponse.builder()
-                            .naturalLanguageResponse("No clients found matching '" + clientName + "' in your accessible clients.")
+                            .naturalLanguageResponse(nlResponse)
                             .queryType("transaction")
                             .results(Collections.emptyList())
                             .build();
@@ -346,7 +354,7 @@ public class NaturalLanguageQueryService {
                     .header("Authorization", "Bearer " + authToken)
                     .retrieve()
                     .bodyToMono(String.class)
-                    .timeout(Duration.ofSeconds(10))
+                    .timeout(Duration.ofSeconds(serviceTimeoutSeconds))
                     .block();
             
             JsonNode transactionsResponse = objectMapper.readTree(response);
@@ -499,7 +507,7 @@ public class NaturalLanguageQueryService {
                     .header("Authorization", "Bearer " + authToken)
                     .retrieve()
                     .bodyToMono(String.class)
-                    .timeout(Duration.ofSeconds(10))
+                    .timeout(Duration.ofSeconds(serviceTimeoutSeconds))
                     .block();
             
             JsonNode usersResponse = objectMapper.readTree(response);
@@ -538,7 +546,15 @@ public class NaturalLanguageQueryService {
             
             // Check if name filter returned no results
             if (agentName != null && !agentName.isEmpty() && results.isEmpty()) {
-                String nlResponse = "No agents found matching '" + agentName + "'.";
+                log.info("No agents found matching '{}', generating helpful response via OpenAI", agentName);
+                String roleContext = userContext.getRole() == UserRole.ROOT_ADMIN ? 
+                    "in the system" : "that you manage";
+                String nlResponse = openAIService.chatCompletion(
+                    "You are a CRM assistant. Help the user understand why their search returned no results.",
+                    "The user searched for agents named '" + agentName + "' " + roleContext + ", but no matches were found. " +
+                    "Provide a helpful response suggesting they try 'show all agents' to see their complete list, " +
+                    "or check the spelling of the name."
+                );
                 return QueryResponse.builder()
                         .naturalLanguageResponse(nlResponse)
                         .queryType("agent")
@@ -607,7 +623,7 @@ public class NaturalLanguageQueryService {
                     .header("Authorization", "Bearer " + authToken)
                     .retrieve()
                     .bodyToMono(String.class)
-                    .timeout(Duration.ofSeconds(10))
+                    .timeout(Duration.ofSeconds(serviceTimeoutSeconds))
                     .block();
             
             JsonNode usersResponse = objectMapper.readTree(response);
@@ -646,7 +662,13 @@ public class NaturalLanguageQueryService {
             
             // Check if name filter returned no results
             if (adminName != null && !adminName.isEmpty() && results.isEmpty()) {
-                String nlResponse = "No administrators found matching '" + adminName + "'.";
+                log.info("No administrators found matching '{}', generating helpful response via OpenAI", adminName);
+                String nlResponse = openAIService.chatCompletion(
+                    "You are a CRM assistant. Help the user understand why their search returned no results.",
+                    "The user searched for administrators named '" + adminName + "' in the system, but no matches were found. " +
+                    "Provide a helpful response suggesting they try 'show all admins' to see the complete list, " +
+                    "or check the spelling of the name."
+                );
                 return QueryResponse.builder()
                         .naturalLanguageResponse(nlResponse)
                         .queryType("admin")
@@ -704,7 +726,7 @@ public class NaturalLanguageQueryService {
                     .header("Authorization", "Bearer " + authToken)
                     .retrieve()
                     .bodyToMono(String.class)
-                    .timeout(Duration.ofSeconds(10))
+                    .timeout(Duration.ofSeconds(serviceTimeoutSeconds))
                     .block();
             
             JsonNode usersResponse = objectMapper.readTree(response);
@@ -763,7 +785,7 @@ public class NaturalLanguageQueryService {
                     .header("Authorization", "Bearer " + authToken)
                     .retrieve()
                     .bodyToMono(String.class)
-                    .timeout(Duration.ofSeconds(10))
+                    .timeout(Duration.ofSeconds(serviceTimeoutSeconds))
                     .block();
             
             JsonNode clientsResponse = objectMapper.readTree(response);
@@ -799,7 +821,7 @@ public class NaturalLanguageQueryService {
                     .header("Authorization", "Bearer " + authToken)
                     .retrieve()
                     .bodyToMono(String.class)
-                    .timeout(Duration.ofSeconds(10))
+                    .timeout(Duration.ofSeconds(serviceTimeoutSeconds))
                     .block();
             
             JsonNode clientsResponse = objectMapper.readTree(response);
@@ -1064,10 +1086,7 @@ public class NaturalLanguageQueryService {
         return text.trim();
     }
     
-    /**
-     * Returns role-specific features and capabilities for the AI assistant prompt.
-     * This ensures users only see queries relevant to their role in the system.
-     */
+    // Get role-specific features for AI assistant prompt
     private String getRoleSpecificFeatures(UserRole role) {
         return switch (role) {
             case AGENT -> """

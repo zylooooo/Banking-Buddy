@@ -38,9 +38,7 @@ public class ALBUserContextExtractor {
         throw new UnauthorizedException("Missing authentication header (x-amzn-oidc-data or Authorization)");
     }
 
-    /**
-     * Extract user context from ALB OIDC header (production with ALB)
-     */
+    // Extract user context from ALB OIDC header
     private UserContext extractFromALBHeader(String oidcDataHeader) {
         try {
             // Decode JWT (ALB already validated it)
@@ -61,9 +59,7 @@ public class ALBUserContextExtractor {
         }
     }
 
-    /**
-     * Extract user context from standard JWT Bearer token (Postman/direct testing)
-     */
+    // Extract user context from standard JWT Bearer token
     private UserContext extractFromJWT(String jwtToken) {
         try {
             // Decode JWT (skip validation for testing - in production ALB validates)
@@ -86,9 +82,7 @@ public class ALBUserContextExtractor {
         }
     }
 
-    /**
-     * Build UserContext from JWT claims (works for both ALB and standard JWT)
-     */
+    // Build UserContext from JWT claims
     private UserContext buildUserContextFromClaims(JsonNode claims) {
         try {
             String userId = claims.has("sub") ? claims.get("sub").asText() : null;
