@@ -23,6 +23,10 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
         @NonNull HttpServletResponse response, 
         @NonNull Object handler) throws Exception {
         
+        log.debug("Processing request: {} {} from {}", 
+                  request.getMethod(), request.getRequestURI(), request.getRemoteAddr());
+        log.debug("Authorization header present: {}", request.getHeader("Authorization") != null);
+        
         // Extract user context and store in request attribute
         UserContext userContext = userContextExtractor.extractUserContext(request);
         request.setAttribute("userContext", userContext);
