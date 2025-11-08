@@ -3,22 +3,22 @@ import ReactMarkdown from 'react-markdown';
 import { getIdToken } from '../services/authService';
 
 const markdownComponents = {
-    h1: ({node, ...props}) => <h1 className="text-2xl font-bold text-white mt-4 mb-2" {...props} />,
-    h2: ({node, ...props}) => <h2 className="text-xl font-semibold text-white mt-3 mb-2" {...props} />,
-    h3: ({node, ...props}) => <h3 className="text-lg font-semibold text-slate-100 mt-3 mb-2" {...props} />,
-    p: ({node, ...props}) => <p className="mb-3 text-slate-300 leading-relaxed" {...props} />,
-    ul: ({node, ...props}) => <ul className="list-disc list-outside mb-4 ml-6 space-y-2 text-slate-300" {...props} />,
-    ol: ({node, ...props}) => <ol className="list-decimal list-outside mb-4 ml-6 space-y-2 text-slate-300" {...props} />,
-    li: ({node, ...props}) => <li className="mb-2 leading-relaxed" {...props} />,
-    code: ({node, inline, ...props}) => 
+    h1: ({...props}) => <h1 className="text-2xl font-bold text-white mt-4 mb-2" {...props} />,
+    h2: ({...props}) => <h2 className="text-xl font-semibold text-white mt-3 mb-2" {...props} />,
+    h3: ({...props}) => <h3 className="text-lg font-semibold text-slate-100 mt-3 mb-2" {...props} />,
+    p: ({...props}) => <p className="mb-3 text-slate-300 leading-relaxed" {...props} />,
+    ul: ({...props}) => <ul className="list-disc list-outside mb-4 ml-6 space-y-2 text-slate-300" {...props} />,
+    ol: ({...props}) => <ol className="list-decimal list-outside mb-4 ml-6 space-y-2 text-slate-300" {...props} />,
+    li: ({...props}) => <li className="mb-2 leading-relaxed" {...props} />,
+    code: ({inline, ...props}) => 
         inline ? (
             <code className="bg-slate-800 px-1.5 py-0.5 rounded text-blue-300 text-sm" {...props} />
         ) : (
             <code className="block bg-slate-900 p-3 rounded-md overflow-x-auto text-sm text-slate-200 mb-3" {...props} />
         ),
-    pre: ({node, ...props}) => <pre className="bg-slate-900 p-3 rounded-md overflow-x-auto mb-3" {...props} />,
-    strong: ({node, ...props}) => <strong className="font-semibold text-white" {...props} />,
-    a: ({node, ...props}) => <a className="text-blue-400 hover:text-blue-300 underline" {...props} />,
+    pre: ({...props}) => <pre className="bg-slate-900 p-3 rounded-md overflow-x-auto mb-3" {...props} />,
+    strong: ({...props}) => <strong className="font-semibold text-white" {...props} />,
+    a: ({...props}) => <a className="text-blue-400 hover:text-blue-300 underline" {...props} />,
 };
 
 export default function NaturalLanguageQuery({ onActive }) {
