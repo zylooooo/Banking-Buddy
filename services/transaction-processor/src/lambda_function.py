@@ -18,10 +18,10 @@ def create_transactions_table(db_client):
             CREATE TABLE IF NOT EXISTS transactions (
                 id VARCHAR(50) PRIMARY KEY COMMENT 'Unique transaction ID',
                 client_id VARCHAR(50) NOT NULL COMMENT 'Unique client ID',
-                transaction ENUM('Deposit', 'Withdrawal'),
+                transaction ENUM('DEPOSIT', 'WITHDRAWAL'),
                 amount DECIMAL(15, 2) NOT NULL,
-                date DATE NOT NULL COMMENT 'The Transaction Date',
-                status ENUM('Completed', 'Pending', 'Failed') NOT NULL,
+                date DATETIME(6) NOT NULL COMMENT 'The Transaction Date',
+                status ENUM('COMPLETED', 'PENDING', 'FAILED') NOT NULL,
 
                 -- Indexes 
                 INDEX idx_client_id (client_id),
