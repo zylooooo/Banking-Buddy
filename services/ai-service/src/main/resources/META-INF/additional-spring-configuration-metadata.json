@@ -1,0 +1,64 @@
+{
+  "properties": [
+    {
+      "name": "aws.region",
+      "type": "java.lang.String",
+      "description": "AWS region for Secrets Manager access"
+    },
+    {
+      "name": "aws.secrets.openai-api-key-secret-name",
+      "type": "java.lang.String",
+      "description": "Name of the secret in AWS Secrets Manager containing the OpenAI API key"
+    },
+    {
+      "name": "openai.api.key",
+      "type": "java.lang.String",
+      "description": "OpenAI API key for authentication"
+    },
+    {
+      "name": "openai.api.url",
+      "type": "java.lang.String",
+      "description": "Base URL for the OpenAI API"
+    },
+    {
+      "name": "openai.model",
+      "type": "java.lang.String",
+      "description": "OpenAI model to use for chat completions"
+    },
+    {
+      "name": "openai.temperature",
+      "type": "java.lang.Double",
+      "description": "Temperature parameter for OpenAI API (controls randomness)"
+    },
+    {
+      "name": "openai.max-tokens",
+      "type": "java.lang.Integer",
+      "description": "Maximum number of tokens in the OpenAI API response"
+    },
+    {
+      "name": "openai.timeout-seconds",
+      "type": "java.lang.Integer",
+      "description": "Timeout in seconds for OpenAI API requests"
+    },
+    {
+      "name": "services.client-service.url",
+      "type": "java.lang.String",
+      "description": "URL of the client service microservice"
+    },
+    {
+      "name": "services.transaction-service.url",
+      "type": "java.lang.String",
+      "description": "URL of the transaction service microservice"
+    },
+    {
+      "name": "services.user-service.url",
+      "type": "java.lang.String",
+      "description": "URL of the user service microservice"
+    },
+    {
+      "name": "services.timeout",
+      "type": "java.lang.Integer",
+      "description": "Timeout in seconds for microservice HTTP requests"
+    }
+  ]
+}
