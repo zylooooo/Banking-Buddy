@@ -116,6 +116,21 @@ public class NaturalLanguageQueryService {
                   set type to "general"
                 - Extract client names from phrases like "from paul", "for john", "client named X"
                 - If transaction query mentions a client name, extract it to clientName parameter
+                
+                TRANSACTION TYPE vs STATUS (CRITICAL):
+                - transactionType parameter: ONLY "Deposit" or "Withdrawal" (the type of transaction)
+                - transactionStatus parameter: ONLY "Completed", "Pending", or "Failed" (the status of transaction)
+                - DO NOT use "completed", "pending", "failed" for transactionType - these are STATUS values, not types
+                - If query mentions "deposit" or "deposits", set transactionType to "Deposit"
+                - If query mentions "withdrawal" or "withdrawals", set transactionType to "Withdrawal"
+                - If query mentions "completed" or "completed transactions", set transactionStatus to "Completed"
+                - If query mentions "pending" or "pending transactions", set transactionStatus to "Pending"
+                - If query mentions "failed" or "failed transactions", set transactionStatus to "Failed"
+                - Examples: "show deposits" → transactionType: "Deposit", transactionStatus: null
+                - Examples: "show withdrawals" → transactionType: "Withdrawal", transactionStatus: null
+                - Examples: "completed transactions" → transactionType: null, transactionStatus: "Completed"
+                - Examples: "show completed deposits" → transactionType: "Deposit", transactionStatus: "Completed"
+                
                 - Examples of transaction queries: "show me all transactions", "list my transactions", "transactions for client X"
                 - Examples of account queries with personal scope: "accounts I manage", "my accounts", "accounts for my clients"
                 - Examples of account queries with broad scope: "all accounts", "show accounts", "list accounts"
@@ -137,7 +152,8 @@ public class NaturalLanguageQueryService {
                         "adminName": "...",
                         "dateFrom": "...",
                         "dateTo": "...",
-                        "transactionType": "..."
+                        "transactionType": "Deposit|Withdrawal|" (ONLY these two values, or empty/null if not specified),
+                        "transactionStatus": "Completed|Pending|Failed|" (ONLY these three values, or empty/null if not specified)
                     }
                 }
                 """;
@@ -396,10 +412,42 @@ public class NaturalLanguageQueryService {
                             }
                             if (params.has("transactionType") && !params.get("transactionType").isNull()) {
                                 String transactionType = params.get("transactionType").asText();
-                                // Only add if not empty and not the string "null"
+                                // Only add if not empty, not the string "null", and is a valid transaction type
                                 if (!transactionType.trim().isEmpty() && !"null".equalsIgnoreCase(transactionType)) {
-                                    builder.queryParam("transaction", transactionType);
-                                    log.debug("Added transaction type filter: {}", transactionType);
+                                    // Validate transaction type - only accept "Deposit" or "Withdrawal"
+                                    String normalizedType = transactionType.trim();
+                                    if ("deposit".equalsIgnoreCase(normalizedType)) {
+                                        builder.queryParam("transaction", "Deposit");
+                                        log.debug("Added transaction type filter: Deposit");
+                                    } else if ("withdrawal".equalsIgnoreCase(normalizedType)) {
+                                        builder.queryParam("transaction", "Withdrawal");
+                                        log.debug("Added transaction type filter: Withdrawal");
+                                    } else {
+                                        // Invalid transaction type (e.g., "completed", "pending" - these are status, not type)
+                                        log.warn("Ignoring invalid transaction type '{}' - only 'Deposit' or 'Withdrawal' are valid", normalizedType);
+                                    }
+                                }
+                            }
+                            if (params.has("transactionStatus") && !params.get("transactionStatus").isNull()) {
+                                String transactionStatus = params.get("transactionStatus").asText();
+                                // Only add if not empty, not the string "null", and is a valid transaction status
+                                if (!transactionStatus.trim().isEmpty() && !"null".equalsIgnoreCase(transactionStatus)) {
+                                    // Validate transaction status - only accept "Completed", "Pending", or "Failed"
+                                    // Spring expects enum constant name (COMPLETED, PENDING, FAILED) for query parameter binding
+                                    String normalizedStatus = transactionStatus.trim();
+                                    if ("completed".equalsIgnoreCase(normalizedStatus)) {
+                                        builder.queryParam("status", "COMPLETED");
+                                        log.debug("Added transaction status filter: COMPLETED");
+                                    } else if ("pending".equalsIgnoreCase(normalizedStatus)) {
+                                        builder.queryParam("status", "PENDING");
+                                        log.debug("Added transaction status filter: PENDING");
+                                    } else if ("failed".equalsIgnoreCase(normalizedStatus)) {
+                                        builder.queryParam("status", "FAILED");
+                                        log.debug("Added transaction status filter: FAILED");
+                                    } else {
+                                        // Invalid transaction status
+                                        log.warn("Ignoring invalid transaction status '{}' - only 'Completed', 'Pending', or 'Failed' are valid", normalizedStatus);
+                                    }
                                 }
                             }
                             
