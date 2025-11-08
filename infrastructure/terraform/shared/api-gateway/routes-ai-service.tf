@@ -75,35 +75,6 @@ resource "aws_api_gateway_integration_response" "ai_guide_options" {
   }
 }
 
-# ANY method for /api/ai/guide (with Cognito auth)
-resource "aws_api_gateway_method" "ai_guide_any" {
-  rest_api_id   = aws_api_gateway_rest_api.main.id
-  resource_id   = aws_api_gateway_resource.ai_guide.id
-  http_method   = "ANY"
-  authorization = "COGNITO_USER_POOLS"
-  authorizer_id = aws_api_gateway_authorizer.cognito.id
-
-  request_parameters = {
-    "method.request.header.Authorization" = true
-  }
-}
-
-resource "aws_api_gateway_integration" "ai_guide_any" {
-  rest_api_id             = aws_api_gateway_rest_api.main.id
-  resource_id             = aws_api_gateway_resource.ai_guide.id
-  http_method             = aws_api_gateway_method.ai_guide_any.http_method
-  type                    = "HTTP_PROXY"
-  uri                     = "${var.ai_service_endpoint}/api/ai/guide"
-  integration_http_method = "ANY"
-
-  request_parameters = {
-    "integration.request.header.X-Forwarded-For" = "context.identity.sourceIp"
-    "integration.request.header.Authorization"   = "method.request.header.Authorization"
-  }
-
-  timeout_milliseconds = 29000
-}
-
 # CORS preflight for /api/ai/guide/{proxy+}
 resource "aws_api_gateway_method" "ai_guide_proxy_options" {
   rest_api_id   = aws_api_gateway_rest_api.main.id
@@ -260,92 +231,6 @@ resource "aws_api_gateway_integration" "ai_query_post" {
   }
 
   timeout_milliseconds = 29000
-}
-
-# Method responses and integration responses for /api/ai/guide
-resource "aws_api_gateway_method_response" "ai_guide_any" {
-  rest_api_id = aws_api_gateway_rest_api.main.id
-  resource_id = aws_api_gateway_resource.ai_guide.id
-  http_method = aws_api_gateway_method.ai_guide_any.http_method
-  status_code = "200"
-
-  response_parameters = {
-    "method.response.header.Access-Control-Allow-Origin" = true
-  }
-}
-
-resource "aws_api_gateway_integration_response" "ai_guide_any" {
-  rest_api_id = aws_api_gateway_rest_api.main.id
-  resource_id = aws_api_gateway_resource.ai_guide.id
-  http_method = aws_api_gateway_method.ai_guide_any.http_method
-  status_code = "200"
-
-  response_parameters = {
-    "method.response.header.Access-Control-Allow-Origin" = "'*'"
-  }
-
-  depends_on = [
-    aws_api_gateway_integration.ai_guide_any,
-    aws_api_gateway_method_response.ai_guide_any
-  ]
-}
-
-resource "aws_api_gateway_method_response" "ai_guide_any_4xx" {
-  rest_api_id = aws_api_gateway_rest_api.main.id
-  resource_id = aws_api_gateway_resource.ai_guide.id
-  http_method = aws_api_gateway_method.ai_guide_any.http_method
-  status_code = "400"
-
-  response_parameters = {
-    "method.response.header.Access-Control-Allow-Origin" = true
-  }
-}
-
-resource "aws_api_gateway_integration_response" "ai_guide_any_4xx" {
-  rest_api_id = aws_api_gateway_rest_api.main.id
-  resource_id = aws_api_gateway_resource.ai_guide.id
-  http_method = aws_api_gateway_method.ai_guide_any.http_method
-  status_code = aws_api_gateway_method_response.ai_guide_any_4xx.status_code
-
-  selection_pattern = "4\\d{2}"
-
-  response_parameters = {
-    "method.response.header.Access-Control-Allow-Origin" = "'*'"
-  }
-
-  depends_on = [
-    aws_api_gateway_integration.ai_guide_any,
-    aws_api_gateway_method_response.ai_guide_any_4xx
-  ]
-}
-
-resource "aws_api_gateway_method_response" "ai_guide_any_5xx" {
-  rest_api_id = aws_api_gateway_rest_api.main.id
-  resource_id = aws_api_gateway_resource.ai_guide.id
-  http_method = aws_api_gateway_method.ai_guide_any.http_method
-  status_code = "500"
-
-  response_parameters = {
-    "method.response.header.Access-Control-Allow-Origin" = true
-  }
-}
-
-resource "aws_api_gateway_integration_response" "ai_guide_any_5xx" {
-  rest_api_id = aws_api_gateway_rest_api.main.id
-  resource_id = aws_api_gateway_resource.ai_guide.id
-  http_method = aws_api_gateway_method.ai_guide_any.http_method
-  status_code = aws_api_gateway_method_response.ai_guide_any_5xx.status_code
-
-  selection_pattern = "5\\d{2}"
-
-  response_parameters = {
-    "method.response.header.Access-Control-Allow-Origin" = "'*'"
-  }
-
-  depends_on = [
-    aws_api_gateway_integration.ai_guide_any,
-    aws_api_gateway_method_response.ai_guide_any_5xx
-  ]
 }
 
 # Method responses for /api/ai/guide/{proxy+}
