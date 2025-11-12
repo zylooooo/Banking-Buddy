@@ -107,6 +107,57 @@ resource "aws_elastic_beanstalk_environment" "transaction_service" {
     value     = "Any 2"
   }
 
+  # Auto Scaling Triggers - Request Count Based 
+  # Reads are typically faster than writes, so higher thresholds
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "MeasureName"
+    value     = "RequestCount"  # Changed from CPUUtilization
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "Statistic"
+    value     = "Sum"  # Sum requests across all targets
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "Unit"
+    value     = "Count"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "LowerThreshold"
+    value     = "300"  # Higher than client-service - reads are lighter
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "UpperThreshold"
+    value     = "1500"  # Higher threshold - read operations are faster
+    # Adjust based on: expected reads/sec × 60 × 5 (period in seconds)
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "BreachDuration"
+    value     = "5"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "Period"
+    value     = "5"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "EvaluationPeriods"
+    value     = "2"
+  }
+
   # Health Check
   setting {
     namespace = "aws:elasticbeanstalk:environment:process:default"

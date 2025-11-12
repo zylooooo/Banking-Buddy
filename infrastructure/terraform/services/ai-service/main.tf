@@ -113,6 +113,57 @@ resource "aws_elastic_beanstalk_environment" "ai_service" {
     value     = "Any 2"
   }
 
+  # Auto Scaling Triggers - Request Count Based 
+  # AI service has variable latency from OpenAI, needs faster scaling
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "MeasureName"
+    value     = "RequestCount"  # Changed from CPUUtilization
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "Statistic"
+    value     = "Sum"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "Unit"
+    value     = "Count"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "LowerThreshold"
+    value     = "150"  # Lower threshold - scale down more aggressively to save costs
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "UpperThreshold"
+    value     = "800"  # Lower than others - AI requests take longer, need more instances
+    # Each AI request may take 2-5 seconds (OpenAI API), so fewer concurrent requests per instance
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "BreachDuration"
+    value     = "3"  # Faster response - 3 minutes instead of 5
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "Period"
+    value     = "3"  # Shorter period for faster detection
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "EvaluationPeriods"
+    value     = "2"  # Total: 3 min × 2 = 6 minutes to scale up
+  }
+
   # Health Check
   setting {
     namespace = "aws:elasticbeanstalk:environment:process:default"

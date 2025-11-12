@@ -107,6 +107,56 @@ resource "aws_elastic_beanstalk_environment" "user_service" {
     value     = "Any 2"
   }
 
+  # Auto Scaling Triggers - CPU Based
+  # Higher thresholds since Cognito handles auth, service is I/O-bound
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "MeasureName"
+    value     = "CPUUtilization"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "Statistic"
+    value     = "Average"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "Unit"
+    value     = "Percent"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "LowerThreshold"
+    value     = "25"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "UpperThreshold"
+    value     = "75"  # Increased from 70% - service is I/O-bound, not CPU-intensive
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "BreachDuration"
+    value     = "5"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "Period"
+    value     = "5"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "EvaluationPeriods"
+    value     = "2"
+  }
+
   # Health Check
   setting {
     namespace = "aws:elasticbeanstalk:environment:process:default"

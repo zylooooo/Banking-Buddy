@@ -113,6 +113,57 @@ resource "aws_elastic_beanstalk_environment" "client_service" {
     value     = "Any 2"
   }
 
+  # Auto Scaling Triggers - Request Count Based (Better for I/O-bound CRUD service)
+  # RequestCount is more accurate than CPU for database-heavy operations
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "MeasureName"
+    value     = "RequestCount"  # Changed from CPUUtilization
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "Statistic"
+    value     = "Sum"  # Changed from Average - sum requests across all targets
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "Unit"
+    value     = "Count"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "LowerThreshold"
+    value     = "200"  # Requests per target per period (5 min) = ~0.67 req/sec per instance
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "UpperThreshold"
+    value     = "1000"  # Requests per target per period (5 min) = ~3.3 req/sec per instance
+    # This means: if each instance handles >1000 requests in 5 min, scale up
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "BreachDuration"
+    value     = "5"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "Period"
+    value     = "5"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "EvaluationPeriods"
+    value     = "2"
+  }
+
   setting {
     namespace = "aws:autoscaling:updatepolicy:rollingupdate"
     name      = "RollingUpdateEnabled"
