@@ -16,6 +16,11 @@ import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSeriali
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.SerializationFeature;
+
 import java.time.Duration;
 
 /**
@@ -62,6 +67,14 @@ public class RedisConfig {
      */
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
+        // Configure ObjectMapper to handle Java 8 time types
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        
+        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
+        
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
         
@@ -70,8 +83,8 @@ public class RedisConfig {
         template.setHashKeySerializer(new StringRedisSerializer());
         
         // Use JSON serializer for values (supports complex objects)
-        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
-        template.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());
+        template.setValueSerializer(serializer);
+        template.setHashValueSerializer(serializer);
         
         template.afterPropertiesSet();
         return template;
@@ -85,10 +98,18 @@ public class RedisConfig {
      */
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+        // Configure ObjectMapper to handle Java 8 time types
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        
+        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
+        
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofMinutes(10)) // Cache entries expire after 10 minutes
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer()))
+                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer))
                 .disableCachingNullValues(); // Don't cache null values
 
         return RedisCacheManager.builder(connectionFactory)
