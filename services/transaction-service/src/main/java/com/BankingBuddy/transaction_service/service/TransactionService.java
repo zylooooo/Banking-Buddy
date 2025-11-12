@@ -6,6 +6,7 @@ import com.BankingBuddy.transaction_service.repository.TransactionRepository;
 import com.BankingBuddy.transaction_service.repository.TransactionSpecification;
 import com.BankingBuddy.transaction_service.model.entity.Transaction;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -36,30 +37,47 @@ public class TransactionService {
                 .build();
     }
 
-    // Service to get all transactions with pagination
+    /**
+     * Get all transactions with pagination
+     * Cached in Redis with key: transactions:all:page:{page}:limit:{limit}
+     * TTL: 10 minutes
+     */
+    @Cacheable(value = "transactions", key = "'all:page:' + #page + ':limit:' + #limit")
     public Page<TransactionDTO> getAllTransactions(int page, int limit) {
-        log.info("Fetching all transactions with page: {} and limit {}", page, limit);
+        log.info("Fetching all transactions with page: {} and limit {} (cache miss - querying database)", page, limit);
 
         Pageable pageable = PageRequest.of(page, limit, Sort.by("date").descending());
         Page<Transaction> transactions = transactionRepository.findAll(pageable);
-        log.info("Successfully fetched {} transactions", transactions.getTotalElements());
+        log.info("Successfully fetched {} transactions from database", transactions.getTotalElements());
 
         return transactions.map(this::mapToDTO);
     }
 
-    // Service to get all transactions for a client with pagination
+    /**
+     * Get all transactions for a specific client with pagination
+     * Cached in Redis with key: transactions:client:{clientId}:page:{page}:limit:{limit}
+     * TTL: 10 minutes
+     */
+    @Cacheable(value = "transactions", key = "'client:' + #clientId + ':page:' + #page + ':limit:' + #limit")
     public Page<TransactionDTO> getAllTransactionsForClient(String clientId, int page, int limit) {
-        log.info("Fetching all transactions for client: {} with page: {} and limit: {}", clientId, page, limit);
+        log.info("Fetching all transactions for client: {} with page: {} and limit: {} (cache miss - querying database)", clientId, page, limit);
 
         Pageable pageable = PageRequest.of(page, limit, Sort.by("date").descending());
         Page<Transaction> transactions = transactionRepository.findByClientId(clientId, pageable);
+        log.info("Found {} transactions for client {} from database", transactions.getTotalElements(), clientId);
 
         return transactions.map(this::mapToDTO);
     }
 
-    // Service to handle flexible search requests for transactions
+    /**
+     * Search transactions with flexible filters
+     * Cached in Redis using hash of search request
+     * Note: Search queries have many combinations, so cache hit rate may be lower
+     * TTL: 10 minutes
+     */
+    @Cacheable(value = "transactions", key = "'search:' + T(java.util.Objects).hash(#searchRequest)")
     public Page<TransactionDTO> searchTransactions(TransactionSearchRequest searchRequest) {
-        log.info("Searching transactions with filters: {}", searchRequest);
+        log.info("Searching transactions with filters: {} (cache miss - querying database)", searchRequest);
 
         // Build dynamic query using the new approach
         Specification<Transaction> spec = Specification.allOf(); // This replaces Specification.where(null)
@@ -91,7 +109,7 @@ public class TransactionService {
         Pageable pageable = PageRequest.of(searchRequest.getPage(), searchRequest.getLimit(), sort);
 
         Page<Transaction> transactions = transactionRepository.findAll(spec, pageable);
-        log.info("Found {} transactions matching search criteria", transactions.getTotalElements());
+        log.info("Found {} transactions matching search criteria from database", transactions.getTotalElements());
 
         return transactions.map(this::mapToDTO);
     }
