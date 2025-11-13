@@ -77,7 +77,10 @@ public class SecurityConfig {
         
         // Allow all origins for development
         // Example: List.of("https://app.bankingbuddy.com", "https://admin.bankingbuddy.com")
-        configuration.setAllowedOriginPatterns(List.of("http://localhost:3000", "https://d2hvwymdbftfvr.cloudfront.net"));
+        configuration.setAllowedOrigins(List.of(
+            "http://localhost:3000", // Local development
+            "https://d2hvwymdbftfvr.cloudfront.net" // Production deployment
+        ));
         
         // Allow only HTTP methods used by the API
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
