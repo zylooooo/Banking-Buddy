@@ -133,7 +133,7 @@ export default function TransactionManagementPage() {
             setTotalElements(pageData?.totalElements || 0);
 
         } catch (err) {
-            console.error('Failed to load transactions:', err);
+            console.error(`Failed to load transactions called by user ${user?.userId}:`, err);
             const errorMessage = err.response?.data?.message ||
                 err.response?.data?.error ||
                 'Failed to load transactions';
