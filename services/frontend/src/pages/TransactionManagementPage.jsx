@@ -22,8 +22,6 @@ export default function TransactionManagementPage() {
         minAmount: '',
         maxAmount: ''
     });
-    const [showSyncModal, setShowSyncModal] = useState(false);
-    const [syncStatus, setSyncStatus] = useState(null);
     // Pagination state
     const [page, setPage] = useState(0);
     const LIMIT = 10;
@@ -82,126 +80,65 @@ export default function TransactionManagementPage() {
     }, [page]);
 
 
-    // Always use /api/transactions/search endpoint for loading transactions
+    /**
+     * Load transactions for the authenticated agent.
+     * 
+     * This page is only accessible to agents (enforced by route authorization).
+     * 
+     * Caching Strategy:
+     * - When no filters applied: Backend caches the result (high hit rate)
+     * - When filters applied: Backend queries database (no cache)
+     */
     const loadTransactions = async (user = currentUser, clientsData = clients) => {
         try {
-            setError(null); // Clear any previous errors
+            setError(null);
 
-            // Check role case-insensitively (Cognito might return 'agent' or 'AGENT')
-            const userRole = user?.role?.toUpperCase();
+            // Use clients passed as parameter or from state
+            const clientsToUse = clientsData || clients || [];
 
-            // For AGENT users: get all transactions from their clients
-            if (userRole === 'AGENT') {
-                // Use clients passed as parameter or from state (parameter takes precedence)
-                const clientsToUse = clientsData || clients || [];
+            // Extract valid client IDs
+            const clientIds = clientsToUse
+                .map(client => client.clientId || client.id)
+                .filter(id => id && typeof id === 'string' && id.trim() !== '');
 
-                // Filter valid clients - check multiple possible field names
-                const agentClients = clientsToUse.filter(client => {
-                    // Check for clientId (from ClientSummaryDTO) or id (alternative)
-                    const id = client?.clientId || client?.id;
-                    return id && typeof id === 'string' && id.trim() !== '';
-                });
-
-                // If agent has no clients, show empty state (not an error)
-                if (agentClients.length === 0) {
-                    setTransactions([]);
-                    setTotalPages(0);
-                    setTotalElements(0);
-                    setError(null); // Ensure no error is shown
-                    return; // No API call made
-                }
-
-                // Extract clientIds from the agent's clients - handle both clientId and id
-                const clientIds = agentClients.map(client => client.clientId || client.id).filter(Boolean);
-
-                // Safety check: ensure we have at least one clientId before making API call
-                if (!clientIds || clientIds.length === 0) {
-                    setTransactions([]);
-                    setTotalPages(0);
-                    setTotalElements(0);
-                    setError(null);
-                    return;
-                }
-
-                // Build search params - only include clientIds and valid filter values
-                const searchParams = {
-                    clientIds: clientIds, // Non-empty array - ensures validation passes
-                    page: page,
-                    limit: LIMIT,
-                    // Only include other filters if they have meaningful values
-                    ...(filters.transactionType && { transaction: filters.transactionType }),
-                    ...(filters.status && { status: filters.status }),
-                    ...(filters.dateFrom && { startDate: filters.dateFrom }),
-                    ...(filters.dateTo && { endDate: filters.dateTo }),
-                    ...(filters.minAmount && parseFloat(filters.minAmount) > 0 && { minAmount: filters.minAmount }),
-                    ...(filters.maxAmount && parseFloat(filters.maxAmount) > 0 && { maxAmount: filters.maxAmount }),
-                };
-
-                // Call the search endpoint with the constructed parameters
-                const response = await transactionApi.searchTransactions(searchParams);
-                const pageData = response.data.data;
-                setTransactions(pageData?.content || []);
-                setTotalPages(pageData?.totalPages || 0);
-                setTotalElements(pageData?.totalElements || 0);
-
-            } else {
-                // For non-AGENT users (admin, rootAdministrator)
-                // Build search params with only non-empty filter values
-                const searchParams = {
-                    page: page,
-                    limit: LIMIT,
-                };
-
-                // Add filters only if they have values
-                if (filters.clientId) {
-                    searchParams.clientId = filters.clientId;
-                }
-                if (filters.transactionType) {
-                    searchParams.transaction = filters.transactionType;
-                }
-                if (filters.status) {
-                    searchParams.status = filters.status;
-                }
-                if (filters.dateFrom) {
-                    searchParams.startDate = filters.dateFrom;
-                }
-                if (filters.dateTo) {
-                    searchParams.endDate = filters.dateTo;
-                }
-                if (filters.minAmount && parseFloat(filters.minAmount) > 0) {
-                    searchParams.minAmount = filters.minAmount;
-                }
-                if (filters.maxAmount && parseFloat(filters.maxAmount) > 0) {
-                    searchParams.maxAmount = filters.maxAmount;
-                }
-
-                // Backend requires at least one filter - don't call if none are set
-                const hasAtLeastOneFilter = Object.keys(searchParams).filter(k => k !== 'page' && k !== 'limit').length > 0;
-
-                if (!hasAtLeastOneFilter) {
-                    // For non-AGENT users with no filters, show empty state
-                    setTransactions([]);
-                    setTotalPages(0);
-                    setTotalElements(0);
-                    setError(null); // Don't show error, just empty state
-                    return;
-                }
-
-                // Call the search endpoint
-                const response = await transactionApi.searchTransactions(searchParams);
-                const pageData = response.data.data;
-                setTransactions(pageData?.content || []);
-                setTotalPages(pageData?.totalPages || 0);
-                setTotalElements(pageData?.totalElements || 0);
+            // If agent has no clients, show empty state
+            if (clientIds.length === 0) {
+                setTransactions([]);
+                setTotalPages(0);
+                setTotalElements(0);
+                setError(null);
+                return;
             }
+
+            // Build search params
+            const searchParams = {
+                clientIds: clientIds,
+                page: page,
+                limit: LIMIT,
+                // Include filters only if they have values
+                ...(filters.transactionType && { transaction: filters.transactionType }),
+                ...(filters.status && { status: filters.status }),
+                ...(filters.dateFrom && { startDate: filters.dateFrom }),
+                ...(filters.dateTo && { endDate: filters.dateTo }),
+                ...(filters.minAmount && parseFloat(filters.minAmount) > 0 && { minAmount: filters.minAmount }),
+                ...(filters.maxAmount && parseFloat(filters.maxAmount) > 0 && { maxAmount: filters.maxAmount }),
+            };
+
+            // Call search endpoint (backend handles caching intelligently)
+            const response = await transactionApi.searchTransactions(searchParams);
+            const pageData = response.data.data;
+            
+            setTransactions(pageData?.content || []);
+            setTotalPages(pageData?.totalPages || 0);
+            setTotalElements(pageData?.totalElements || 0);
+
         } catch (err) {
             console.error('Failed to load transactions:', err);
-            // Show user-friendly error message
             const errorMessage = err.response?.data?.message ||
                 err.response?.data?.error ||
                 'Failed to load transactions';
             setError(errorMessage);
-            setTransactions([]); // Clear transactions on error
+            setTransactions([]);
             setTotalPages(0);
             setTotalElements(0);
         }
@@ -233,21 +170,6 @@ export default function TransactionManagementPage() {
         loadTransactions();
     };
 
-    const handleSyncFromSFTP = async () => {
-        try {
-            setSyncStatus('syncing');
-            await transactionApi.syncFromSFTP();
-            setSyncStatus('success');
-            setShowSyncModal(false);
-            // Refresh transactions after sync
-            await loadTransactions();
-            alert('Transactions synced successfully from SFTP server');
-        } catch (err) {
-            console.error('Failed to sync transactions from SFTP:', err);
-            setSyncStatus('error');
-            setError(err.response?.data?.message || err.message || 'Failed to sync transactions from SFTP server');
-        }
-    };
 
     const getStatusColor = (status) => {
         switch (status?.toUpperCase()) {
@@ -339,19 +261,9 @@ export default function TransactionManagementPage() {
             <div className="ml-64">
                 <Header user={currentUser} />
                 <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <div className="mb-6 flex justify-between items-center">
-                        <div>
-                            <h2 className="text-2xl font-bold text-white">Transaction Management</h2>
-                            <p className="text-slate-400">View and manage bank account transactions</p>
-                        </div>
-                        {(currentUser?.role === 'admin' || currentUser?.role === 'rootAdministrator') && (
-                            <button
-                                onClick={() => setShowSyncModal(true)}
-                                className="px-4 py-2 bg-accent text-white rounded-md hover:bg-sky-600 transition"
-                            >
-                                Sync from SFTP
-                            </button>
-                        )}
+                    <div className="mb-6">
+                        <h2 className="text-2xl font-bold text-white">Transaction Management</h2>
+                        <p className="text-slate-400">View and filter your clients' transactions</p>
                     </div>
 
                     {error && (
@@ -582,35 +494,6 @@ export default function TransactionManagementPage() {
                             </div>
                         </div>
                     </div>
-
-                    {/* SFTP Sync Modal */}
-                    {showSyncModal && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                            <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 max-w-md w-full mx-4">
-                                <h3 className="text-lg font-semibold text-white mb-4">Sync Transactions from SFTP</h3>
-                                <p className="text-slate-300 mb-6">
-                                    This will fetch the latest transaction data from the SFTP server and update the local database.
-                                    This operation may take a few minutes.
-                                </p>
-                                <div className="flex gap-3">
-                                    <button
-                                        onClick={handleSyncFromSFTP}
-                                        disabled={syncStatus === 'syncing'}
-                                        className="px-4 py-2 bg-accent text-white rounded-md hover:bg-sky-600 transition disabled:opacity-50"
-                                    >
-                                        {syncStatus === 'syncing' ? 'Syncing...' : 'Start Sync'}
-                                    </button>
-                                    <button
-                                        onClick={() => setShowSyncModal(false)}
-                                        disabled={syncStatus === 'syncing'}
-                                        className="px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700 transition disabled:opacity-50"
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
                 </main>
             </div>
         </div>
