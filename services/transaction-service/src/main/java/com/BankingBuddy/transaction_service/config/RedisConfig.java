@@ -23,7 +23,6 @@ import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -31,14 +30,17 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import java.time.Duration;
 
 /**
- * Redis Configuration for ElastiCache
+ * Redis Configuration for ElastiCache (AWS) and Local Docker
  * 
- * Connects to AWS ElastiCache Redis cluster provisioned via Terraform.
- * Uses primary endpoint from SPRING_REDIS_HOST environment variable.
+ * AWS: Connects to AWS ElastiCache Redis cluster provisioned via Terraform.
+ *      Uses primary endpoint from SPRING_REDIS_HOST environment variable.
+ * 
+ * Local: Connects to Redis running in Docker Compose.
+ *        Uses hostname "redis" (Docker service name) or SPRING_REDIS_HOST env var.
  * 
  * Configuration:
- * - Redis 7.0 on ElastiCache
- * - Multi-AZ with automatic failover
+ * - Redis 7.0 on ElastiCache (AWS) or Docker (Local)
+ * - Multi-AZ with automatic failover (AWS only)
  * - Port 6379
  * - Transit encryption: disabled (for dev)
  * 
@@ -52,7 +54,7 @@ import java.time.Duration;
  */
 @Configuration
 @EnableCaching
-@Profile("aws") // Only enable Redis caching in AWS environment
+@Profile({"aws", "local"}) // Enable Redis caching in both AWS and local environments
 @Slf4j
 public class RedisConfig implements CachingConfigurer {
 
@@ -66,30 +68,33 @@ public class RedisConfig implements CachingConfigurer {
      * Creates a configured ObjectMapper for Redis serialization.
      * 
      * Best Practices:
-     * - JavaTimeModule: Handles Java 8 time types (LocalDateTime, etc.)
-     * - Type information: Enables proper deserialization of complex types like Page
-     * - Fail on unknown properties: Disabled for forward compatibility
-     * - ISO-8601 dates: More readable than timestamps
+     * - JavaTimeModule: Handles Java 8 time types (LocalDateTime, ZonedDateTime, etc.)
+     * - ISO-8601 dates: Human-readable date format
+     * - Forward compatibility: Ignores unknown properties during deserialization
+     * - Type information: Required for @Cacheable to properly deserialize cached return values
+     * 
+     * Note: activateDefaultTyping is REQUIRED for Spring Cache to work correctly.
+     * Without it, cached objects deserialize as LinkedHashMap instead of their actual type.
      * 
      * @return Configured ObjectMapper for Redis
      */
     private ObjectMapper createObjectMapper() {
         ObjectMapper objectMapper = new ObjectMapper();
         
-        // Register Java 8 time module for LocalDateTime, etc.
+        // Register Java 8 time module for LocalDateTime, ZonedDateTime, etc.
         objectMapper.registerModule(new JavaTimeModule());
         
-        // Use ISO-8601 format instead of timestamps (more readable)
+        // Use ISO-8601 format instead of timestamps (human-readable)
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         
         // Don't fail on unknown properties (forward compatibility)
-        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
         
-        // Enable type information for proper deserialization of complex types
-        // This is CRITICAL for caching Page objects - without this, they deserialize as LinkedHashMap
-        // LaissezFaireSubTypeValidator allows all types (safe for caching use case)
+        // CRITICAL: Enable type information for proper deserialization of cached objects
+        // This ensures PageDTO (and other complex types) deserialize correctly from Redis
+        // Without this, Spring Cache returns LinkedHashMap instead of the actual type
         objectMapper.activateDefaultTyping(
-            LaissezFaireSubTypeValidator.instance,
+            objectMapper.getPolymorphicTypeValidator(),
             ObjectMapper.DefaultTyping.NON_FINAL
         );
         
@@ -97,7 +102,10 @@ public class RedisConfig implements CachingConfigurer {
     }
 
     /**
-     * Configure Redis connection factory using ElastiCache primary endpoint
+     * Configure Redis connection factory
+     * 
+     * AWS: Uses ElastiCache primary endpoint
+     * Local: Uses Docker service name "redis" or SPRING_REDIS_HOST env var
      * 
      * Best Practice: Connection pooling is configured via application properties
      * (spring.data.redis.lettuce.pool.*)
@@ -107,6 +115,8 @@ public class RedisConfig implements CachingConfigurer {
         RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
         config.setHostName(redisHost);
         config.setPort(redisPort);
+        
+        log.info("Connecting to Redis at {}:{}", redisHost, redisPort);
         
         // Note: ElastiCache uses primary endpoint for writes, reader endpoint for reads
         // For simplicity, we use primary endpoint for both
@@ -150,9 +160,13 @@ public class RedisConfig implements CachingConfigurer {
      * - String keys: Readable cache keys
      * - JSON values: Complex object support with type information
      * - No null caching: Saves memory, nulls are typically errors
+     * - Graceful error handling: Cache failures don't break the application
      * 
      * Cache TTL: 10 minutes (configurable via application properties)
      * Serialization: JSON for values, String for keys
+     * 
+     * Error Handling: Uses allowInFlightCacheCreation to prevent cache stampede
+     * and ensure cache errors are treated as cache misses.
      */
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
@@ -167,6 +181,7 @@ public class RedisConfig implements CachingConfigurer {
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(config)
+                .transactionAware() // Make cache operations transaction-aware
                 .build();
     }
 

@@ -17,6 +17,24 @@ services:
       retries: 5
     networks:
       - banking-buddy-network
+
+  # Redis cache
+  redis:
+    image: 'redis:7-alpine'
+    container_name: banking-buddy-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - banking-buddy-network
   
   # SFTP server for transaction data
   sftp-server:
@@ -111,6 +129,8 @@ services:
     depends_on:
       mysql-db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - banking-buddy-network
     healthcheck:
@@ -163,6 +183,7 @@ services:
 
 volumes:
   mysql_data:
+  redis_data:
 
 networks:
   banking-buddy-network:
