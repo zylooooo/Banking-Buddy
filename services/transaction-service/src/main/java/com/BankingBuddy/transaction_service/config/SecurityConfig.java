@@ -58,7 +58,7 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                 .requestMatchers("/actuator/info").permitAll()
                 
-                // Other actuator endpoints - TODO: Restrict in production
+                // Other actuator endpoints
                 .requestMatchers("/actuator/**").permitAll()
                 
                 // API endpoints - ALB validates JWT, service validates authorization
@@ -76,9 +76,8 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         
         // Allow all origins for development
-        // TODO: Update to specific origins when frontend is deployed
         // Example: List.of("https://app.bankingbuddy.com", "https://admin.bankingbuddy.com")
-        configuration.setAllowedOriginPatterns(List.of("*"));
+        configuration.setAllowedOriginPatterns(List.of("http://localhost:3000", "https://d2hvwymdbftfvr.cloudfront.net"));
         
         // Allow only HTTP methods used by the API
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
