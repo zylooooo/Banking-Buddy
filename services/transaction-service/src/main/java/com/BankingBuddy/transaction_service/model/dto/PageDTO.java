@@ -9,13 +9,8 @@ import org.springframework.data.domain.Page;
 import java.util.List;
 
 /**
- * Serializable wrapper for Spring Data Page to enable Redis caching
- * 
- * Spring's PageImpl cannot be deserialized by Jackson because it lacks
- * a no-argument constructor. This DTO solves that problem while preserving
- * all pagination metadata needed by the frontend.
- * 
- * Best Practice: Keep API responses simple and serializable for caching
+ * Serializable wrapper for Spring Data Page to enable Redis caching.
+ * Spring's PageImpl lacks a no-arg constructor required for Jackson deserialization.
  */
 @Data
 @Builder
@@ -32,10 +27,7 @@ public class PageDTO<T> {
     private boolean empty;
     
     /**
-     * Factory method to create PageDTO from Spring Data Page
-     * 
-     * @param page Spring Data Page object
-     * @return Serializable PageDTO
+     * Converts Spring Data Page to serializable PageDTO.
      */
     public static <T> PageDTO<T> from(Page<T> page) {
         return PageDTO.<T>builder()

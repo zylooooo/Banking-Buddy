@@ -39,78 +39,33 @@ public class TransactionService {
     }
 
     /**
-     * Get all transactions with pagination
-     * 
-     * Cached in Redis with key: transactions:all:page:{page}:limit:{limit}
-     * TTL: 10 minutes (configured in RedisConfig)
-     * 
-     * Cache Strategy: This endpoint has high hit rate since many agents
-     * view the same pages of recent transactions.
-     * 
-     * @param page Page number (0-indexed)
-     * @param limit Number of items per page
-     * @return PageDTO with transaction data and pagination metadata
+     * Get all transactions with pagination. Cached for 10 minutes.
      */
     @Cacheable(value = "transactions", key = "'all:page:' + #page + ':limit:' + #limit")
     public PageDTO<TransactionDTO> getAllTransactions(int page, int limit) {
-        // Note: This log only appears on cache miss. Cache hits don't execute this method.
-        log.info("Cache miss - fetching all transactions from database: page={}, limit={}", page, limit);
-
+        log.info("Fetching all transactions from database: page={}, limit={}", page, limit);
         Pageable pageable = PageRequest.of(page, limit, Sort.by("date").descending());
         Page<Transaction> transactions = transactionRepository.findAll(pageable);
-        log.info("Fetched {} total transactions from database", transactions.getTotalElements());
-
         return PageDTO.from(transactions.map(this::mapToDTO));
     }
 
     /**
-     * Get all transactions for a specific client with pagination
-     * 
-     * Cached in Redis with key: transactions:client:{clientId}:page:{page}:limit:{limit}
-     * TTL: 10 minutes (configured in RedisConfig)
-     * 
-     * Cache Strategy: Very high hit rate - agents repeatedly view the same client's
-     * transactions. This is the most valuable cache in the transaction service.
-     * 
-     * @param clientId Client identifier
-     * @param page Page number (0-indexed)
-     * @param limit Number of items per page
-     * @return PageDTO with transaction data and pagination metadata
+     * Get all transactions for a specific client with pagination. Cached for 10 minutes.
      */
     @Cacheable(value = "transactions", key = "'client:' + #clientId + ':page:' + #page + ':limit:' + #limit")
     public PageDTO<TransactionDTO> getAllTransactionsForClient(String clientId, int page, int limit) {
-        // Note: This log only appears on cache miss. Cache hits don't execute this method.
-        log.info("Cache miss - fetching transactions from database: clientId={}, page={}, limit={}", clientId, page, limit);
-
+        log.info("Fetching transactions from database: clientId={}, page={}, limit={}", clientId, page, limit);
         Pageable pageable = PageRequest.of(page, limit, Sort.by("date").descending());
         Page<Transaction> transactions = transactionRepository.findByClientId(clientId, pageable);
-        log.info("Fetched {} total transactions for client {} from database", transactions.getTotalElements(), clientId);
-
         return PageDTO.from(transactions.map(this::mapToDTO));
     }
 
     /**
-     * Search transactions with flexible filters
+     * Search transactions with flexible filters.
      * 
-     * INTELLIGENT CACHING:
-     * - CACHED when ONLY clientIds + pagination are provided (agent viewing "all their transactions")
-     * - NOT CACHED when additional filters are applied (status, dates, amounts, etc.)
-     * 
-     * Cache Strategy:
-     * - Agents repeatedly view their transactions with the same clientIds → High hit rate (80-90%)
-     * - Complex searches with filters → No cache (low hit rate, wastes memory)
-     * - Cache key uses sorted clientIds for consistency regardless of order
-     * 
-     * Performance:
-     * - Cached: ~5ms (Redis lookup)
-     * - Uncached: ~50-100ms (Database query)
-     * 
-     * Error Handling:
-     * - If cache fails, the cacheErrorHandler logs warning and method executes normally
-     * - Application never fails due to cache issues (cache-aside pattern)
-     * 
-     * @param searchRequest Search filters and pagination parameters
-     * @return PageDTO with filtered transaction data
+     * Intelligent Caching:
+     * - Cached when only clientIds are provided (agents viewing all their transactions)
+     * - Not cached when filters are applied (prevents memory waste from low-reuse combinations)
      */
     @Cacheable(
         value = "transactions",
@@ -121,8 +76,6 @@ public class TransactionService {
                     "#searchRequest.startDate == null && #searchRequest.endDate == null"
     )
     public PageDTO<TransactionDTO> searchTransactions(TransactionSearchRequest searchRequest) {
-        // This log only appears on cache miss (when cache condition is false or cache doesn't exist)
-        // If you see this log, it means the method executed (cache miss or no caching)
         log.info("Searching transactions with filters: {}", searchRequest);
 
         // Build dynamic query using specification pattern
@@ -155,8 +108,6 @@ public class TransactionService {
         Pageable pageable = PageRequest.of(searchRequest.getPage(), searchRequest.getLimit(), sort);
 
         Page<Transaction> transactions = transactionRepository.findAll(spec, pageable);
-        log.info("Found {} total transactions matching search criteria", transactions.getTotalElements());
-
         return PageDTO.from(transactions.map(this::mapToDTO));
     }
 }

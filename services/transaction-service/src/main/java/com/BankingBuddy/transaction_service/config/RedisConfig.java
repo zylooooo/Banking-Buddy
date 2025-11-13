@@ -30,31 +30,15 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import java.time.Duration;
 
 /**
- * Redis Configuration for ElastiCache (AWS) and Local Docker
+ * Redis caching configuration for transaction service.
+ * Supports both AWS ElastiCache and local Docker Redis.
  * 
- * AWS: Connects to AWS ElastiCache Redis cluster provisioned via Terraform.
- *      Uses primary endpoint from SPRING_REDIS_HOST environment variable.
- * 
- * Local: Connects to Redis running in Docker Compose.
- *        Uses hostname "redis" (Docker service name) or SPRING_REDIS_HOST env var.
- * 
- * Configuration:
- * - Redis 7.0 on ElastiCache (AWS) or Docker (Local)
- * - Multi-AZ with automatic failover (AWS only)
- * - Port 6379
- * - Transit encryption: disabled (for dev)
- * 
- * Best Practices Implemented:
- * - Type information for proper deserialization of complex types (Page, etc.)
- * - Java 8 time types support (LocalDateTime, etc.)
- * - DRY: Single ObjectMapper factory method
- * - String keys for better readability and debugging
- * - JSON values for complex objects
- * - Cache error handling: Application continues to function if Redis is unavailable (cache-aside pattern)
+ * Cache Strategy: Cache-aside pattern with 10-minute TTL
+ * Error Handling: Graceful degradation - cache failures don't break the application
  */
 @Configuration
 @EnableCaching
-@Profile({"aws", "local"}) // Enable Redis caching in both AWS and local environments
+@Profile({"aws", "local"})
 @Slf4j
 public class RedisConfig implements CachingConfigurer {
 
@@ -65,34 +49,16 @@ public class RedisConfig implements CachingConfigurer {
     private int redisPort;
 
     /**
-     * Creates a configured ObjectMapper for Redis serialization.
-     * 
-     * Best Practices:
-     * - JavaTimeModule: Handles Java 8 time types (LocalDateTime, ZonedDateTime, etc.)
-     * - ISO-8601 dates: Human-readable date format
-     * - Forward compatibility: Ignores unknown properties during deserialization
-     * - Type information: Required for @Cacheable to properly deserialize cached return values
-     * 
-     * Note: activateDefaultTyping is REQUIRED for Spring Cache to work correctly.
-     * Without it, cached objects deserialize as LinkedHashMap instead of their actual type.
-     * 
-     * @return Configured ObjectMapper for Redis
+     * Configures ObjectMapper for Redis JSON serialization.
+     * Enables Java 8 time support and type information for proper deserialization.
      */
     private ObjectMapper createObjectMapper() {
         ObjectMapper objectMapper = new ObjectMapper();
-        
-        // Register Java 8 time module for LocalDateTime, ZonedDateTime, etc.
         objectMapper.registerModule(new JavaTimeModule());
-        
-        // Use ISO-8601 format instead of timestamps (human-readable)
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        
-        // Don't fail on unknown properties (forward compatibility)
         objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
         
-        // CRITICAL: Enable type information for proper deserialization of cached objects
-        // This ensures PageDTO (and other complex types) deserialize correctly from Redis
-        // Without this, Spring Cache returns LinkedHashMap instead of the actual type
+        // Required for Spring Cache - ensures correct type deserialization
         objectMapper.activateDefaultTyping(
             objectMapper.getPolymorphicTypeValidator(),
             ObjectMapper.DefaultTyping.NON_FINAL
@@ -102,35 +68,21 @@ public class RedisConfig implements CachingConfigurer {
     }
 
     /**
-     * Configure Redis connection factory
-     * 
-     * AWS: Uses ElastiCache primary endpoint
-     * Local: Uses Docker service name "redis" or SPRING_REDIS_HOST env var
-     * 
-     * Best Practice: Connection pooling is configured via application properties
-     * (spring.data.redis.lettuce.pool.*)
+     * Configures Redis connection factory.
+     * Connection pooling settings are in application properties.
      */
     @Bean
     public LettuceConnectionFactory redisConnectionFactory() {
         RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
         config.setHostName(redisHost);
         config.setPort(redisPort);
-        
         log.info("Connecting to Redis at {}:{}", redisHost, redisPort);
-        
-        // Note: ElastiCache uses primary endpoint for writes, reader endpoint for reads
-        // For simplicity, we use primary endpoint for both
-        // In production with high read load, consider using reader endpoint for read-only operations
-        
         return new LettuceConnectionFactory(config);
     }
 
     /**
-     * Configure RedisTemplate for manual Redis operations (if needed)
-     * 
-     * Best Practices:
-     * - String keys: Human-readable, easier debugging
-     * - JSON values: Supports complex objects with type information
+     * Configures RedisTemplate for manual Redis operations.
+     * Uses String keys and JSON values with type information.
      */
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
@@ -139,34 +91,17 @@ public class RedisConfig implements CachingConfigurer {
         
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
-        
-        // Use String serializer for keys (best practice: readable and efficient)
         template.setKeySerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());
-        
-        // Use JSON serializer for values (supports complex objects with type info)
         template.setValueSerializer(serializer);
         template.setHashValueSerializer(serializer);
-        
         template.afterPropertiesSet();
         return template;
     }
 
     /**
-     * Configure CacheManager for Spring Cache abstraction
-     * 
-     * Best Practices:
-     * - TTL: 10 minutes (balances freshness vs performance)
-     * - String keys: Readable cache keys
-     * - JSON values: Complex object support with type information
-     * - No null caching: Saves memory, nulls are typically errors
-     * - Graceful error handling: Cache failures don't break the application
-     * 
-     * Cache TTL: 10 minutes (configurable via application properties)
-     * Serialization: JSON for values, String for keys
-     * 
-     * Error Handling: Uses allowInFlightCacheCreation to prevent cache stampede
-     * and ensure cache errors are treated as cache misses.
+     * Configures Spring Cache with 10-minute TTL.
+     * Null values are not cached to save memory.
      */
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
@@ -174,30 +109,20 @@ public class RedisConfig implements CachingConfigurer {
         GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
         
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofMinutes(10)) // Cache entries expire after 10 minutes
+                .entryTtl(Duration.ofMinutes(10))
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer))
-                .disableCachingNullValues(); // Don't cache null values (best practice: saves memory)
+                .disableCachingNullValues();
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(config)
-                .transactionAware() // Make cache operations transaction-aware
+                .transactionAware()
                 .build();
     }
 
     /**
-     * Configure cache error handler to prevent cache failures from breaking the application.
-     * 
-     * Best Practice: Cache-aside pattern - if Redis is unavailable, the application
-     * continues to function by falling back to the database. Cache errors are logged
-     * as warnings but do not propagate as exceptions.
-     * 
-     * This ensures:
-     * - High availability: Application works even if Redis is down
-     * - Graceful degradation: Performance degrades but functionality remains
-     * - Observability: Errors are logged for monitoring
-     * 
-     * @return CacheErrorHandler that logs errors but doesn't throw exceptions
+     * Handles cache errors gracefully to prevent application failures.
+     * Cache errors are logged as warnings and the application falls back to the database.
      */
     @Override
     @Bean
@@ -205,30 +130,22 @@ public class RedisConfig implements CachingConfigurer {
         return new SimpleCacheErrorHandler() {
             @Override
             public void handleCacheGetError(@NonNull RuntimeException exception, @NonNull org.springframework.cache.Cache cache, @NonNull Object key) {
-                log.warn("Cache get error for key '{}' in cache '{}': {}. Falling back to database query.", 
-                    key, cache.getName(), exception.getMessage());
-                // Don't throw - allow the method to execute normally (cache-aside pattern)
+                log.warn("Cache get error for key '{}': {}. Falling back to database.", key, exception.getMessage());
             }
 
             @Override
             public void handleCachePutError(@NonNull RuntimeException exception, @NonNull org.springframework.cache.Cache cache, @NonNull Object key, @Nullable Object value) {
-                log.warn("Cache put error for key '{}' in cache '{}': {}. Data will not be cached but operation continues.", 
-                    key, cache.getName(), exception.getMessage());
-                // Don't throw - allow the method to complete successfully
+                log.warn("Cache put error for key '{}': {}. Operation continues.", key, exception.getMessage());
             }
 
             @Override
             public void handleCacheEvictError(@NonNull RuntimeException exception, @NonNull org.springframework.cache.Cache cache, @NonNull Object key) {
-                log.warn("Cache evict error for key '{}' in cache '{}': {}. Cache entry may remain until TTL expires.", 
-                    key, cache.getName(), exception.getMessage());
-                // Don't throw - eviction failure is not critical
+                log.warn("Cache evict error for key '{}': {}.", key, exception.getMessage());
             }
 
             @Override
             public void handleCacheClearError(@NonNull RuntimeException exception, @NonNull org.springframework.cache.Cache cache) {
-                log.warn("Cache clear error for cache '{}': {}. Cache entries may remain until TTL expires.", 
-                    cache.getName(), exception.getMessage());
-                // Don't throw - clear failure is not critical
+                log.warn("Cache clear error for cache '{}': {}.", cache.getName(), exception.getMessage());
             }
         };
     }
