@@ -491,7 +491,6 @@ public class ClientService {
             Client savedClient = clientRepository.save(client);
             log.info("Client {} updated successfully with {} field changes", clientId, changes.size());
 
-            // TODO: double check the logging logic
             // Publish audit logs for each changed field (non-blocking)
             publishUpdateAuditLog(clientId, userContext, changes);
 

@@ -3,6 +3,7 @@ package com.BankingBuddy.user_service.service;
 import com.BankingBuddy.user_service.model.dto.CreateUserRequest;
 import com.BankingBuddy.user_service.model.dto.UpdateUserRequest;
 import com.BankingBuddy.user_service.model.dto.UserDTO;
+import com.BankingBuddy.user_service.model.dto.PageDTO;
 import com.BankingBuddy.user_service.model.entity.User;
 import com.BankingBuddy.user_service.repository.UserRepository;
 import com.BankingBuddy.user_service.security.UserContext;
@@ -12,9 +13,12 @@ import com.BankingBuddy.user_service.exception.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
-import java.util.Comparator;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.AssociateSoftwareTokenResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.VerifySoftwareTokenResponse;
 
@@ -233,29 +237,31 @@ public class UserService {
         return mapToDTO(user);
     }
 
-    public List<UserDTO> getAllUsers(UserContext currentUser) {
+    public PageDTO<UserDTO> getAllUsers(UserContext currentUser, int page, int limit) {
         if (currentUser.getRole() != UserRole.ADMIN && currentUser.getRole() != UserRole.ROOT_ADMIN) {
             throw new ForbiddenException("Only admins can view all users");
         }
 
-        // Get all users from the database
-        List<User> allUsers = userRepository.findAll();
+        // Create pageable with sorting by createdAt descending
+        Pageable pageable = PageRequest.of(page, limit, Sort.by("createdAt").descending());
+        Page<User> userPage;
 
         // If the user is an admin, return all agents that were created by the admin
         if (currentUser.getRole() == UserRole.ADMIN) {
-            return allUsers.stream()
-                    .filter(user -> user.getRole() == UserRole.AGENT)
-                    .filter(user -> user.getCreatedBy().equals(currentUser.getUserId()))
-                    .sorted(Comparator.comparing(User::getCreatedAt).reversed())
-                    .map(this::mapToDTO)
-                    .toList();
+            userPage = userRepository.findByRoleAndCreatedByOrderByCreatedAtDesc(
+                UserRole.AGENT,
+                currentUser.getUserId(),
+                pageable
+            );
+        } else {
+            // Root admin sees all admins and agents
+            userPage = userRepository.findByRoleInOrderByCreatedAtDesc(
+                List.of(UserRole.ADMIN, UserRole.AGENT),
+                pageable
+            );
         }
 
-        // Return all admins and agents if user is root admin
-        return allUsers.stream()
-                .sorted(Comparator.comparing(User::getCreatedAt).reversed())
-                .map(this::mapToDTO)
-                .toList();
+        return PageDTO.from(userPage.map(this::mapToDTO));
     }
 
     public void setUpMFAForUser(String userId, UserContext currentUser) {
