@@ -97,18 +97,23 @@ export default function TransactionManagementPage() {
             const clientsToUse = clientsData || clients || [];
 
             // Extract valid client IDs
-            const clientIds = clientsToUse
+            const allClientIds = clientsToUse
                 .map(client => client.clientId || client.id)
                 .filter(id => id && typeof id === 'string' && id.trim() !== '');
 
             // If agent has no clients, show empty state
-            if (clientIds.length === 0) {
+            if (allClientIds.length === 0) {
                 setTransactions([]);
                 setTotalPages(0);
                 setTotalElements(0);
                 setError(null);
                 return;
             }
+
+            // Filter by specific client if selected, otherwise use all client IDs
+            const clientIds = filters.clientId 
+                ? [filters.clientId] 
+                : allClientIds;
 
             // Build search params
             const searchParams = {
@@ -118,8 +123,9 @@ export default function TransactionManagementPage() {
                 // Include filters only if they have values
                 ...(filters.transactionType && { transaction: filters.transactionType }),
                 ...(filters.status && { status: filters.status }),
-                ...(filters.dateFrom && { startDate: filters.dateFrom }),
-                ...(filters.dateTo && { endDate: filters.dateTo }),
+                // Convert date strings to ISO datetime format (LocalDateTime)
+                ...(filters.dateFrom && { startDate: `${filters.dateFrom}T00:00:00` }),
+                ...(filters.dateTo && { endDate: `${filters.dateTo}T23:59:59` }),
                 ...(filters.minAmount && parseFloat(filters.minAmount) > 0 && { minAmount: filters.minAmount }),
                 ...(filters.maxAmount && parseFloat(filters.maxAmount) > 0 && { maxAmount: filters.maxAmount }),
             };
