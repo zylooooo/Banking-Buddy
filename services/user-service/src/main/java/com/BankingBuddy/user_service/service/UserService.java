@@ -256,12 +256,13 @@ public class UserService {
     /**
      * Get user by ID. Cached for 15 minutes.
      * Uses sync=true to prevent cache stampede on popular users.
+     * Note: sync=true is incompatible with unless attribute, but this method
+     * throws exception for not found users, so null results are not possible.
      */
     @Cacheable(
         value = "users-single",
         key = "'user:' + #userId",
-        sync = true,
-        unless = "#result == null"
+        sync = true
     )
     public UserDTO getUserById(String userId, UserContext currentUser) {
         log.debug("Cache miss - fetching user from database: userId={}", userId);
