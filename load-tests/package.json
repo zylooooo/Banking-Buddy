@@ -1,0 +1,33 @@
+{
+    "name": "banking-buddy-load-tests",
+    "version": "1.0.0",
+    "description": "k6 Load Testing Suite for Banking Buddy Application",
+    "scripts": {
+        "test:frontend": "k6 run tests/frontend-load-test.js --env ENVIRONMENT=dev",
+        "test:api": "k6 run tests/api-load-test.js --env ENVIRONMENT=dev",
+        "test:full-system": "k6 run tests/full-system-load-test.js --env ENVIRONMENT=dev",
+        "test:spike": "k6 run tests/full-system-load-test.js --scenario spike_test --env ENVIRONMENT=dev",
+        "test:constant": "k6 run tests/full-system-load-test.js --scenario constant_load_test --env ENVIRONMENT=dev",
+        "test:debug": "k6 run tests/full-system-load-test.js --vus 5 --duration 2m --env ENVIRONMENT=dev",
+        "test:quick": "k6 run tests/frontend-load-test.js --vus 10 --duration 1m --env ENVIRONMENT=dev",
+        "help": "echo 'Available scripts: test:frontend, test:api, test:full-system, test:spike, test:constant, test:debug, test:quick'"
+    },
+    "keywords": [
+        "k6",
+        "load-testing",
+        "banking",
+        "performance",
+        "aws"
+    ],
+    "author": "Banking Buddy Team",
+    "license": "MIT",
+    "devDependencies": {},
+    "dependencies": {},
+    "engines": {
+        "node": ">=14.0.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/your-org/banking-buddy"
+    }
+}
