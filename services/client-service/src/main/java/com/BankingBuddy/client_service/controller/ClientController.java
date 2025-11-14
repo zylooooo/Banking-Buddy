@@ -3,6 +3,7 @@ package com.BankingBuddy.client_service.controller;
 import com.BankingBuddy.client_service.model.dto.ApiResponse;
 import com.BankingBuddy.client_service.model.dto.ClientDTO;
 import com.BankingBuddy.client_service.model.dto.CreateClientRequest;
+import com.BankingBuddy.client_service.model.dto.PageDTO;
 import com.BankingBuddy.client_service.model.dto.UpdateClientRequest;
 import com.BankingBuddy.client_service.security.UserContext;
 import com.BankingBuddy.client_service.service.ClientService;
@@ -14,7 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.data.domain.Page;
 
 @RestController
 @RequestMapping("/api/clients")
@@ -62,10 +62,10 @@ public class ClientController {
      * Returns simplified client summaries for "Manage Profiles" page
      * 
      * @param userContext the authenticated user context (AGENT only)
-     * @return ResponseEntity with list of client summaries
+     * @return ResponseEntity with paginated list of client summaries
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<Page<ClientDTO>>> getAllClients(
+    public ResponseEntity<ApiResponse<PageDTO<ClientDTO>>> getAllClients(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int limit,
             @RequestAttribute("userContext") UserContext userContext) {
@@ -83,9 +83,9 @@ public class ClientController {
                     "Only AGENT role can access client list");
         }
 
-        Page<ClientDTO> clients = clientService.getAllClientsForAgent(page, limit, userContext);
+        PageDTO<ClientDTO> clients = clientService.getAllClientsForAgent(page, limit, userContext);
 
-        ApiResponse<Page<ClientDTO>> response = 
+        ApiResponse<PageDTO<ClientDTO>> response = 
                 ApiResponse.success(clients, "Clients retrieved successfully");
 
         return ResponseEntity.ok(response);

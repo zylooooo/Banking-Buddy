@@ -6,6 +6,7 @@ import com.BankingBuddy.client_service.exception.ForbiddenException;
 import com.BankingBuddy.client_service.exception.InvalidOperationException;
 import com.BankingBuddy.client_service.model.dto.ClientDTO;
 import com.BankingBuddy.client_service.model.dto.CreateClientRequest;
+import com.BankingBuddy.client_service.model.dto.PageDTO;
 import com.BankingBuddy.client_service.model.dto.UpdateClientRequest;
 import com.BankingBuddy.client_service.model.entity.Account;
 import com.BankingBuddy.client_service.model.entity.Client;
@@ -18,6 +19,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
@@ -109,10 +113,14 @@ public class ClientService {
     /**
      * Create a new client profile
      * 
+     * Caching Strategy: Evicts all paginated client lists since the new client
+     * appears in the agent's list.
+     * 
      * @param request     the client creation request
      * @param userContext the authenticated user context
      * @return the created client DTO
      */
+    @CacheEvict(value = "clients-list", allEntries = true)
     public ClientDTO createClient(CreateClientRequest request, UserContext userContext) {
         log.info("Creating client profile. Agent: {}", userContext.getUserId());
 
@@ -254,13 +262,22 @@ public class ClientService {
 
     /**
      * Get all clients for the authenticated agent
-     * Returns ClientDTO page for "Manage Profiles" page
+     * Returns PageDTO<ClientDTO> for "Manage Profiles" page
      * No audit logs per specification (bulk reads not logged)
      * 
+     * Caching Strategy: Cache-aside with custom key generator
+     * Cache Key: "agent:{agentId}:page:{page}:limit:{limit}"
+     * TTL: 5 minutes (changes frequently with CRUD operations)
+     * 
      * @param userContext the authenticated user context
-     * @return list of client summaries
+     * @return PageDTO with client summaries
      */
-    public Page<ClientDTO> getAllClientsForAgent(
+    @Cacheable(
+        value = "clients-list",
+        keyGenerator = "clientListKeyGenerator",
+        unless = "#result.empty"
+    )
+    public PageDTO<ClientDTO> getAllClientsForAgent(
             int page,
             int limit,
             UserContext userContext) {
@@ -274,9 +291,11 @@ public class ClientService {
 
         Pageable pageable = PageRequest.of(page, limit, Sort.by("createdAt").descending());
         Page<Client> clients = clientRepository.findByAgentIdAndDeletedFalse(userContext.getUserId(), pageable);
-        log.info("Successfully fetched {} clients for agent {}", clients.getTotalElements(), userContext.getUserId());
+        log.info("Successfully fetched page {} with {} clients (total: {}) for agent {}", 
+                page, clients.getNumberOfElements(), clients.getTotalElements(), userContext.getUserId());
 
-        return clients.map(this::convertToDTO);
+        // Convert to PageDTO for Redis serialization
+        return PageDTO.from(clients.map(this::convertToDTO));
     }
 
     /**
@@ -285,9 +304,16 @@ public class ClientService {
      * Email sending is async and non-blocking - email failure does not affect
      * response
      * 
+     * Caching Strategy: Evicts both paginated lists (verified status changes)
+     * and the specific client's cached details.
+     * 
      * @param clientId    the client ID to verify
      * @param userContext the authenticated user context
      */
+    @Caching(evict = {
+        @CacheEvict(value = "clients-list", allEntries = true),
+        @CacheEvict(value = "clients-single", key = "#clientId")
+    })
     public void verifyClient(String clientId, UserContext userContext) {
         log.info("Verifying client {}. Agent: {}", clientId, userContext.getUserId());
         
@@ -345,7 +371,18 @@ public class ClientService {
         }
     }
 
-    // Service to get client by client id
+    /**
+     * Get client by client ID
+     * 
+     * Caching Strategy: Cache individual client details for repeated views
+     * Cache Key: "{clientId}"
+     * TTL: 10 minutes (moderate change frequency)
+     * 
+     * @param clientId    the client ID to retrieve
+     * @param userContext the authenticated user context
+     * @return the client DTO
+     */
+    @Cacheable(value = "clients-single", key = "#clientId")
     public ClientDTO getClientById(String clientId, UserContext userContext) {
         log.info("Getting client by client id: {}", clientId);
         // Agents can only get the client that they created
@@ -385,7 +422,21 @@ public class ClientService {
         }
     }
 
-    // Service to update client profile by id
+    /**
+     * Update client profile by ID
+     * 
+     * Caching Strategy: Evicts both paginated lists (client data changes)
+     * and the specific client's cached details.
+     * 
+     * @param clientId    the client ID to update
+     * @param clientData  the update request
+     * @param userContext the authenticated user context
+     * @return the updated client DTO
+     */
+    @Caching(evict = {
+        @CacheEvict(value = "clients-list", allEntries = true),
+        @CacheEvict(value = "clients-single", key = "#clientId")
+    })
     public ClientDTO updateClientById(String clientId, UpdateClientRequest clientData, UserContext userContext) {
         log.info("Updating client profile: {} by agent {}", clientId, userContext.getUserId());
         // Only agent can update their own client profile
@@ -511,7 +562,20 @@ public class ClientService {
         }
     }
 
-    // Service to soft delete client by id
+    /**
+     * Soft delete client by ID
+     * 
+     * Caching Strategy: Evicts paginated lists (client removed from list),
+     * specific client details, and all associated accounts.
+     * 
+     * @param clientId    the client ID to delete
+     * @param userContext the authenticated user context
+     */
+    @Caching(evict = {
+        @CacheEvict(value = "clients-list", allEntries = true),
+        @CacheEvict(value = "clients-single", key = "#clientId"),
+        @CacheEvict(value = "accounts-by-client", key = "#clientId")
+    })
     public void softDeleteClientById(String clientId, UserContext userContext) {
         log.info("Soft deleting client {} by agent {}", clientId, userContext.getUserId());
         // Agents only can soft delete their own client profile

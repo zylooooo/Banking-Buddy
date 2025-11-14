@@ -17,6 +17,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import software.amazon.awssdk.services.sqs.SqsClient;
@@ -46,6 +49,7 @@ public class AccountService {
     private final ClientRepository clientRepository;
     private final SqsClient sqsClient;
     private final EmailService emailService;
+    private final CacheManager cacheManager;
     private final ObjectMapper objectMapper = new ObjectMapper();
     
     @Value("${audit.sqs.queue-url}")
@@ -183,10 +187,14 @@ public class AccountService {
      * - Opening date is set to current date
      * - Sends CREATE audit log to SQS
      * 
+     * Caching Strategy: Evicts the cached accounts list for this specific client
+     * since a new account was added.
+     * 
      * @param request the account creation request
      * @param userContext the authenticated user context (AGENT only)
      * @return the created account DTO
      */
+    @CacheEvict(value = "accounts-by-client", key = "#request.clientId")
     public AccountDTO createAccount(CreateAccountRequest request, UserContext userContext) {
         log.info("Creating account for client {}. Agent: {}", request.getClientId(), userContext.getUserId());
 
@@ -263,6 +271,9 @@ public class AccountService {
      * - Admin/Root Admin can delete any account
      * - Sends DELETE audit log to SQS
      * 
+     * Caching Strategy: We need to evict after fetching the account to know the clientId.
+     * This is handled below with manual eviction after fetching the account entity.
+     * 
      * @param accountId the account ID to delete
      * @param userContext the authenticated user context
      */
@@ -316,9 +327,25 @@ public class AccountService {
                 account.getAccountType(),
                 account.getBalance());
         
+        // Cache eviction: Manually evict the client's accounts cache
+        // (Cannot use @CacheEvict since we need clientId from the fetched account)
+        String clientIdForEviction = account.getClientId();
+        
         account.setDeleted(true);
         accountRepository.save(account);
         log.info("Account {} soft deleted successfully", accountId);
+        
+        // Manually evict the cache for this client's accounts
+        try {
+            org.springframework.cache.Cache cache = cacheManager.getCache("accounts-by-client");
+            if (cache != null) {
+                cache.evict(clientIdForEviction);
+                log.debug("Evicted cache for client {} accounts after account deletion", clientIdForEviction);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to evict cache for client {} accounts: {}", clientIdForEviction, e.getMessage());
+            // Non-blocking: cache eviction failure should not affect deletion
+        }
 
         // 6. Publish DELETE audit log to SQS (non-blocking)
         try {
@@ -339,8 +366,20 @@ public class AccountService {
         }
     }
 
+    /**
+     * Get all accounts for a specific client (AGENT only, own clients)
+     * 
+     * Caching Strategy: Cache accounts by client ID for repeated views
+     * Cache Key: "{clientId}"
+     * TTL: 10 minutes (rarely changes)
+     * 
+     * @param clientId    the client ID
+     * @param userContext the authenticated user context
+     * @return list of account DTOs
+     */
+    @Cacheable(value = "accounts-by-client", key = "#clientId", unless = "#result.empty")
     public List<AccountDTO> getAccountsByClientId(String clientId, UserContext userContext) {
-        log.info("Getting accounts by client ID: {}", clientId);
+        log.info("Cache MISS - Getting accounts by client ID from database: {}", clientId);
 
         // Authorization check - only Agents can find accounts by client ID
         if (userContext.getRole() != UserRole.AGENT) {
@@ -361,8 +400,13 @@ public class AccountService {
         }
 
         List<Account> accounts = accountRepository.findByClientId(clientId);
-        return accounts.stream()
+        List<AccountDTO> accountDTOs = accounts.stream()
             .map(this::convertToAccountDTO)
             .collect(Collectors.toList());
+        
+        log.info("Found {} accounts for client {}. Result will {}be cached.", 
+                accountDTOs.size(), clientId, accountDTOs.isEmpty() ? "NOT " : "");
+        
+        return accountDTOs;
     }
 }

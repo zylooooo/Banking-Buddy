@@ -65,6 +65,24 @@
 			<artifactId>jackson-databind</artifactId>
 		</dependency>
 		
+		<!-- Spring Cache Abstraction -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-cache</artifactId>
+		</dependency>
+
+		<!-- Spring Data Redis -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-redis</artifactId>
+		</dependency>
+
+		<!-- Connection Pooling for Redis (Lettuce) -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-pool2</artifactId>
+		</dependency>
+		
 		<!-- AWS SDK for SQS (Audit Logging) -->
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
