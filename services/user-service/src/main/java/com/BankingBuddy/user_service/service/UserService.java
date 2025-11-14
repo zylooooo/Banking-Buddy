@@ -11,6 +11,9 @@ import com.BankingBuddy.user_service.security.UserRole;
 import com.BankingBuddy.user_service.security.UserStatus;
 import com.BankingBuddy.user_service.exception.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
@@ -48,6 +51,10 @@ public class UserService {
                 .build();
     }
 
+    /**
+     * Create a new user. Evicts all list caches since new users appear in lists.
+     */
+    @CacheEvict(value = "users-list", allEntries = true)
     public UserDTO createUser(CreateUserRequest request, UserContext currentUser) {
         // Authorization check
         if (currentUser.getRole() != UserRole.ADMIN && currentUser.getRole() != UserRole.ROOT_ADMIN) {
@@ -89,6 +96,13 @@ public class UserService {
         return mapToDTO(user);
     }
 
+    /**
+     * Update user. Evicts the user's single cache and all list caches.
+     */
+    @Caching(evict = {
+        @CacheEvict(value = "users-single", key = "'user:' + #userId"),
+        @CacheEvict(value = "users-list", allEntries = true)
+    })
     public UserDTO updateUser(String userId, UpdateUserRequest request, UserContext currentUser) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + userId));
@@ -151,6 +165,13 @@ public class UserService {
         return mapToDTO(user);
     }
 
+    /**
+     * Disable user. Evicts the user's single cache and all list caches.
+     */
+    @Caching(evict = {
+        @CacheEvict(value = "users-single", key = "'user:' + #userId"),
+        @CacheEvict(value = "users-list", allEntries = true)
+    })
     public void disableUser(String userId, UserContext currentUser) {
         // Authorization check
         if (currentUser.getRole() != UserRole.ADMIN && currentUser.getRole() != UserRole.ROOT_ADMIN) {
@@ -186,6 +207,13 @@ public class UserService {
         log.info("Disabled user: {} by {}", user.getEmail(), currentUser.getEmail());
     }
 
+    /**
+     * Enable user. Evicts the user's single cache and all list caches.
+     */
+    @Caching(evict = {
+        @CacheEvict(value = "users-single", key = "'user:' + #userId"),
+        @CacheEvict(value = "users-list", allEntries = true)
+    })
     public void enableUser(String userId, UserContext currentUser) {
         if (currentUser.getRole() != UserRole.ADMIN && currentUser.getRole() != UserRole.ROOT_ADMIN) {
             throw new ForbiddenException("Only admins can enable users");
@@ -225,7 +253,19 @@ public class UserService {
         log.info("Reset password for user: {} by {}", user.getEmail(), currentUser.getEmail());
     }
 
+    /**
+     * Get user by ID. Cached for 15 minutes.
+     * Uses sync=true to prevent cache stampede on popular users.
+     */
+    @Cacheable(
+        value = "users-single",
+        key = "'user:' + #userId",
+        sync = true,
+        unless = "#result == null"
+    )
     public UserDTO getUserById(String userId, UserContext currentUser) {
+        log.debug("Cache miss - fetching user from database: userId={}", userId);
+        
         // Agents can only view their own profile
         if (currentUser.getRole() == UserRole.AGENT && !currentUser.getUserId().equals(userId)) {
             throw new ForbiddenException("Agents can only view their own profile");
@@ -237,7 +277,19 @@ public class UserService {
         return mapToDTO(user);
     }
 
+    /**
+     * Get all users with pagination. Cached for 5 minutes.
+     * Cache key includes role and adminId to ensure correct scoping.
+     */
+    @Cacheable(
+        value = "users-list",
+        key = "'users:role:' + #currentUser.role.name() + ':adminId:' + #currentUser.userId + ':page:' + #page + ':limit:' + #limit",
+        unless = "#result.empty"
+    )
     public PageDTO<UserDTO> getAllUsers(UserContext currentUser, int page, int limit) {
+        log.debug("Cache miss - fetching users from database: role={}, adminId={}, page={}, limit={}", 
+                 currentUser.getRole(), currentUser.getUserId(), page, limit);
+        
         if (currentUser.getRole() != UserRole.ADMIN && currentUser.getRole() != UserRole.ROOT_ADMIN) {
             throw new ForbiddenException("Only admins can view all users");
         }
@@ -264,6 +316,13 @@ public class UserService {
         return PageDTO.from(userPage.map(this::mapToDTO));
     }
 
+    /**
+     * Set up MFA for user. Evicts the user's single cache and all list caches.
+     */
+    @Caching(evict = {
+        @CacheEvict(value = "users-single", key = "'user:' + #userId"),
+        @CacheEvict(value = "users-list", allEntries = true)
+    })
     public void setUpMFAForUser(String userId, UserContext currentUser) {
         // Only allow users themselves to finish onboarding
         if (!currentUser.getUserId().equals(userId)) {
