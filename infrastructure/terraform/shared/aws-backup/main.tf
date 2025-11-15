@@ -76,9 +76,24 @@ resource "aws_iam_role_policy" "backup_policy" {
   })
 }
 
-# Backup Plan - Daily backups with retention
+# Backup Plan - 12-hour, daily, and weekly backups with retention
 resource "aws_backup_plan" "main" {
   name = "${var.name_prefix}-backup-plan"
+
+  # 12-hour backup rule (for 12-hour RPO requirement)
+  rule {
+    rule_name         = "12-hour-backup-rule"
+    target_vault_name = aws_backup_vault.main.name
+    schedule         = "cron(0 2,14 * * ? *)" # Every 12 hours at 2 AM and 2 PM UTC (10 AM and 10 PM SGT)
+
+    lifecycle {
+      # Retain 12-hour backups for 3 days (sufficient for 12-hour RPO)
+      delete_after = var.twelve_hour_backup_retention_days
+    }
+
+    # Enable continuous backups for DynamoDB (point-in-time recovery)
+    enable_continuous_backup = true
+  }
 
   rule {
     rule_name         = "daily-backup-rule"

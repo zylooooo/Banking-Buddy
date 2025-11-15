@@ -19,12 +19,14 @@ We have chosen **AWS Backup** as our centralized backup solution for the followi
 
 ### 1.2 Backup Schedule
 
+- **12-Hour Backups**: Executed at 2:00 AM UTC and 2:00 PM UTC (10:00 AM and 10:00 PM SGT) every day (meets 12-hour RPO requirement)
 - **Daily Backups**: Executed at 2:00 AM UTC (10:00 AM SGT) every day
 - **Weekly Backups**: Executed on Sundays at 3:00 AM UTC (11:00 AM SGT)
 - **Continuous Backups**: Enabled for DynamoDB (point-in-time recovery)
 
 ### 1.3 Retention Policy
 
+- **12-Hour Backups**: Retained for 3 days (sufficient for 12-hour RPO requirement)
 - **Daily Backups**: Retained for 7 days
 - **Weekly Backups**: Retained for 30 days
 - **Cold Storage**: Not used (AWS Backup requires delete_after to be at least 90 days after cold_storage_after, which is not suitable for short retention periods)
@@ -43,8 +45,8 @@ We have chosen **AWS Backup** as our centralized backup solution for the followi
 
 **Backup Details**:
 
-- **Type**: Automated daily snapshots via AWS Backup
-- **Retention**: 7 days (daily), 30 days (weekly)
+- **Type**: Automated snapshots via AWS Backup
+- **Retention**: 3 days (12-hour), 7 days (daily), 30 days (weekly)
 - **Point-in-Time Recovery**: Enabled through RDS automated backups
 - **Multi-AZ**: Enabled for high availability (standby replica in another AZ)
 
@@ -70,7 +72,7 @@ We have chosen **AWS Backup** as our centralized backup solution for the followi
 **Backup Details**:
 
 - **Type**: Continuous backups with point-in-time recovery (PITR)
-- **Retention**: 7 days (daily), 30 days (weekly)
+- **Retention**: 3 days (12-hour), 7 days (daily), 30 days (weekly)
 - **Continuous Backup**: Enabled for granular recovery (down to seconds)
 
 **What's Protected**:
@@ -163,6 +165,10 @@ We have chosen **AWS Backup** as our centralized backup solution for the followi
 
 - **Plan Name**: `{name_prefix}-backup-plan`
 - **Rules**:
+  - **12-Hour Rule**: `12-hour-backup-rule`
+    - Schedule: `cron(0 2,14 * * ? *)` (Every 12 hours at 2 AM and 2 PM UTC)
+    - Retention: 3 days
+    - Purpose: Meets 12-hour RPO requirement
   - **Daily Rule**: `daily-backup-rule`
     - Schedule: `cron(0 2 * * ? *)` (Daily at 2 AM UTC)
     - Retention: 7 days
@@ -234,24 +240,70 @@ AWS Backup uses a dedicated IAM role with permissions for:
 9. Verify and switch traffic
 
 **RTO**: 1-4 hours
-**RPO**: Up to 24 hours (last daily backup)
+**RPO**: Up to 12 hours (last 12-hour backup)
 
 #### Scenario 3: Cross-Region Disaster Recovery
 
-**Use Case**: Region-wide outage
+**Use Case**: Region-wide outage requiring failover to alternate region
 
-**Steps**:
+**Optimized Recovery Procedures** (Target: <12 hours RTO, <12 hours RPO):
 
-1. Use Terraform to redeploy infrastructure in alternate region
-2. Restore RDS from backup in new region:
-   - Copy backup to new region (if cross-region backup enabled)
-   - Or restore from snapshot in new region
-3. Restore DynamoDB table in new region
-4. Update DNS/Route53 to point to new region
-5. Verify and resume operations
+1. **Assessment and Decision** (15 minutes)
+   - Assess scope of disaster
+   - Determine if regional failover is needed
+   - Notify stakeholders
+   - Activate DR team
 
-**RTO**: 4-8 hours
-**RPO**: Up to 24 hours
+2. **Parallel Infrastructure Deployment** (2-3 hours)
+   - **Parallel Execution**: Deploy infrastructure components simultaneously
+   - Update Terraform variables for new region (5 minutes)
+   - Run `terraform apply` in alternate region (1.5-2.5 hours)
+     - VPC, Security Groups, IAM (parallel)
+     - RDS subnet groups, ElastiCache subnet groups (parallel)
+     - Application services (parallel deployment)
+   - Verify infrastructure deployment (15 minutes)
+   - **Optimization**: Use Terraform workspaces or modules for faster deployment
+
+3. **Parallel Data Restoration** (4-6 hours)
+   - **RDS Restore** (3-5 hours, depending on database size):
+     - Initiate RDS restore from cross-region backup (5 minutes)
+     - Restore runs in parallel with other operations
+     - For databases <50GB: ~2-3 hours
+     - For databases 50-200GB: ~3-4 hours
+     - For databases >200GB: ~4-5 hours
+   - **DynamoDB Restore** (30 minutes - 1 hour, parallel):
+     - Restore DynamoDB table from backup (10 minutes)
+     - Wait for table to become active (20-50 minutes)
+   - **S3 Data Sync** (1-2 hours, parallel):
+     - Sync critical S3 buckets if needed
+   - Verify data integrity (30 minutes)
+
+4. **Automated Application Configuration** (30 minutes)
+   - Update DNS/Route53 records (automated via Terraform, 5 minutes)
+   - Update application environment variables (automated, 5 minutes)
+   - Verify connectivity (10 minutes)
+   - Health check all services (10 minutes)
+
+5. **Testing and Validation** (1 hour)
+   - Run automated smoke tests (15 minutes)
+   - Verify critical functionality (30 minutes)
+   - Monitor for issues (15 minutes)
+
+6. **Automated Cutover** (15 minutes)
+   - Switch DNS to new region (automated, 5 minutes)
+   - Monitor application health (10 minutes)
+   - Document incident
+
+**Total RTO**: 8-11 hours (meets 12-hour requirement)
+**Total RPO**: Up to 12 hours (with 12-hour backup frequency)
+
+**Optimization Strategies**:
+
+- **Parallel Execution**: Deploy infrastructure components simultaneously
+- **Automated DNS Failover**: Use Route53 health checks for automatic failover
+- **Pre-warmed Standby**: Consider maintaining a warm standby in DR region (optional, increases cost)
+- **Cross-Region Backups**: Enable cross-region backup copying for faster restore
+- **Database Read Replicas**: Use cross-region read replicas for near-zero RPO (optional, increases cost)
 
 ### 5.2 DynamoDB Table Restore
 
@@ -291,7 +343,7 @@ AWS Backup uses a dedicated IAM role with permissions for:
 5. Verify and switch traffic
 
 **RTO**: 30 minutes - 2 hours
-**RPO**: Up to 24 hours
+**RPO**: Up to 12 hours (last 12-hour backup)
 
 ### 5.3 Testing Restore Procedures
 
@@ -322,38 +374,7 @@ AWS Backup uses a dedicated IAM role with permissions for:
 
 #### Regional Disaster Recovery
 
-1. **Assessment** (15 minutes)
-   - Assess scope of disaster
-   - Determine if regional failover is needed
-   - Notify stakeholders
-
-2. **Infrastructure Redeployment** (1-2 hours)
-   - Update Terraform variables for new region
-   - Run `terraform apply` in alternate region
-   - Verify infrastructure is deployed
-
-3. **Data Restoration** (1-4 hours)
-   - Restore RDS from backup in new region
-   - Restore DynamoDB from backup in new region
-   - Verify data integrity
-
-4. **Application Configuration** (30 minutes)
-   - Update DNS/Route53 records
-   - Update application endpoints
-   - Verify connectivity
-
-5. **Testing and Validation** (1 hour)
-   - Run smoke tests
-   - Verify critical functionality
-   - Monitor for issues
-
-6. **Cutover** (30 minutes)
-   - Switch traffic to new region
-   - Monitor application health
-   - Document incident
-
-**Total RTO**: 4-8 hours
-**Total RPO**: Up to 24 hours
+**Note**: This section has been updated with optimized procedures. See Section 5.1 Scenario 3 for detailed cross-region disaster recovery procedures with 12-hour RTO/RPO targets.
 
 ### 6.3 Backup Verification
 
@@ -385,10 +406,11 @@ AWS Backup uses a dedicated IAM role with permissions for:
 
 ### 7.2 Cost Optimization
 
-- **Retention Policy**: 7 days daily, 30 days weekly (balanced between protection and cost)
+- **Retention Policy**: 3 days (12-hour), 7 days (daily), 30 days (weekly) (balanced between protection and cost)
 - **Selective Backup**: Only backing up critical data stores (RDS, DynamoDB)
 - **Excluded Resources**: EC2 instances excluded (stateless, can be reprovisioned)
 - **Short Retention**: Short retention periods keep storage costs low (cold storage not needed)
+- **12-Hour Backups**: Additional backup frequency increases storage costs slightly but meets 12-hour RPO requirement
 
 ## 8. Compliance and Audit
 
@@ -480,16 +502,21 @@ The backup strategy should be reviewed and updated when:
 
 | Resource | Backup Method | Retention | RPO | RTO |
 |----------|--------------|-----------|-----|-----|
-| RDS MySQL | AWS Backup + Native PITR | 7 days (daily), 30 days (weekly) | 5 minutes | 1-4 hours |
-| DynamoDB Audit Logs | AWS Backup + Continuous PITR | 7 days (daily), 30 days (weekly) | Seconds | 30 min - 2 hours |
+| RDS MySQL | AWS Backup + Native PITR | 3 days (12-hour), 7 days (daily), 30 days (weekly) | 12 hours (12-hour backups), 5 minutes (PITR) | 1-4 hours (single-region), 8-11 hours (cross-region) |
+| DynamoDB Audit Logs | AWS Backup + Continuous PITR | 3 days (12-hour), 7 days (daily), 30 days (weekly) | 12 hours (12-hour backups), Seconds (PITR) | 30 min - 2 hours |
 | EC2 Instances | Excluded (stateless, IaC) | N/A | N/A | 15-30 minutes (reprovision) |
 | ElastiCache | Excluded (ephemeral cache) | N/A | N/A | Immediate (regenerate) |
 | S3 Buckets | Versioning (native) | 30 days | Immediate | Immediate |
 
 ### 12.3 Recovery Objectives
 
-- **RTO (Recovery Time Objective)**: 1-4 hours for data stores, 4-8 hours for full DR
-- **RPO (Recovery Point Objective)**: 5 minutes for RDS, seconds for DynamoDB, 24 hours for full DR
+- **RTO (Recovery Time Objective)**:
+  - Single-region restore: 1-4 hours for data stores
+  - Cross-region disaster recovery: 8-11 hours (meets 12-hour requirement)
+- **RPO (Recovery Point Objective)**:
+  - 12 hours (using 12-hour backup schedule) - meets requirement
+  - 5 minutes for RDS (using point-in-time recovery)
+  - Seconds for DynamoDB (using continuous PITR)
 
 ---
 

@@ -134,10 +134,11 @@ module "audit_logging" {
 module "aws_backup" {
   source = "./shared/aws-backup"
 
-  name_prefix                  = local.name_prefix
-  common_tags                  = local.common_tags
-  backup_retention_days        = var.backup_retention_days
-  weekly_backup_retention_days = var.weekly_backup_retention_days
+  name_prefix                      = local.name_prefix
+  common_tags                      = local.common_tags
+  backup_retention_days            = var.backup_retention_days
+  weekly_backup_retention_days     = var.weekly_backup_retention_days
+  twelve_hour_backup_retention_days = var.twelve_hour_backup_retention_days
 
   # Explicitly list resources to backup (RDS and DynamoDB only)
   backup_resources = [

@@ -255,3 +255,9 @@ variable "weekly_backup_retention_days" {
   type        = number
   default     = 30
 }
+
+variable "twelve_hour_backup_retention_days" {
+  description = "Number of days to retain 12-hour backups in AWS Backup (for 12-hour RPO requirement)"
+  type        = number
+  default     = 3
+}
