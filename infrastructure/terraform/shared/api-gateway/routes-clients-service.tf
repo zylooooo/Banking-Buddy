@@ -1,7 +1,8 @@
-# /api/clients resource
+# /api/v1/clients resource
+# Note: v1 resource is defined in routes-user-service.tf
 resource "aws_api_gateway_resource" "clients" {
   rest_api_id = aws_api_gateway_rest_api.main.id
-  parent_id   = aws_api_gateway_resource.api.id
+  parent_id   = aws_api_gateway_resource.v1.id
   path_part   = "clients"
 }
 
@@ -80,7 +81,7 @@ resource "aws_api_gateway_integration" "clients_any" {
   resource_id             = aws_api_gateway_resource.clients.id
   http_method             = aws_api_gateway_method.clients_any.http_method
   type                    = "HTTP_PROXY"
-  uri                     = "${var.client_service_endpoint}/api/clients"
+  uri                     = "${var.client_service_endpoint}/api/v1/clients"
   integration_http_method = "ANY"
 
   request_parameters = {
@@ -242,7 +243,7 @@ resource "aws_api_gateway_integration" "clients_proxy_any" {
   resource_id             = aws_api_gateway_resource.clients_proxy.id
   http_method             = aws_api_gateway_method.clients_proxy_any.http_method
   type                    = "HTTP_PROXY"
-  uri                     = "${var.client_service_endpoint}/api/clients/{proxy}"
+  uri                     = "${var.client_service_endpoint}/api/v1/clients/{proxy}"
   integration_http_method = "ANY"
 
   request_parameters = {
@@ -339,10 +340,10 @@ resource "aws_api_gateway_integration_response" "clients_proxy_any_5xx" {
   ]
 }
 
-# /api/accounts resource (for account operations)
+# /api/v1/accounts resource (for account operations)
 resource "aws_api_gateway_resource" "accounts" {
   rest_api_id = aws_api_gateway_rest_api.main.id
-  parent_id   = aws_api_gateway_resource.api.id
+  parent_id   = aws_api_gateway_resource.v1.id
   path_part   = "accounts"
 }
 
@@ -420,7 +421,7 @@ resource "aws_api_gateway_integration" "accounts_any" {
   resource_id             = aws_api_gateway_resource.accounts.id
   http_method             = aws_api_gateway_method.accounts_any.http_method
   type                    = "HTTP_PROXY"
-  uri                     = "${var.client_service_endpoint}/api/accounts"
+  uri                     = "${var.client_service_endpoint}/api/v1/accounts"
   integration_http_method = "ANY"
 
   request_parameters = {
@@ -582,7 +583,7 @@ resource "aws_api_gateway_integration" "accounts_proxy_any" {
   resource_id             = aws_api_gateway_resource.accounts_proxy.id
   http_method             = aws_api_gateway_method.accounts_proxy_any.http_method
   type                    = "HTTP_PROXY"
-  uri                     = "${var.client_service_endpoint}/api/accounts/{proxy}"
+  uri                     = "${var.client_service_endpoint}/api/v1/accounts/{proxy}"
   integration_http_method = "ANY"
 
   request_parameters = {

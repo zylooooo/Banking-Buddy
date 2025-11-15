@@ -11,7 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/ai/query")
+@RequestMapping("/api/v1/ai/query")
 @Slf4j
 public class NaturalLanguageQueryController {
     

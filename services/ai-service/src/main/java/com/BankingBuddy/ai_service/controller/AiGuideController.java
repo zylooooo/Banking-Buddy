@@ -11,7 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/ai/guide")
+@RequestMapping("/api/v1/ai/guide")
 @Slf4j
 public class AiGuideController {
     

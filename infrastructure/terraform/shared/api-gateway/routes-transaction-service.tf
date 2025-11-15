@@ -1,7 +1,8 @@
-# /api/transactions resource
+# /api/v1/transactions resource
+# Note: v1 resource is defined in routes-user-service.tf
 resource "aws_api_gateway_resource" "transactions" {
   rest_api_id = aws_api_gateway_rest_api.main.id
-  parent_id   = aws_api_gateway_resource.api.id
+  parent_id   = aws_api_gateway_resource.v1.id
   path_part   = "transactions"
 }
 
@@ -80,7 +81,7 @@ resource "aws_api_gateway_integration" "transactions_any" {
   resource_id             = aws_api_gateway_resource.transactions.id
   http_method             = aws_api_gateway_method.transactions_any.http_method
   type                    = "HTTP_PROXY"
-  uri                     = "${var.transaction_service_endpoint}/api/transactions"
+  uri                     = "${var.transaction_service_endpoint}/api/v1/transactions"
   integration_http_method = "ANY"
 
   request_parameters = {
@@ -159,7 +160,7 @@ resource "aws_api_gateway_integration" "transactions_proxy_any" {
   resource_id             = aws_api_gateway_resource.transactions_proxy.id
   http_method             = aws_api_gateway_method.transactions_proxy_any.http_method
   type                    = "HTTP_PROXY"
-  uri                     = "${var.transaction_service_endpoint}/api/transactions/{proxy}"
+  uri                     = "${var.transaction_service_endpoint}/api/v1/transactions/{proxy}"
   integration_http_method = "ANY"
 
   request_parameters = {

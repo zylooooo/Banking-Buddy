@@ -5,10 +5,17 @@ resource "aws_api_gateway_resource" "api" {
   path_part   = "api"
 }
 
-# /api/users resource
-resource "aws_api_gateway_resource" "users" {
+# /api/v1 resource (API versioning)
+resource "aws_api_gateway_resource" "v1" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   parent_id   = aws_api_gateway_resource.api.id
+  path_part   = "v1"
+}
+
+# /api/v1/users resource
+resource "aws_api_gateway_resource" "users" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.v1.id
   path_part   = "users"
 }
 
@@ -87,7 +94,7 @@ resource "aws_api_gateway_integration" "users_any" {
   resource_id             = aws_api_gateway_resource.users.id
   http_method             = aws_api_gateway_method.users_any.http_method
   type                    = "HTTP_PROXY"
-  uri                     = "${var.user_service_endpoint}/api/users"
+  uri                     = "${var.user_service_endpoint}/api/v1/users"
   integration_http_method = "ANY"
 
   request_parameters = {
@@ -166,7 +173,7 @@ resource "aws_api_gateway_integration" "users_proxy_any" {
   resource_id             = aws_api_gateway_resource.users_proxy.id
   http_method             = aws_api_gateway_method.users_proxy_any.http_method
   type                    = "HTTP_PROXY"
-  uri                     = "${var.user_service_endpoint}/api/users/{proxy}"
+  uri                     = "${var.user_service_endpoint}/api/v1/users/{proxy}"
   integration_http_method = "ANY"
 
   request_parameters = {

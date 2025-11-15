@@ -20,7 +20,7 @@ import java.util.List;
  * Handles account management endpoints (Admin/Root Admin only)
  */
 @RestController
-@RequestMapping("/api/accounts")
+@RequestMapping("/api/v1/accounts")
 @RequiredArgsConstructor
 @Slf4j
 public class AccountController {

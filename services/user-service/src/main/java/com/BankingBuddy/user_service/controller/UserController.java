@@ -14,7 +14,7 @@ import java.util.Map;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.AssociateSoftwareTokenResponse;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/v1/users")
 @Slf4j
 public class UserController {
 

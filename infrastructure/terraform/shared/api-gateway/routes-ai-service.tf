@@ -1,7 +1,8 @@
-# /api/ai resource
+# /api/v1/ai resource
+# Note: v1 resource is defined in routes-user-service.tf
 resource "aws_api_gateway_resource" "ai" {
   rest_api_id = aws_api_gateway_rest_api.main.id
-  parent_id   = aws_api_gateway_resource.api.id
+  parent_id   = aws_api_gateway_resource.v1.id
   path_part   = "ai"
 }
 
@@ -143,7 +144,7 @@ resource "aws_api_gateway_integration" "ai_guide_proxy_any" {
   resource_id             = aws_api_gateway_resource.ai_guide_proxy.id
   http_method             = aws_api_gateway_method.ai_guide_proxy_any.http_method
   type                    = "HTTP_PROXY"
-  uri                     = "${var.ai_service_endpoint}/api/ai/guide/{proxy}"
+  uri                     = "${var.ai_service_endpoint}/api/v1/ai/guide/{proxy}"
   integration_http_method = "ANY"
 
   request_parameters = {
@@ -222,7 +223,7 @@ resource "aws_api_gateway_integration" "ai_query_post" {
   resource_id             = aws_api_gateway_resource.ai_query.id
   http_method             = aws_api_gateway_method.ai_query_post.http_method
   type                    = "HTTP_PROXY"
-  uri                     = "${var.ai_service_endpoint}/api/ai/query"
+  uri                     = "${var.ai_service_endpoint}/api/v1/ai/query"
   integration_http_method = "POST"
 
   request_parameters = {
