@@ -13,7 +13,7 @@ import java.time.LocalDate;
 /**
  * DTO for GET /api/accounts response
  * Includes account information with client details (from JOIN)
- * Used by Admin/Root Admin to view all accounts with associated client info
+ * Used by Admins/Root Admins to view all accounts with associated client info
  */
 @Data
 @NoArgsConstructor
