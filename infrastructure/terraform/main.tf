@@ -130,6 +130,27 @@ module "audit_logging" {
   depends_on = [module.dynamodb, module.cloudfront]
 }
 
+# Call the AWS Backup module
+module "aws_backup" {
+  source = "./shared/aws-backup"
+
+  name_prefix                  = local.name_prefix
+  common_tags                  = local.common_tags
+  backup_retention_days        = var.backup_retention_days
+  weekly_backup_retention_days = var.weekly_backup_retention_days
+
+  # Explicitly list resources to backup (RDS and DynamoDB only)
+  backup_resources = [
+    module.rds.rds_instance_arn,
+    module.dynamodb.table_arn
+  ]
+
+  depends_on = [
+    module.rds,
+    module.dynamodb
+  ]
+}
+
 # Call the transaction processor module
 module "transaction-processor" {
   source = "./services/transaction-processor"

@@ -184,3 +184,19 @@ output "ai_service_environment_name" {
   description = "Name of the AI Service EB environment"
   value       = module.ai-service.environment_name
 }
+
+# AWS Backup Outputs
+output "backup_vault_name" {
+  description = "Name of the AWS Backup vault"
+  value       = module.aws_backup.backup_vault_name
+}
+
+output "backup_vault_arn" {
+  description = "ARN of the AWS Backup vault"
+  value       = module.aws_backup.backup_vault_arn
+}
+
+output "backup_plan_id" {
+  description = "ID of the AWS Backup plan"
+  value       = module.aws_backup.backup_plan_id
+}

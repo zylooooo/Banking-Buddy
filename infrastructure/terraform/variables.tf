@@ -242,3 +242,16 @@ variable "openai_api_key" {
   type        = string
   sensitive   = true
 }
+
+# AWS Backup configuration
+variable "backup_retention_days" {
+  description = "Number of days to retain daily backups in AWS Backup"
+  type        = number
+  default     = 7
+}
+
+variable "weekly_backup_retention_days" {
+  description = "Number of days to retain weekly backups in AWS Backup"
+  type        = number
+  default     = 30
+}
