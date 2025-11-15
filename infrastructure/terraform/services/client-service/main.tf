@@ -348,5 +348,17 @@ resource "aws_elastic_beanstalk_environment" "client_service" {
     value = var.audit_log_retention_days
   }
 
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "SPRING_REDIS_HOST"
+    value     = var.redis_endpoint
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "SPRING_REDIS_PORT"
+    value     = "6379"
+  }
+
   tags = var.common_tags
 }
