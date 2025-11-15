@@ -342,9 +342,19 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1.0 | 2025-01-27 | Initial documentation |
-| 1.1 | 2025-01-27 | Added reproducibility fixes |
-| 1.2 | 2025-01-27 | Complete architecture review |
+| 0.1.0 | 2025-09-25 | Initialised repository |
+| 0.2.0 | 2025-10-10 | SFTP server |
+| 0.3.0 | 2025-10-12 | Transaction logging |
+| 0.4.0 | 2025-10-16 | User Management |
+| 0.4.1 | 2025-10-19 | JWT token + reset password |
+| 0.4.2 | 2025-10-21 | MFA (SNS) |
+| 0.5.0 | 2025-10-22 | Client Management |
+| 0.6.0 | 2025-10-27 | CD pipeline |
+| 0.7.0 | 2025-10-29 | Backend |
+| 0.7.1 | 2025-10-31 | MFA changed to TOTP |
+| 0.8.0 | 2025-11-02 | Frontend |
+| 0.9.0 | 2025-11-09 | AI |
+| 1.0.0 | 2025-11-14 | Stress test |
 
 ---
 
