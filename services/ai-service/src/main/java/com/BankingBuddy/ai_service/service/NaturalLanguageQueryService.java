@@ -203,7 +203,7 @@ public class NaturalLanguageQueryService {
     private QueryResponse handleClientQuery(JsonNode intent, String authToken, UserContext userContext) {
         try {
             // AGENTS: Can only query their own clients (restricted by client-service API)
-            // ADMINS: Cannot directly query clients (client-service blocks admin access to GET /api/clients)
+            // ADMINS: Cannot directly query clients (client-service blocks admin access to GET /api/v1/clients)
             // ROOT_ADMIN: Same as ADMIN
             
             if (userContext.getRole() != UserRole.AGENT) {
@@ -231,7 +231,7 @@ public class NaturalLanguageQueryService {
             
             // Call client service API (automatically filters to agent's clients)
             String response = clientServiceClient.get()
-                    .uri("/api/clients?page=0&limit=100")
+                    .uri("/api/v1/clients?page=0&limit=100")
                     .header("Authorization", "Bearer " + authToken)
                     .retrieve()
                     .bodyToMono(String.class)
@@ -279,7 +279,7 @@ public class NaturalLanguageQueryService {
                     .naturalLanguageResponse(nlResponse)
                     .queryType("client")
                     .results(results)
-                    .sqlQuery("GET /api/clients")
+                    .sqlQuery("GET /api/v1/clients")
                     .build();
                     
         } catch (Exception e) {
@@ -378,7 +378,7 @@ public class NaturalLanguageQueryService {
             try {
                 response = transactionServiceClient.get()
                         .uri(uriBuilder -> {
-                            var builder = uriBuilder.path("/api/transactions/search");
+                            var builder = uriBuilder.path("/api/v1/transactions/search");
                             
                             // Add clientIds as repeated query parameters (Spring expects this format for List<String>)
                             if (finalClientId != null) {
@@ -581,7 +581,7 @@ public class NaturalLanguageQueryService {
                     .naturalLanguageResponse(nlResponse)
                     .queryType("transaction")
                     .results(results)
-                    .sqlQuery("GET /api/transactions/search")
+                    .sqlQuery("GET /api/v1/transactions/search")
                     .build();
                     
         } catch (Exception e) {
@@ -696,7 +696,7 @@ public class NaturalLanguageQueryService {
             }
             
             String response = userServiceClient.get()
-                    .uri("/api/users")
+                    .uri("/api/v1/users")
                     .header("Authorization", "Bearer " + authToken)
                     .retrieve()
                     .bodyToMono(String.class)
@@ -752,7 +752,7 @@ public class NaturalLanguageQueryService {
                         .naturalLanguageResponse(nlResponse)
                         .queryType("agent")
                         .results(Collections.emptyList())
-                        .sqlQuery("GET /api/users")
+                        .sqlQuery("GET /api/v1/users")
                         .build();
             }
             
@@ -771,7 +771,7 @@ public class NaturalLanguageQueryService {
                     .naturalLanguageResponse(nlResponse)
                     .queryType("agent")
                     .results(results)
-                    .sqlQuery("GET /api/users")
+                    .sqlQuery("GET /api/v1/users")
                     .build();
                     
         } catch (Exception e) {
@@ -812,7 +812,7 @@ public class NaturalLanguageQueryService {
             }
             
             String response = userServiceClient.get()
-                    .uri("/api/users")
+                    .uri("/api/v1/users")
                     .header("Authorization", "Bearer " + authToken)
                     .retrieve()
                     .bodyToMono(String.class)
@@ -866,7 +866,7 @@ public class NaturalLanguageQueryService {
                         .naturalLanguageResponse(nlResponse)
                         .queryType("admin")
                         .results(Collections.emptyList())
-                        .sqlQuery("GET /api/users")
+                        .sqlQuery("GET /api/v1/users")
                         .build();
             }
             
@@ -883,7 +883,7 @@ public class NaturalLanguageQueryService {
                     .naturalLanguageResponse(nlResponse)
                     .queryType("admin")
                     .results(results)
-                    .sqlQuery("GET /api/users")
+                    .sqlQuery("GET /api/v1/users")
                     .build();
                     
         } catch (Exception e) {
@@ -915,7 +915,7 @@ public class NaturalLanguageQueryService {
             
             // Fetch all users
             String response = userServiceClient.get()
-                    .uri("/api/users")
+                    .uri("/api/v1/users")
                     .header("Authorization", "Bearer " + authToken)
                     .retrieve()
                     .bodyToMono(String.class)
@@ -954,7 +954,7 @@ public class NaturalLanguageQueryService {
                     .naturalLanguageResponse(nlResponse)
                     .queryType("users")
                     .results(results)
-                    .sqlQuery("GET /api/users")
+                    .sqlQuery("GET /api/v1/users")
                     .build();
                     
         } catch (Exception e) {
@@ -974,7 +974,7 @@ public class NaturalLanguageQueryService {
         try {
             // Call client-service to get agent's clients filtered by agent ID
             String response = clientServiceClient.get()
-                    .uri("/api/clients?page=0&limit=100")
+                    .uri("/api/v1/clients?page=0&limit=100")
                     .header("Authorization", "Bearer " + authToken)
                     .retrieve()
                     .bodyToMono(String.class)
@@ -1010,7 +1010,7 @@ public class NaturalLanguageQueryService {
             
             // Fetch all clients for the agent
             String response = clientServiceClient.get()
-                    .uri("/api/clients?page=0&limit=100")
+                    .uri("/api/v1/clients?page=0&limit=100")
                     .header("Authorization", "Bearer " + authToken)
                     .retrieve()
                     .bodyToMono(String.class)
