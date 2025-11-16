@@ -196,7 +196,6 @@ Based on minimal usage in ap-southeast-1 region
 ## Support
 
 - **Full Guide:** [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)
-- **Best Practices:** [INFRASTRUCTURE_REVIEW_AND_BEST_PRACTICES.md](./INFRASTRUCTURE_REVIEW_AND_BEST_PRACTICES.md)
 - **Database Setup:** [README-DATABASE-SETUP.md](./README-DATABASE-SETUP.md)
 
 ## Architecture Diagram
@@ -216,5 +215,5 @@ Internet
 ---
 
 **Status:** ✅ Production Ready  
-**Last Updated:** 2025-01-27  
+**Last Updated:** 2025-11-16  
 **Version:** 1.0

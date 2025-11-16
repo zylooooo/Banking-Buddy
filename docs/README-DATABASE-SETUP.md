@@ -193,5 +193,5 @@ aws secretsmanager list-secrets \
 - [MySQL User Management](https://dev.mysql.com/doc/refman/8.0/en/user-management.html)
 
 ---
-**Last Updated:** 2025-01-23  
+**Last Updated:** 2025-11-16  
 **Version:** 1.0

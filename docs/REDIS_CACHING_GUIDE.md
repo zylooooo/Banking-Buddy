@@ -736,7 +736,7 @@ When adding caching to a new service:
 
 ---
 
-**Last Updated:** November 2024  
+**Last Updated:** 2025-11-16  
 **Redis Version:** 7-alpine  
 **Spring Boot Version:** 3.5.7  
 **Implemented Services:** user-service, client-service, transaction-service

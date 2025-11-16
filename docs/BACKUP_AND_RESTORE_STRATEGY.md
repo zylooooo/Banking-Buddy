@@ -521,6 +521,5 @@ The backup strategy should be reviewed and updated when:
 ---
 
 **Document Version**: 1.0  
-**Last Updated**: 2025-01-XX  
-**Owner**: Infrastructure Team  
-**Review Frequency**: Quarterly
+**Last Updated**: 2025-11-16  
+**Owner**: CS301G2T1 Team  
