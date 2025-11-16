@@ -218,11 +218,25 @@ export default function DashboardPage() {
                         fetchedLogs = [];
                     }
                 } else {
-                    // Root admin: fetch all logs using paginated endpoint
-                    const response = await auditApi.getLogsPaginated(10);
-                    fetchedLogs = response.data?.logs || [];
-                    responseNextToken = response.data?.next_token || null;
-                    responseHasMore = response.data?.has_more || false;
+                    // Root admin: fetch all logs using paginated endpoint (no filtering)
+                    try {
+                        const response = await auditApi.getLogsPaginated(10);
+                        fetchedLogs = response.data?.logs || response.data?.data || [];
+                        responseNextToken = response.data?.next_token || null;
+                        responseHasMore = response.data?.has_more || false;
+                        
+                        console.log('Root Admin Logs:', {
+                            totalLogs: fetchedLogs.length,
+                            hasNextToken: !!responseNextToken,
+                            hasMore: responseHasMore,
+                            responseStructure: Object.keys(response.data || {})
+                        });
+                    } catch (e) {
+                        console.error('Failed to fetch logs for root admin:', e);
+                        fetchedLogs = [];
+                        responseNextToken = null;
+                        responseHasMore = false;
+                    }
                 }
                 
                 setLogs(fetchedLogs);
@@ -377,11 +391,18 @@ export default function DashboardPage() {
                     newLogs = [];
                 }
             } else {
-                // Root admin: use pagination
-                const response = await auditApi.getLogsPaginated(10, nextToken);
-                newLogs = response.data?.logs || [];
-                responseNextToken = response.data?.next_token || null;
-                responseHasMore = response.data?.has_more || false;
+                // Root admin: use pagination (no filtering)
+                try {
+                    const response = await auditApi.getLogsPaginated(10, nextToken);
+                    newLogs = response.data?.logs || [];
+                    responseNextToken = response.data?.next_token || null;
+                    responseHasMore = response.data?.has_more || false;
+                } catch (e) {
+                    console.error('Failed to fetch more logs for root admin:', e);
+                    newLogs = [];
+                    responseNextToken = null;
+                    responseHasMore = false;
+                }
             }
 
             // Append new logs to existing logs
