@@ -150,7 +150,15 @@ export default function DashboardPage() {
                         } else if (current.role === 'admin') {
                             // For admins: Filter by agent IDs of agents they manage
                             const usersResp = await userApi.getAllUsers();
-                            const managedAgents = (usersResp.data?.data || [])
+                            // Handle paginated response (content property) or array response
+                            let users = [];
+                            const pageData = usersResp.data?.data;
+                            if (Array.isArray(pageData)) {
+                                users = pageData;
+                            } else if (pageData?.content) {
+                                users = pageData.content;
+                            }
+                            const managedAgents = users
                                 .filter(user => user.role === 'agent')
                                 .map(user => user.id);
                             
@@ -235,7 +243,15 @@ export default function DashboardPage() {
                         }
                     } else if (current.role === 'admin') {
                         const usersResp = await userApi.getAllUsers();
-                        const managedAgents = (usersResp.data?.data || [])
+                        // Handle paginated response (content property) or array response
+                        let users = [];
+                        const pageData = usersResp.data?.data;
+                        if (Array.isArray(pageData)) {
+                            users = pageData;
+                        } else if (pageData?.content) {
+                            users = pageData.content;
+                        }
+                        const managedAgents = users
                             .filter(user => user.role === 'agent')
                             .map(user => user.id);
                         if (managedAgents.length > 0) {

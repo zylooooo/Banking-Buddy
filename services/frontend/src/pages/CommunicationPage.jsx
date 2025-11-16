@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isAuthenticated, getUserFromToken } from '../services/authService';
-import { auditApi } from '../services/apiService';
+import { auditApi, userApi, clientApi } from '../services/apiService';
 import axios from 'axios';
 import Header from '../components/Header';
 import Navigation from '../components/Navigation';
@@ -92,10 +92,63 @@ export default function CommunicationPage() {
                 
                 // Filter logs for verification status update to Verified
                 // Backend already filtered by operation=UPDATE, so we only need to filter by attribute and value
-                const verificationLogs = fetchedLogs.filter(log => {
+                let verificationLogs = fetchedLogs.filter(log => {
                     return log.attribute_name === 'Verification Status' &&
                         log.after_value === 'Verified';
                 });
+                
+                // Filter logs based on role
+                if (cognitoUser && cognitoUser.role !== 'rootAdministrator') {
+                    try {
+                        if (cognitoUser.role === 'agent') {
+                            // For agents: Filter by client IDs from their own clients
+                            const clientsResp = await clientApi.getAllClients(0, 100);
+                            const pageData = clientsResp.data?.data;
+                            
+                            // Handle paginated response (content property) or array response
+                            let clients = [];
+                            if (Array.isArray(pageData)) {
+                                clients = pageData;
+                            } else if (pageData?.content) {
+                                clients = pageData.content;
+                            } else if (clientsResp.data?.clients) {
+                                clients = clientsResp.data.clients;
+                            }
+                            
+                            const clientIds = clients.map(c => c.id || c.clientId);
+                            if (clientIds.length > 0) {
+                                verificationLogs = verificationLogs.filter(l => clientIds.includes(l.client_id));
+                            } else {
+                                verificationLogs = [];
+                            }
+                        } else if (cognitoUser.role === 'admin') {
+                            // For admins: Filter by agent IDs of agents they manage
+                            const usersResp = await userApi.getAllUsers();
+                            // Handle paginated response (content property) or array response
+                            let users = [];
+                            const pageData = usersResp.data?.data;
+                            if (Array.isArray(pageData)) {
+                                users = pageData;
+                            } else if (pageData?.content) {
+                                users = pageData.content;
+                            }
+                            const managedAgents = users
+                                .filter(user => user.role === 'agent')
+                                .map(user => user.id);
+                            
+                            if (managedAgents.length > 0) {
+                                verificationLogs = verificationLogs.filter(l => 
+                                    l.agent_id && managedAgents.includes(l.agent_id)
+                                );
+                            } else {
+                                verificationLogs = [];
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Failed to filter communication logs by role:', e);
+                        verificationLogs = [];
+                    }
+                }
                 
                 setLogs(verificationLogs);
                 setNextToken(responseNextToken);
@@ -144,10 +197,59 @@ export default function CommunicationPage() {
             
             // Filter logs for verification status update to Verified
             // Backend already filtered by operation=UPDATE, so we only need to filter by attribute and value
-            const verificationLogs = newLogs.filter(log => {
+            let verificationLogs = newLogs.filter(log => {
                 return log.attribute_name === 'Verification Status' &&
                     log.after_value === 'Verified';
             });
+
+            // Filter logs based on role (same logic as initial load)
+            if (cognitoUser && cognitoUser.role !== 'rootAdministrator') {
+                try {
+                    if (cognitoUser.role === 'agent') {
+                        // For agents: Filter by client IDs from their own clients
+                        const clientsResp = await clientApi.getAllClients(0, 100);
+                        const pageData = clientsResp.data?.data;
+                        let clients = [];
+                        if (Array.isArray(pageData)) {
+                            clients = pageData;
+                        } else if (pageData?.content) {
+                            clients = pageData.content;
+                        } else if (clientsResp.data?.clients) {
+                            clients = clientsResp.data.clients;
+                        }
+                        const clientIds = clients.map(c => c.id || c.clientId);
+                        if (clientIds.length > 0) {
+                            verificationLogs = verificationLogs.filter(l => clientIds.includes(l.client_id));
+                        } else {
+                            verificationLogs = [];
+                        }
+                    } else if (cognitoUser.role === 'admin') {
+                        // For admins: Filter by agent IDs of agents they manage
+                        const usersResp = await userApi.getAllUsers();
+                        // Handle paginated response (content property) or array response
+                        let users = [];
+                        const pageData = usersResp.data?.data;
+                        if (Array.isArray(pageData)) {
+                            users = pageData;
+                        } else if (pageData?.content) {
+                            users = pageData.content;
+                        }
+                        const managedAgents = users
+                            .filter(user => user.role === 'agent')
+                            .map(user => user.id);
+                        if (managedAgents.length > 0) {
+                            verificationLogs = verificationLogs.filter(l => 
+                                l.agent_id && managedAgents.includes(l.agent_id)
+                            );
+                        } else {
+                            verificationLogs = [];
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to filter communication logs by role:', e);
+                    verificationLogs = [];
+                }
+            }
 
             // Append new logs to existing logs
             setLogs(prevLogs => [...prevLogs, ...verificationLogs]);
