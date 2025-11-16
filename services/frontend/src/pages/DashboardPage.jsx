@@ -125,9 +125,11 @@ export default function DashboardPage() {
                 if (current && current.role !== 'rootAdministrator') {
                     try {
                         if (current.role === 'agent') {
-                            // For agents: Fetch logs by their own agent ID (last 24 hours), then filter by client IDs
-                            const response = await auditApi.getLogsByAgentId(current.sub, 24);
-                            fetchedLogs = response.data?.data || response.data?.logs || [];
+                            // For agents: Fetch logs using paginated endpoint with agentId filter (last 24 hours)
+                            const response = await auditApi.getLogsPaginated(10, null, null, 24, current.sub);
+                            let allFetchedLogs = response.data?.logs || response.data?.data || [];
+                            responseNextToken = response.data?.next_token || null;
+                            responseHasMore = response.data?.has_more || false;
                             
                             // Filter by client IDs from their own clients
                             const clientsResp = await clientApi.getAllClients(0, 100);
@@ -145,9 +147,19 @@ export default function DashboardPage() {
                             
                             const clientIds = clients.map(c => c.id || c.clientId);
                             if (clientIds.length > 0) {
-                                fetchedLogs = fetchedLogs.filter(l => clientIds.includes(l.client_id));
+                                fetchedLogs = allFetchedLogs.filter(l => clientIds.includes(l.client_id));
                             } else {
                                 fetchedLogs = [];
+                            }
+                            
+                            // If we filtered out all logs but there are more pages, keep hasMore true
+                            // so user can try loading more (might have matching logs in next pages)
+                            if (fetchedLogs.length === 0 && responseHasMore) {
+                                // Keep hasMore true - there might be matching logs in next pages
+                            } else if (fetchedLogs.length > 0 && responseHasMore) {
+                                // We have logs and there are more pages - definitely show "Show More"
+                            } else {
+                                // No more pages or no logs - hasMore is already set correctly
                             }
                         } else if (current.role === 'admin') {
                             // For admins: Fetch all logs with pagination, then filter by managed agents
@@ -212,6 +224,10 @@ export default function DashboardPage() {
                                 
                                 fetchedLogs = [...fetchedLogs, ...filteredNextLogs].slice(0, 10);
                             }
+                            
+                            // Preserve hasMore: if there are more pages available, show "Show More" button
+                            // even if we already have 10 logs (there might be more matching logs in next pages)
+                            // responseHasMore is already set correctly from the last API call
                         } else {
                             // For other roles, use paginated endpoint (last 24 hours)
                             const response = await auditApi.getLogsPaginated(10, null, null, 24);
@@ -303,8 +319,8 @@ export default function DashboardPage() {
                     if (current.role === 'agent') {
                         // For agents: Use pagination if available (last 24 hours)
                         if (nextToken) {
-                            const response = await auditApi.getLogsPaginated(10, nextToken, null, 24);
-                            newLogs = response.data?.logs || [];
+                            const response = await auditApi.getLogsPaginated(10, nextToken, null, 24, current.sub);
+                            let allNextLogs = response.data?.logs || [];
                             responseNextToken = response.data?.next_token || null;
                             responseHasMore = response.data?.has_more || false;
                             
@@ -321,13 +337,19 @@ export default function DashboardPage() {
                             }
                             const clientIds = clients.map(c => c.id || c.clientId);
                             if (clientIds.length > 0) {
-                                newLogs = newLogs.filter(l => clientIds.includes(l.client_id));
+                                newLogs = allNextLogs.filter(l => clientIds.includes(l.client_id));
                             } else {
                                 newLogs = [];
+                            }
+                            
+                            // If we filtered out all logs but there are more pages, keep hasMore true
+                            if (newLogs.length === 0 && responseHasMore) {
+                                // Keep hasMore true - there might be matching logs in next pages
                             }
                         } else {
                             // No pagination token, can't load more
                             newLogs = [];
+                            responseHasMore = false;
                         }
                     } else if (current.role === 'admin') {
                         // For admins: Continue fetching with pagination and filter

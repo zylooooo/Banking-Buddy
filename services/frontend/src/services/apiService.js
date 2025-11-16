@@ -138,11 +138,12 @@ export const auditApi = {
         return auditApiClient.get('/api/v1/audit/logs', { params });
     },
     // GET /api/v1/audit/logs - get paginated audit logs
-    getLogsPaginated: (pageSize = 10, nextToken = null, operation = null, hours = null) => {
+    getLogsPaginated: (pageSize = 10, nextToken = null, operation = null, hours = null, agentId = null) => {
         const params = { page_size: pageSize };
         if (nextToken) params.next_token = nextToken;
         if (operation) params.operation = operation;
         if (hours) params.hours = hours;
+        if (agentId) params.agentId = agentId;
         return auditApiClient.get('/api/v1/audit/logs', { params });
     },
     // GET /api/v1/audit/logs?clientId=CLIENT_ID - get logs by client ID
