@@ -462,11 +462,15 @@ function CreateAccountForm({ onSubmit, onCancel }) {
                 break;
 
             case 'initialDeposit': {
-                const amount = parseFloat(value);
-                if (value && (isNaN(amount) || amount < 0)) {
-                    errors[name] = 'Initial deposit must be a positive number';
-                } else if (formData.accountType === 'Savings' && value && amount < 100) {
-                    errors[name] = 'Savings account requires minimum SGD 100 initial deposit';
+                if (!value) {
+                    errors[name] = 'Initial deposit is required';
+                } else {
+                    const amount = parseFloat(value);
+                    if (isNaN(amount) || amount <= 0) {
+                        errors[name] = 'Initial deposit must be a positive number';
+                    } else if (amount < 100) {
+                        errors[name] = 'Initial deposit must be at least SGD 100';
+                    }
                 }
                 break;
             }
@@ -505,13 +509,23 @@ function CreateAccountForm({ onSubmit, onCancel }) {
             allErrors.accountType = `Account type must be one of: ${VALID_ACCOUNT_TYPES.join(', ')}`;
         }
 
+        // Additional safeguard: ensure initialDeposit is valid before submission
+        const depositAmount = parseFloat(formData.initialDeposit);
+        if (!formData.initialDeposit) {
+            allErrors.initialDeposit = 'Initial deposit is required';
+        } else if (isNaN(depositAmount) || depositAmount <= 0) {
+            allErrors.initialDeposit = 'Initial deposit must be a positive number';
+        } else if (depositAmount < 100) {
+            allErrors.initialDeposit = 'Initial deposit must be at least SGD 100';
+        }
+
         setValidationErrors(allErrors);
 
         // If no errors, submit the form
         if (Object.keys(allErrors).length === 0) {
             onSubmit({
                 ...formData,
-                initialDeposit: parseFloat(formData.initialDeposit) || 0,
+                initialDeposit: depositAmount,
                 openingDate: new Date().toISOString().split('T')[0]
             });
         }
@@ -584,7 +598,7 @@ function CreateAccountForm({ onSubmit, onCancel }) {
 
                 <div>
                     <label className="block text-sm font-medium text-slate-300 mb-1">
-                        Initial Deposit (SGD)
+                        Initial Deposit (SGD) *
                     </label>
                     <input
                         type="number"
@@ -592,8 +606,9 @@ function CreateAccountForm({ onSubmit, onCancel }) {
                         value={formData.initialDeposit}
                         onChange={handleChange}
                         step="0.01"
-                        min="0"
-                        placeholder="0.00"
+                        min="100"
+                        placeholder="100.00"
+                        required
                         className={`w-full px-3 py-2 bg-slate-600 border rounded-md focus:outline-none focus:ring-2 text-white ${
                             validationErrors.initialDeposit
                                 ? 'border-red-500 focus:ring-red-500'
@@ -603,8 +618,8 @@ function CreateAccountForm({ onSubmit, onCancel }) {
                     {validationErrors.initialDeposit && (
                         <p className="text-red-400 text-xs mt-1">{validationErrors.initialDeposit}</p>
                     )}
-                    {formData.accountType === 'Savings' && (
-                        <p className="text-slate-400 text-xs mt-1">Minimum SGD 100 for Savings account</p>
+                    {!validationErrors.initialDeposit && (
+                        <p className="text-slate-400 text-xs mt-1">Minimum SGD 100 required</p>
                     )}
                 </div>
 
