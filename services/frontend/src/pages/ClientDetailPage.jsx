@@ -7,6 +7,9 @@ import Navigation from '../components/Navigation';
 import { formatPhoneNumber } from '../utils/phone';
 import { parsePhoneNumberFromString } from 'libphonenumber-js';
 
+// Valid account types that match the backend enum
+const VALID_ACCOUNT_TYPES = ['Savings', 'Checking', 'Business'];
+
 export default function ClientDetailPage() {
     const { clientId } = useParams();
     const navigate = useNavigate();
@@ -447,6 +450,8 @@ function CreateAccountForm({ onSubmit, onCancel }) {
             case 'accountType':
                 if (!value) {
                     errors[name] = 'Account type is required';
+                } else if (!VALID_ACCOUNT_TYPES.includes(value)) {
+                    errors[name] = `Account type must be one of: ${VALID_ACCOUNT_TYPES.join(', ')}`;
                 }
                 break;
 
@@ -495,6 +500,11 @@ function CreateAccountForm({ onSubmit, onCancel }) {
             allErrors = { ...allErrors, ...fieldErrors };
         });
 
+        // Additional safeguard: ensure accountType is valid before submission
+        if (formData.accountType && !VALID_ACCOUNT_TYPES.includes(formData.accountType)) {
+            allErrors.accountType = `Account type must be one of: ${VALID_ACCOUNT_TYPES.join(', ')}`;
+        }
+
         setValidationErrors(allErrors);
 
         // If no errors, submit the form
@@ -540,10 +550,9 @@ function CreateAccountForm({ onSubmit, onCancel }) {
                                 : 'border-slate-500 focus:ring-primary'
                         }`}
                     >
-                        <option value="Savings">Savings</option>
-                        <option value="Checking">Checking</option>
-                        <option value="Business">Business</option>
-                        <option value="Fixed Deposit">Fixed Deposit</option>
+                        {VALID_ACCOUNT_TYPES.map(type => (
+                            <option key={type} value={type}>{type}</option>
+                        ))}
                     </select>
                     {validationErrors.accountType && (
                         <p className="text-red-400 text-xs mt-1">{validationErrors.accountType}</p>
