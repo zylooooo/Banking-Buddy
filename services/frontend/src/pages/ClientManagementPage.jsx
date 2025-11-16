@@ -687,8 +687,8 @@ function CreateClientForm({ onSubmit, onCancel }) {
                         <option value="">Select Gender</option>
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
-                        <option value="Non-binary">Non-binary</option>
-                        <option value="Prefer not to say">Prefer not to say</option>
+                        <option value="Non_binary">Non-binary</option>
+                        <option value="Prefer_not_to_say">Prefer not to say</option>
                     </select>
                     {validationErrors.gender && (
                         <p className="text-red-400 text-xs mt-1">{validationErrors.gender}</p>
