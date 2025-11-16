@@ -17,7 +17,7 @@ Example:
 
 ## Current Version
 
-**v1** - Current stable version (as of 2025-01-XX)
+**v1** - Current stable version (as of 2025-11-16)
 
 ## Backward Compatibility
 
