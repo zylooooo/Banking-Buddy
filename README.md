@@ -351,7 +351,7 @@
 | 0.5.0 | 2025-10-22 | Client Management |
 | 0.6.0 | 2025-10-27 | CD pipeline |
 | 0.7.0 | 2025-10-29 | Backend |
-| 0.7.1 | 2025-10-31 | MFA changed to TOTP |
+| 0.7.1 | 2025-10-31 | MFA (TOTP) |
 | 0.8.0 | 2025-11-02 | Frontend |
 | 0.9.0 | 2025-11-09 | AI |
 | 1.0.0 | 2025-11-14 | Stress test |
