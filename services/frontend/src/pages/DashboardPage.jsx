@@ -125,14 +125,17 @@ export default function DashboardPage() {
                 if (current && current.role !== 'rootAdministrator') {
                     try {
                         if (current.role === 'agent') {
-                            // For agents: Fetch logs using paginated endpoint with agentId filter (last 24 hours)
-                            const response = await auditApi.getLogsPaginated(10, null, null, 24, current.sub);
-                            let allFetchedLogs = response.data?.logs || response.data?.data || [];
-                            responseNextToken = response.data?.next_token || null;
-                            responseHasMore = response.data?.has_more || false;
+                            // For agents: Fetch logs and clients in parallel for better performance
+                            const [logsResponse, clientsResp] = await Promise.all([
+                                auditApi.getLogsPaginated(10, null, null, 24, current.sub),
+                                clientApi.getAllClients(0, 100)
+                            ]);
+                            
+                            let allFetchedLogs = logsResponse.data?.logs || logsResponse.data?.data || [];
+                            responseNextToken = logsResponse.data?.next_token || null;
+                            responseHasMore = logsResponse.data?.has_more || false;
                             
                             // Filter by client IDs from their own clients
-                            const clientsResp = await clientApi.getAllClients(0, 100);
                             const pageData = clientsResp.data?.data;
                             
                             // Handle paginated response (content property) or array response
@@ -162,9 +165,12 @@ export default function DashboardPage() {
                                 // No more pages or no logs - hasMore is already set correctly
                             }
                         } else if (current.role === 'admin') {
-                            // For admins: Fetch all logs with pagination, then filter by managed agents
-                            // This is more efficient than multiple API calls
-                            const usersResp = await userApi.getAllUsers();
+                            // For admins: Optimize by fetching users and logs in parallel
+                            const [usersResp, logsResponse] = await Promise.all([
+                                userApi.getAllUsers(),
+                                auditApi.getLogsPaginated(50, null, null, 24)
+                            ]);
+                            
                             // Handle paginated response (content property) or array response
                             let users = [];
                             const pageData = usersResp.data?.data;
@@ -183,12 +189,9 @@ export default function DashboardPage() {
                                 allAgentIds.add(adminId);
                             }
                             
-                            // Fetch logs with pagination (last 24 hours) - fetch more to account for filtering
-                            // We'll fetch 50 logs and filter, then take first 10
-                            const response = await auditApi.getLogsPaginated(50, null, null, 24);
-                            let allFetchedLogs = response.data?.logs || [];
-                            responseNextToken = response.data?.next_token || null;
-                            responseHasMore = response.data?.has_more || false;
+                            let allFetchedLogs = logsResponse.data?.logs || [];
+                            responseNextToken = logsResponse.data?.next_token || null;
+                            responseHasMore = logsResponse.data?.has_more || false;
                             
                             // Sort by timestamp descending (most recent first) - DynamoDB Scan doesn't guarantee order
                             allFetchedLogs.sort((a, b) => {
@@ -206,16 +209,23 @@ export default function DashboardPage() {
                             // Take first 10 for display
                             fetchedLogs = fetchedLogs.slice(0, 10);
                             
-                            // If we filtered out all logs but there are more pages, we need to fetch more
-                            // Keep fetching until we have 10 logs or run out of pages
+                            // If we have less than 10 logs and there are more pages, fetch more
+                            // But limit attempts to avoid high latency
                             let attempts = 0;
-                            const maxAttempts = 5; // Limit to prevent infinite loops
+                            const maxAttempts = 2; // Reduced from 5 to improve performance
                             while (fetchedLogs.length < 10 && responseHasMore && attempts < maxAttempts) {
                                 attempts++;
                                 const nextResponse = await auditApi.getLogsPaginated(50, responseNextToken, null, 24);
                                 const nextLogs = nextResponse.data?.logs || [];
                                 responseNextToken = nextResponse.data?.next_token || null;
                                 responseHasMore = nextResponse.data?.has_more || false;
+                                
+                                // Sort next batch
+                                nextLogs.sort((a, b) => {
+                                    const timeA = new Date(a.timestamp || 0).getTime();
+                                    const timeB = new Date(b.timestamp || 0).getTime();
+                                    return timeB - timeA;
+                                });
                                 
                                 const filteredNextLogs = nextLogs.filter(l => {
                                     const logAgentId = l.agent_id || l.user_id;
@@ -239,11 +249,14 @@ export default function DashboardPage() {
                         // If fetch fails, fall back to empty for safety
                         console.error('Failed to fetch/filter logs:', e);
                         fetchedLogs = [];
+                        responseNextToken = null;
+                        responseHasMore = false;
                     }
                 } else {
-                    // Root admin: fetch all logs using paginated endpoint (last 24 hours, no filtering)
+                    // Root admin: fetch logs using paginated endpoint (last 24 hours, no filtering)
+                    // Fetch 10 logs initially for faster load, then show "Show More" if there are more
                     try {
-                        const response = await auditApi.getLogsPaginated(100, null, null, 24);
+                        const response = await auditApi.getLogsPaginated(10, null, null, 24);
                         let allFetchedLogs = response.data?.logs || response.data?.data || [];
                         responseNextToken = response.data?.next_token || null;
                         responseHasMore = response.data?.has_more || false;
@@ -256,8 +269,8 @@ export default function DashboardPage() {
                             return timeB - timeA;
                         });
                         
-                        // Take first 10 most recent logs
-                        fetchedLogs = allFetchedLogs.slice(0, 10);
+                        // Use all fetched logs (up to 10)
+                        fetchedLogs = allFetchedLogs;
                     } catch (e) {
                         console.error('Failed to fetch logs for root admin:', e);
                         fetchedLogs = [];
@@ -402,14 +415,22 @@ export default function DashboardPage() {
                             newLogs = newLogs.slice(0, 10);
                             
                             // If we don't have enough logs but there are more pages, fetch more
+                            // Limit attempts to avoid high latency
                             let attempts = 0;
-                            const maxAttempts = 3;
+                            const maxAttempts = 2; // Reduced from 3 to improve performance
                             while (newLogs.length < 10 && responseHasMore && attempts < maxAttempts) {
                                 attempts++;
                                 const nextResponse = await auditApi.getLogsPaginated(50, responseNextToken, null, 24);
                                 const nextBatch = nextResponse.data?.logs || [];
                                 responseNextToken = nextResponse.data?.next_token || null;
                                 responseHasMore = nextResponse.data?.has_more || false;
+                                
+                                // Sort next batch
+                                nextBatch.sort((a, b) => {
+                                    const timeA = new Date(a.timestamp || 0).getTime();
+                                    const timeB = new Date(b.timestamp || 0).getTime();
+                                    return timeB - timeA;
+                                });
                                 
                                 const filteredBatch = nextBatch.filter(l => {
                                     const logAgentId = l.agent_id || l.user_id;
@@ -433,7 +454,7 @@ export default function DashboardPage() {
             } else {
                 // Root admin: use pagination (last 24 hours, no filtering)
                 try {
-                    const response = await auditApi.getLogsPaginated(100, nextToken, null, 24);
+                    const response = await auditApi.getLogsPaginated(10, nextToken, null, 24);
                     let allNextLogs = response.data?.logs || [];
                     responseNextToken = response.data?.next_token || null;
                     responseHasMore = response.data?.has_more || false;
@@ -448,9 +469,6 @@ export default function DashboardPage() {
                     // Get logs after the ones we've already displayed
                     const existingLogIds = new Set(logs.map(l => l.log_id));
                     newLogs = allNextLogs.filter(l => !existingLogIds.has(l.log_id));
-                    
-                    // Take first 10
-                    newLogs = newLogs.slice(0, 10);
                 } catch (e) {
                     console.error('Failed to fetch more logs for root admin:', e);
                     newLogs = [];
