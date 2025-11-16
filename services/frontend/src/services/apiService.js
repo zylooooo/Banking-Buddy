@@ -138,16 +138,21 @@ export const auditApi = {
         return auditApiClient.get('/api/v1/audit/logs', { params });
     },
     // GET /api/v1/audit/logs - get paginated audit logs
-    getLogsPaginated: (pageSize = 10, nextToken = null, operation = null) => {
+    getLogsPaginated: (pageSize = 10, nextToken = null, operation = null, hours = null) => {
         const params = { page_size: pageSize };
         if (nextToken) params.next_token = nextToken;
         if (operation) params.operation = operation;
+        if (hours) params.hours = hours;
         return auditApiClient.get('/api/v1/audit/logs', { params });
     },
     // GET /api/v1/audit/logs?clientId=CLIENT_ID - get logs by client ID
     getLogsByClientId: (clientId) => auditApiClient.get('/api/v1/audit/logs', { params: { clientId } }),
     // GET /api/v1/audit/logs?agentId=AGENT_ID - get logs by agent ID
-    getLogsByAgentId: (agentId) => auditApiClient.get('/api/v1/audit/logs', { params: { agentId } }),
+    getLogsByAgentId: (agentId, hours = null) => {
+        const params = { agentId };
+        if (hours) params.hours = hours;
+        return auditApiClient.get('/api/v1/audit/logs', { params });
+    },
 };
 
 // Communication API endpoints
