@@ -11,8 +11,10 @@ COPY lambda_function.py ./
 # Copy vendored jwt directory (if it exists, it will be included)
 COPY jwt/ ./jwt/
 
-# Install dependencies to current directory
-RUN pip install -r requirements.txt -t .
+# Upgrade pip and install dependencies to current directory
+# Increase timeout and add retries to handle network issues
+RUN pip install --upgrade pip && \
+    pip install --default-timeout=100 --retries 5 -r requirements.txt -t .
 
 # Create deployment package
 RUN zip -r lambda-deployment-package.zip . -x "*.pyc" -x "__pycache__/*"
