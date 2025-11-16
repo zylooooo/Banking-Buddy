@@ -5,18 +5,23 @@ from pathlib import Path
 # Configuration
 N = 20000             # number of rows to generate
 CLIENTS = [
-    'CLT-cb9d7e84-a1d5-4d33-8051-afd6c4e2e442',
-    'CLT-3733f47b-6e7a-4642-8481-ec700881656a',
-    'CLT-c55bc2b7-368b-44fd-bcf7-f309410d71d4',
-    'CLT-e1c863a2-f3f0-42fa-afe6-7dc02ca6d816',
-    'CLT-82cf91f6-c766-44c6-b0d8-7b20eb42239e',
-    'CLT-aee57b8d-5e3e-4a2b-8c58-20f719ae4fd3',
-    'CLT-8aff96b7-a888-423f-a633-21859f32627a',
-    'CLT-d5b5e304-adbe-4b68-b262-84c2373e59ad',
-    'CLT-c40b11f9-3bed-4e80-a6da-1a529412785b',
-    'CLT-0c147535-9764-4efc-acce-81e64d9a2bcf',
-    'CLT-b3a05f1c-26d8-4651-8833-a6522f20da98',
-    'CLT-b6c29ff6-292a-4942-8b7d-90095181f8dd'
+    'CLT-0615de40-9d19-4539-b518-b21f1ad2a41f',
+    'CLT-0e2d8be4-801c-4de4-9a74-0b7201a68f05',
+    'CLT-123a18de-57d3-41f2-b1ff-74bdca24408c',
+    'CLT-2ec14f96-c97b-43c1-b16d-24499f8103ab',
+    'CLT-313a401c-f1dd-4761-abc5-3a957683089d',
+    'CLT-3b99a55e-113d-4362-841c-4e1755fefffd',
+    'CLT-4c9e6621-078c-4357-8faa-6b503169506d ',
+    'CLT-56782ce6-1f72-4f78-a735-7e3cfd097c30',
+    'CLT-65a14945-3481-4e67-b7ab-666a8f0cafd3',
+    'CLT-67959b14-5c34-4c85-885d-c0d4e4827f7a',
+    'CLT-75e73860-1da7-48f1-8c4f-a3bf8651515c',
+    'CLT-aa02bd2b-7c6c-4b41-9bfa-5515848c8626',
+    'CLT-ade94c6d-ea57-46a2-9211-74ff5c9d91ba',
+    'CLT-b320b7bc-cd27-4283-ad8e-9c269a73c8b5',
+    'CLT-ea3b21a7-0e7f-407e-a72f-c1ae1a6e6342',
+    'CLT-eddbf1f0-c2f1-40b4-8516-ba02b7604c22',
+    'CLT-ff92e85d-f485-45fc-a2f1-3be714a1ca33'
 ]
 START_DATE = datetime.today() - timedelta(days=120)  # last ~4 months
 END_DATE = datetime.today()
