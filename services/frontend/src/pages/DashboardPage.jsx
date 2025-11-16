@@ -116,18 +116,20 @@ export default function DashboardPage() {
                     }
                 }
                 
-                // Fetch first 10 logs using paginated endpoint
-                const response = await auditApi.getLogsPaginated(10);
-                let fetchedLogs = response.data?.logs || [];
-                const responseNextToken = response.data?.next_token || null;
-                const responseHasMore = response.data?.has_more || false;
-
-                // Filter logs based on role
+                // Fetch logs based on role
                 const current = await getUserFromToken();
+                let fetchedLogs = [];
+                let responseNextToken = null;
+                let responseHasMore = false;
+                
                 if (current && current.role !== 'rootAdministrator') {
                     try {
                         if (current.role === 'agent') {
-                            // For agents: Filter by client IDs from their own clients
+                            // For agents: Fetch logs by their own agent ID, then filter by client IDs
+                            const response = await auditApi.getLogsByAgentId(current.sub);
+                            fetchedLogs = response.data?.data || response.data?.logs || [];
+                            
+                            // Filter by client IDs from their own clients
                             const clientsResp = await clientApi.getAllClients(0, 100);
                             const pageData = clientsResp.data?.data;
                             
@@ -148,7 +150,7 @@ export default function DashboardPage() {
                                 fetchedLogs = [];
                             }
                         } else if (current.role === 'admin') {
-                            // For admins: Filter by agent IDs of agents they manage OR logs where admin is the actor
+                            // For admins: Fetch logs for each managed agent + admin's own ID
                             const usersResp = await userApi.getAllUsers();
                             // Handle paginated response (content property) or array response
                             let users = [];
@@ -162,44 +164,62 @@ export default function DashboardPage() {
                                 .filter(user => user.role === 'agent')
                                 .map(user => user.id);
                             
-                            // Include logs where:
-                            // 1. agent_id matches managed agents (operations performed by agents they manage)
-                            // 2. agent_id matches admin's own ID (operations performed by admin, e.g., creating agents)
                             const adminId = current.sub || current.userId;
                             
-                            // Debug logging
-                            console.log('Dashboard Admin Filter Debug:', {
+                            // Fetch logs for each managed agent and admin's own ID
+                            const allAgentIds = [...managedAgents];
+                            if (adminId && !allAgentIds.includes(adminId)) {
+                                allAgentIds.push(adminId);
+                            }
+                            
+                            // Fetch logs for each agent ID (limit to 10 per agent to keep it reasonable)
+                            const logPromises = allAgentIds.map(agentId => 
+                                auditApi.getLogsByAgentId(agentId).catch(err => {
+                                    console.warn(`Failed to fetch logs for agent ${agentId}:`, err);
+                                    return { data: { data: [], logs: [] } };
+                                })
+                            );
+                            
+                            const logResponses = await Promise.all(logPromises);
+                            
+                            // Combine all logs
+                            fetchedLogs = logResponses.flatMap(response => 
+                                response.data?.data || response.data?.logs || []
+                            );
+                            
+                            // Sort by timestamp (newest first) and limit to 10
+                            fetchedLogs.sort((a, b) => {
+                                const timeA = new Date(a.timestamp || 0).getTime();
+                                const timeB = new Date(b.timestamp || 0).getTime();
+                                return timeB - timeA;
+                            });
+                            
+                            // Take first 10 for display
+                            fetchedLogs = fetchedLogs.slice(0, 10);
+                            
+                            console.log('Dashboard Admin Logs:', {
                                 adminId,
                                 managedAgents,
-                                totalLogsBeforeFilter: fetchedLogs.length,
-                                sampleLogAgentIds: fetchedLogs.slice(0, 3).map(l => l.agent_id || l.user_id)
+                                totalLogsFetched: fetchedLogs.length
                             });
-                            
-                            // Filter logs: include if agent_id matches managed agents OR admin's own ID
-                            fetchedLogs = fetchedLogs.filter(l => {
-                                const logAgentId = l.agent_id || l.user_id;
-                                if (!logAgentId) return false;
-                                
-                                // Check if log is from a managed agent
-                                const matchesManagedAgent = managedAgents.length > 0 && managedAgents.includes(logAgentId);
-                                
-                                // Check if log is from admin's own actions
-                                const matchesAdminId = adminId && logAgentId === adminId;
-                                
-                                return matchesManagedAgent || matchesAdminId;
-                            });
-                            
-                            console.log('Dashboard Admin Filter Result:', {
-                                logsAfterFilter: fetchedLogs.length,
-                                managedAgentsCount: managedAgents.length,
-                                adminId: adminId
-                            });
+                        } else {
+                            // For other roles, use paginated endpoint
+                            const response = await auditApi.getLogsPaginated(10);
+                            fetchedLogs = response.data?.logs || [];
+                            responseNextToken = response.data?.next_token || null;
+                            responseHasMore = response.data?.has_more || false;
                         }
                     } catch (e) {
                         // If fetch fails, fall back to empty for safety
-                        console.error('Failed to filter logs:', e);
+                        console.error('Failed to fetch/filter logs:', e);
                         fetchedLogs = [];
                     }
+                } else {
+                    // Root admin: fetch all logs using paginated endpoint
+                    const response = await auditApi.getLogsPaginated(10);
+                    fetchedLogs = response.data?.logs || [];
+                    responseNextToken = response.data?.next_token || null;
+                    responseHasMore = response.data?.has_more || false;
                 }
                 
                 setLogs(fetchedLogs);
@@ -225,7 +245,14 @@ export default function DashboardPage() {
     }, [navigate]);
 
     const loadMoreLogs = async () => {
-        if (!nextToken || loadingMore) return;
+        if (loadingMore) return;
+        
+        // For admins, we don't use nextToken (we fetch from multiple agents)
+        // For other roles, check nextToken
+        const current = await getUserFromToken();
+        if (current && current.role !== 'admin' && current.role !== 'rootAdministrator' && !nextToken) {
+            return;
+        }
         
         setLoadingMore(true);
         try {
@@ -239,36 +266,47 @@ export default function DashboardPage() {
                 }
             }
             
-            // Fetch next 10 logs using pagination token
-            const response = await auditApi.getLogsPaginated(10, nextToken);
-            let newLogs = response.data?.logs || [];
-            const responseNextToken = response.data?.next_token || null;
-            const responseHasMore = response.data?.has_more || false;
-
-            // Filter logs based on role (same logic as initial load)
-            const current = await getUserFromToken();
+            // Fetch more logs based on role (current already fetched above)
+            let newLogs = [];
+            let responseNextToken = null;
+            let responseHasMore = false;
+            
             if (current && current.role !== 'rootAdministrator') {
                 try {
                     if (current.role === 'agent') {
-                        const clientsResp = await clientApi.getAllClients(0, 100);
-                        const pageData = clientsResp.data?.data;
-                        let clients = [];
-                        if (Array.isArray(pageData)) {
-                            clients = pageData;
-                        } else if (pageData?.content) {
-                            clients = pageData.content;
-                        } else if (clientsResp.data?.clients) {
-                            clients = clientsResp.data.clients;
-                        }
-                        const clientIds = clients.map(c => c.id || c.clientId);
-                        if (clientIds.length > 0) {
-                            newLogs = newLogs.filter(l => clientIds.includes(l.client_id));
+                        // For agents: Use pagination if available, otherwise fetch more
+                        if (nextToken) {
+                            const response = await auditApi.getLogsPaginated(10, nextToken);
+                            newLogs = response.data?.logs || [];
+                            responseNextToken = response.data?.next_token || null;
+                            responseHasMore = response.data?.has_more || false;
+                            
+                            // Filter by client IDs
+                            const clientsResp = await clientApi.getAllClients(0, 100);
+                            const pageData = clientsResp.data?.data;
+                            let clients = [];
+                            if (Array.isArray(pageData)) {
+                                clients = pageData;
+                            } else if (pageData?.content) {
+                                clients = pageData.content;
+                            } else if (clientsResp.data?.clients) {
+                                clients = clientsResp.data.clients;
+                            }
+                            const clientIds = clients.map(c => c.id || c.clientId);
+                            if (clientIds.length > 0) {
+                                newLogs = newLogs.filter(l => clientIds.includes(l.client_id));
+                            } else {
+                                newLogs = [];
+                            }
                         } else {
+                            // No pagination token, can't load more
                             newLogs = [];
                         }
                     } else if (current.role === 'admin') {
+                        // For admins: Fetch more logs from each managed agent
+                        // Note: Since we're fetching from multiple agents, pagination is complex
+                        // For simplicity, we'll just fetch the next batch from each agent
                         const usersResp = await userApi.getAllUsers();
-                        // Handle paginated response (content property) or array response
                         let users = [];
                         const pageData = usersResp.data?.data;
                         if (Array.isArray(pageData)) {
@@ -280,29 +318,58 @@ export default function DashboardPage() {
                             .filter(user => user.role === 'agent')
                             .map(user => user.id);
                         
-                        // Include logs where:
-                        // 1. agent_id matches managed agents (operations performed by agents they manage)
-                        // 2. agent_id matches admin's own ID (operations performed by admin, e.g., creating agents)
                         const adminId = current.sub || current.userId;
+                        const allAgentIds = [...managedAgents];
+                        if (adminId && !allAgentIds.includes(adminId)) {
+                            allAgentIds.push(adminId);
+                        }
                         
-                        // Filter logs: include if agent_id matches managed agents OR admin's own ID
-                        newLogs = newLogs.filter(l => {
-                            const logAgentId = l.agent_id || l.user_id;
-                            if (!logAgentId) return false;
-                            
-                            // Check if log is from a managed agent
-                            const matchesManagedAgent = managedAgents.length > 0 && managedAgents.includes(logAgentId);
-                            
-                            // Check if log is from admin's own actions
-                            const matchesAdminId = adminId && logAgentId === adminId;
-                            
-                            return matchesManagedAgent || matchesAdminId;
+                        // Fetch more logs for each agent (skip pagination for simplicity)
+                        // In a production system, you'd want to track pagination per agent
+                        const logPromises = allAgentIds.map(agentId => 
+                            auditApi.getLogsByAgentId(agentId).catch(err => {
+                                console.warn(`Failed to fetch logs for agent ${agentId}:`, err);
+                                return { data: { data: [], logs: [] } };
+                            })
+                        );
+                        
+                        const logResponses = await Promise.all(logPromises);
+                        newLogs = logResponses.flatMap(response => 
+                            response.data?.data || response.data?.logs || []
+                        );
+                        
+                        // Sort by timestamp and get next batch (skip already displayed logs)
+                        newLogs.sort((a, b) => {
+                            const timeA = new Date(a.timestamp || 0).getTime();
+                            const timeB = new Date(b.timestamp || 0).getTime();
+                            return timeB - timeA;
                         });
+                        
+                        // Get logs after the ones we've already displayed
+                        const existingLogIds = new Set(logs.map(l => l.log_id));
+                        newLogs = newLogs.filter(l => !existingLogIds.has(l.log_id));
+                        
+                        // Take next 10
+                        newLogs = newLogs.slice(0, 10);
+                        // No pagination token for multi-agent fetch
+                        responseHasMore = newLogs.length === 10;
+                    } else {
+                        // For other roles, use pagination
+                        const response = await auditApi.getLogsPaginated(10, nextToken);
+                        newLogs = response.data?.logs || [];
+                        responseNextToken = response.data?.next_token || null;
+                        responseHasMore = response.data?.has_more || false;
                     }
                 } catch (e) {
-                    console.error('Failed to filter logs:', e);
+                    console.error('Failed to fetch/filter logs:', e);
                     newLogs = [];
                 }
+            } else {
+                // Root admin: use pagination
+                const response = await auditApi.getLogsPaginated(10, nextToken);
+                newLogs = response.data?.logs || [];
+                responseNextToken = response.data?.next_token || null;
+                responseHasMore = response.data?.has_more || false;
             }
 
             // Append new logs to existing logs
