@@ -148,7 +148,7 @@ export default function DashboardPage() {
                                 fetchedLogs = [];
                             }
                         } else if (current.role === 'admin') {
-                            // For admins: Filter by agent IDs of agents they manage
+                            // For admins: Filter by agent IDs of agents they manage OR logs where admin is the actor
                             const usersResp = await userApi.getAllUsers();
                             // Handle paginated response (content property) or array response
                             let users = [];
@@ -162,11 +162,18 @@ export default function DashboardPage() {
                                 .filter(user => user.role === 'agent')
                                 .map(user => user.id);
                             
-                            if (managedAgents.length > 0) {
-                                // Filter logs where agent_id is in the list of managed agents
-                                fetchedLogs = fetchedLogs.filter(l => managedAgents.includes(l.agent_id));
+                            // Include logs where:
+                            // 1. agent_id matches managed agents (operations performed by agents they manage)
+                            // 2. agent_id matches admin's own ID (operations performed by admin, e.g., creating agents)
+                            const adminId = current.sub || current.userId;
+                            if (managedAgents.length > 0 || adminId) {
+                                fetchedLogs = fetchedLogs.filter(l => {
+                                    const logAgentId = l.agent_id || l.user_id;
+                                    return (managedAgents.length > 0 && managedAgents.includes(logAgentId)) ||
+                                           (adminId && logAgentId === adminId);
+                                });
                             } else {
-                                // Admin has no agents, so no logs to show
+                                // Admin has no agents and no ID, so no logs to show
                                 fetchedLogs = [];
                             }
                         }
@@ -254,8 +261,17 @@ export default function DashboardPage() {
                         const managedAgents = users
                             .filter(user => user.role === 'agent')
                             .map(user => user.id);
-                        if (managedAgents.length > 0) {
-                            newLogs = newLogs.filter(l => managedAgents.includes(l.agent_id));
+                        
+                        // Include logs where:
+                        // 1. agent_id matches managed agents (operations performed by agents they manage)
+                        // 2. agent_id matches admin's own ID (operations performed by admin, e.g., creating agents)
+                        const adminId = current.sub || current.userId;
+                        if (managedAgents.length > 0 || adminId) {
+                            newLogs = newLogs.filter(l => {
+                                const logAgentId = l.agent_id || l.user_id;
+                                return (managedAgents.length > 0 && managedAgents.includes(logAgentId)) ||
+                                       (adminId && logAgentId === adminId);
+                            });
                         } else {
                             newLogs = [];
                         }
