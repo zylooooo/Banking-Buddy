@@ -22,8 +22,16 @@ public enum Gender {
     
     @JsonCreator
     public static Gender fromValue(String value) {
+        if (value == null) {
+            throw new IllegalArgumentException("Gender value cannot be null");
+        }
+        
+        // Normalize the input by replacing spaces and hyphens with underscores
+        String normalizedValue = value.trim().replace(" ", "_").replace("-", "_");
+        
         for (Gender gender : Gender.values()) {
-            if (gender.value.equalsIgnoreCase(value)) {
+            // Compare the normalized input with the enum value
+            if (gender.value.equalsIgnoreCase(normalizedValue)) {
                 return gender;
             }
         }
