@@ -166,16 +166,34 @@ export default function DashboardPage() {
                             // 1. agent_id matches managed agents (operations performed by agents they manage)
                             // 2. agent_id matches admin's own ID (operations performed by admin, e.g., creating agents)
                             const adminId = current.sub || current.userId;
-                            if (managedAgents.length > 0 || adminId) {
-                                fetchedLogs = fetchedLogs.filter(l => {
-                                    const logAgentId = l.agent_id || l.user_id;
-                                    return (managedAgents.length > 0 && managedAgents.includes(logAgentId)) ||
-                                           (adminId && logAgentId === adminId);
-                                });
-                            } else {
-                                // Admin has no agents and no ID, so no logs to show
-                                fetchedLogs = [];
-                            }
+                            
+                            // Debug logging
+                            console.log('Dashboard Admin Filter Debug:', {
+                                adminId,
+                                managedAgents,
+                                totalLogsBeforeFilter: fetchedLogs.length,
+                                sampleLogAgentIds: fetchedLogs.slice(0, 3).map(l => l.agent_id || l.user_id)
+                            });
+                            
+                            // Filter logs: include if agent_id matches managed agents OR admin's own ID
+                            fetchedLogs = fetchedLogs.filter(l => {
+                                const logAgentId = l.agent_id || l.user_id;
+                                if (!logAgentId) return false;
+                                
+                                // Check if log is from a managed agent
+                                const matchesManagedAgent = managedAgents.length > 0 && managedAgents.includes(logAgentId);
+                                
+                                // Check if log is from admin's own actions
+                                const matchesAdminId = adminId && logAgentId === adminId;
+                                
+                                return matchesManagedAgent || matchesAdminId;
+                            });
+                            
+                            console.log('Dashboard Admin Filter Result:', {
+                                logsAfterFilter: fetchedLogs.length,
+                                managedAgentsCount: managedAgents.length,
+                                adminId: adminId
+                            });
                         }
                     } catch (e) {
                         // If fetch fails, fall back to empty for safety
@@ -266,15 +284,20 @@ export default function DashboardPage() {
                         // 1. agent_id matches managed agents (operations performed by agents they manage)
                         // 2. agent_id matches admin's own ID (operations performed by admin, e.g., creating agents)
                         const adminId = current.sub || current.userId;
-                        if (managedAgents.length > 0 || adminId) {
-                            newLogs = newLogs.filter(l => {
-                                const logAgentId = l.agent_id || l.user_id;
-                                return (managedAgents.length > 0 && managedAgents.includes(logAgentId)) ||
-                                       (adminId && logAgentId === adminId);
-                            });
-                        } else {
-                            newLogs = [];
-                        }
+                        
+                        // Filter logs: include if agent_id matches managed agents OR admin's own ID
+                        newLogs = newLogs.filter(l => {
+                            const logAgentId = l.agent_id || l.user_id;
+                            if (!logAgentId) return false;
+                            
+                            // Check if log is from a managed agent
+                            const matchesManagedAgent = managedAgents.length > 0 && managedAgents.includes(logAgentId);
+                            
+                            // Check if log is from admin's own actions
+                            const matchesAdminId = adminId && logAgentId === adminId;
+                            
+                            return matchesManagedAgent || matchesAdminId;
+                        });
                     }
                 } catch (e) {
                     console.error('Failed to filter logs:', e);
