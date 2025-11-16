@@ -383,7 +383,10 @@ def query_all_logs(
     exclusive_start_key: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
-    Query all logs for admins using Scan or OperationIndex.
+    Query all logs for admins using OperationIndex.
+    
+    When no operation is specified, queries all operations (CREATE, READ, UPDATE, DELETE)
+    and merges results in timestamp order to maintain proper pagination.
     
     Args:
         time_threshold: ISO timestamp to filter from
@@ -394,7 +397,7 @@ def query_all_logs(
     Returns:
         Dictionary with 'items' (list of logs) and 'last_evaluated_key' (pagination cursor)
     """
-    # If operation specified, use OperationIndex for efficiency
+    # If operation specified, use OperationIndex for that specific operation
     if operation:
         key_condition = 'crud_operation = :operation AND #ts >= :threshold'
         expression_values = {
@@ -418,91 +421,91 @@ def query_all_logs(
         response = table.query(**query_params)
         items = response.get('Items', [])
         
-        # Sort by timestamp descending (most recent first)
-        items.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        # Already sorted by timestamp descending due to ScanIndexForward=False
         
         return {
             'items': items,
             'last_evaluated_key': response.get('LastEvaluatedKey')
         }
     else:
-        # Scan entire table with time filter
-        # Note: Scan's Limit applies BEFORE FilterExpression, so we need to keep scanning
-        # until we have enough items or run out of data
-        filter_expression = '#ts >= :threshold'
-        expression_values = {':threshold': time_threshold}
+        # Query all operations using OperationIndex and merge results
+        # This ensures proper timestamp ordering for pagination
+        operations = ['CREATE', 'READ', 'UPDATE', 'DELETE']
         
-        # If continuing from a previous page (exclusive_start_key provided),
-        # do a single scan operation to maintain cursor consistency
-        if exclusive_start_key:
-            scan_params = {
-                'FilterExpression': filter_expression,
-                'ExpressionAttributeNames': {'#ts': 'timestamp'},
-                'ExpressionAttributeValues': expression_values,
-                'Limit': limit * 3,  # Request more to account for filtering
-                'ExclusiveStartKey': exclusive_start_key
-            }
-            
-            response = table.scan(**scan_params)
-            items = response.get('Items', [])
-            
-            # Sort by timestamp descending (most recent first)
-            items.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
-            
-            # Trim to requested limit
-            items_to_return = items[:limit]
-            
-            # Determine if there's more data:
-            # - If we got more items than limit after filtering, definitely more
-            # - If we got fewer items than limit, check if DynamoDB has more to scan
-            has_last_key = response.get('LastEvaluatedKey') is not None
-            has_more = len(items) > limit or (len(items) == limit and has_last_key)
-            
-            return {
-                'items': items_to_return,
-                'last_evaluated_key': response.get('LastEvaluatedKey') if has_more else None
-            }
+        # Strategy for pagination with multiple operations:
+        # 1. Query each operation with the limit
+        # 2. Merge and sort by timestamp
+        # 3. Take top N items
+        # 4. For next_token, encode the last timestamp + operations queried
         
-        # First page: Keep scanning until we have enough items or no more data
         all_items = []
-        last_evaluated_key = None
+        operation_cursors = {}
         
-        while len(all_items) < limit:
-            scan_params = {
-                'FilterExpression': filter_expression,
-                'ExpressionAttributeNames': {'#ts': 'timestamp'},
-                'ExpressionAttributeValues': expression_values,
-                'Limit': limit * 3  # Request more to account for filtering
+        # If exclusive_start_key is provided, it contains pagination state for each operation
+        if exclusive_start_key:
+            # Extract cursor per operation from exclusive_start_key
+            operation_cursors = exclusive_start_key.get('operation_cursors', {})
+            last_timestamp = exclusive_start_key.get('last_timestamp')
+        else:
+            last_timestamp = None
+        
+        # Query each operation
+        for op in operations:
+            key_condition = 'crud_operation = :operation AND #ts >= :threshold'
+            expression_values = {
+                ':operation': op,
+                ':threshold': time_threshold
             }
             
-            # Add pagination support
-            if last_evaluated_key:
-                scan_params['ExclusiveStartKey'] = last_evaluated_key
+            query_params = {
+                'IndexName': operation_index_name,
+                'KeyConditionExpression': key_condition,
+                'ExpressionAttributeNames': {'#ts': 'timestamp'},
+                'ExpressionAttributeValues': expression_values,
+                'Limit': limit,
+                'ScanIndexForward': False  # Most recent first
+            }
             
-            response = table.scan(**scan_params)
+            # If continuing pagination, use operation-specific cursor
+            if op in operation_cursors:
+                query_params['ExclusiveStartKey'] = operation_cursors[op]
+            
+            response = table.query(**query_params)
             items = response.get('Items', [])
+            
+            # Filter out items we've already returned (based on last_timestamp from previous page)
+            if last_timestamp:
+                items = [item for item in items if item.get('timestamp', '') < last_timestamp]
+            
             all_items.extend(items)
             
-            # Check if there's more data to scan
-            last_evaluated_key = response.get('LastEvaluatedKey')
-            if not last_evaluated_key:
-                # No more data in table
-                break
+            # Store cursor for this operation if there's more data
+            if response.get('LastEvaluatedKey'):
+                operation_cursors[op] = response['LastEvaluatedKey']
+            elif op in operation_cursors:
+                # No more data for this operation, remove cursor
+                del operation_cursors[op]
         
-        # Sort by timestamp descending (most recent first)
+        # Sort all items by timestamp descending
         all_items.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
         
-        # Trim to requested limit
+        # Take only the requested limit
         items_to_return = all_items[:limit]
         
-        # Determine if there are more items
-        # If we got more than limit, there are definitely more
-        # If we stopped because of no more data, check if we hit the limit exactly
-        has_more_items = len(all_items) > limit or (len(all_items) == limit and last_evaluated_key is not None)
+        # Determine if there's more data
+        has_more = len(operation_cursors) > 0
+        
+        # Build next pagination token with operation cursors and last timestamp
+        next_last_evaluated_key = None
+        if has_more and items_to_return:
+            next_last_evaluated_key = {
+                'operation_cursors': operation_cursors,
+                'last_timestamp': items_to_return[-1].get('timestamp')
+            }
         
         return {
             'items': items_to_return,
-            'last_evaluated_key': last_evaluated_key if has_more_items else None
+            'last_evaluated_key': next_last_evaluated_key
         }
 
 
