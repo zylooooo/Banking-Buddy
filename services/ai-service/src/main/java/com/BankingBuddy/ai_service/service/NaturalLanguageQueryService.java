@@ -707,30 +707,33 @@ public class NaturalLanguageQueryService {
             List<Map<String, Object>> results = new ArrayList<>();
             
             if (usersResponse.has("data")) {
-                JsonNode users = usersResponse.get("data");
-                if (users.isArray()) {
-                    for (JsonNode user : users) {
-                        String role = user.has("role") ? user.get("role").asText("") : "";
-                        
-                        // Only include agents (both ADMIN and ROOT_ADMIN can see agents)
-                        if ("agent".equalsIgnoreCase(role)) {
-                            String firstName = user.has("firstName") ? user.get("firstName").asText("") : "";
-                            String lastName = user.has("lastName") ? user.get("lastName").asText("") : "";
-                            String fullName = (firstName + " " + lastName).trim();
+                JsonNode data = usersResponse.get("data");
+                if (data != null && data.has("content")) {
+                    JsonNode users = data.get("content");
+                    if (users.isArray()) {
+                        for (JsonNode user : users) {
+                            String role = user.has("role") ? user.get("role").asText("") : "";
                             
-                            // Filter by name if provided
-                            if (agentName == null || agentName.isEmpty() ||
-                                fullName.toLowerCase().contains(agentName.toLowerCase()) ||
-                                firstName.toLowerCase().contains(agentName.toLowerCase()) ||
-                                lastName.toLowerCase().contains(agentName.toLowerCase())) {
+                            // Only include agents (both ADMIN and ROOT_ADMIN can see agents)
+                            if ("agent".equalsIgnoreCase(role)) {
+                                String firstName = user.has("firstName") ? user.get("firstName").asText("") : "";
+                                String lastName = user.has("lastName") ? user.get("lastName").asText("") : "";
+                                String fullName = (firstName + " " + lastName).trim();
                                 
-                                Map<String, Object> userMap = new HashMap<>();
-                                userMap.put("userId", user.has("id") ? user.get("id").asText() : "");
-                                userMap.put("name", fullName);
-                                userMap.put("email", user.has("email") ? user.get("email").asText() : "");
-                                userMap.put("role", role);
-                                userMap.put("status", user.has("status") ? user.get("status").asText() : "");
-                                results.add(userMap);
+                                // Filter by name if provided
+                                if (agentName == null || agentName.isEmpty() ||
+                                    fullName.toLowerCase().contains(agentName.toLowerCase()) ||
+                                    firstName.toLowerCase().contains(agentName.toLowerCase()) ||
+                                    lastName.toLowerCase().contains(agentName.toLowerCase())) {
+                                    
+                                    Map<String, Object> userMap = new HashMap<>();
+                                    userMap.put("userId", user.has("id") ? user.get("id").asText() : "");
+                                    userMap.put("name", fullName);
+                                    userMap.put("email", user.has("email") ? user.get("email").asText() : "");
+                                    userMap.put("role", role);
+                                    userMap.put("status", user.has("status") ? user.get("status").asText() : "");
+                                    results.add(userMap);
+                                }
                             }
                         }
                     }
@@ -823,30 +826,33 @@ public class NaturalLanguageQueryService {
             List<Map<String, Object>> results = new ArrayList<>();
             
             if (usersResponse.has("data")) {
-                JsonNode users = usersResponse.get("data");
-                if (users.isArray()) {
-                    for (JsonNode user : users) {
-                        String role = user.has("role") ? user.get("role").asText("") : "";
-                        
-                        // Only include admins (not root admins, not agents)
-                        if ("admin".equalsIgnoreCase(role)) {
-                            String firstName = user.has("firstName") ? user.get("firstName").asText("") : "";
-                            String lastName = user.has("lastName") ? user.get("lastName").asText("") : "";
-                            String fullName = (firstName + " " + lastName).trim();
+                JsonNode data = usersResponse.get("data");
+                if (data != null && data.has("content")) {
+                    JsonNode users = data.get("content");
+                    if (users.isArray()) {
+                        for (JsonNode user : users) {
+                            String role = user.has("role") ? user.get("role").asText("") : "";
                             
-                            // Filter by name if provided
-                            if (adminName == null || adminName.isEmpty() ||
-                                fullName.toLowerCase().contains(adminName.toLowerCase()) ||
-                                firstName.toLowerCase().contains(adminName.toLowerCase()) ||
-                                lastName.toLowerCase().contains(adminName.toLowerCase())) {
+                            // Only include admins (not root admins, not agents)
+                            if ("admin".equalsIgnoreCase(role)) {
+                                String firstName = user.has("firstName") ? user.get("firstName").asText("") : "";
+                                String lastName = user.has("lastName") ? user.get("lastName").asText("") : "";
+                                String fullName = (firstName + " " + lastName).trim();
                                 
-                                Map<String, Object> userMap = new HashMap<>();
-                                userMap.put("userId", user.has("id") ? user.get("id").asText() : "");
-                                userMap.put("name", fullName);
-                                userMap.put("email", user.has("email") ? user.get("email").asText() : "");
-                                userMap.put("role", role);
-                                userMap.put("status", user.has("status") ? user.get("status").asText() : "");
-                                results.add(userMap);
+                                // Filter by name if provided
+                                if (adminName == null || adminName.isEmpty() ||
+                                    fullName.toLowerCase().contains(adminName.toLowerCase()) ||
+                                    firstName.toLowerCase().contains(adminName.toLowerCase()) ||
+                                    lastName.toLowerCase().contains(adminName.toLowerCase())) {
+                                    
+                                    Map<String, Object> userMap = new HashMap<>();
+                                    userMap.put("userId", user.has("id") ? user.get("id").asText() : "");
+                                    userMap.put("name", fullName);
+                                    userMap.put("email", user.has("email") ? user.get("email").asText() : "");
+                                    userMap.put("role", role);
+                                    userMap.put("status", user.has("status") ? user.get("status").asText() : "");
+                                    results.add(userMap);
+                                }
                             }
                         }
                     }
@@ -925,21 +931,26 @@ public class NaturalLanguageQueryService {
             JsonNode usersResponse = objectMapper.readTree(response);
             List<Map<String, Object>> results = new ArrayList<>();
             
-            if (usersResponse.has("data") && usersResponse.get("data").isArray()) {
-                JsonNode users = usersResponse.get("data");
-                for (JsonNode user : users) {
-                    String role = user.has("role") ? user.get("role").asText() : "";
-                    
-                    // Include both AGENT and ADMIN roles
-                    if ("agent".equalsIgnoreCase(role) || "admin".equalsIgnoreCase(role)) {
-                        Map<String, Object> userMap = new HashMap<>();
-                        userMap.put("userId", user.has("userId") ? user.get("userId").asText() : "");
-                        userMap.put("name", (user.has("firstName") ? user.get("firstName").asText() : "") + " " +
-                                          (user.has("lastName") ? user.get("lastName").asText() : ""));
-                        userMap.put("email", user.has("email") ? user.get("email").asText() : "");
-                        userMap.put("role", role.toUpperCase());
-                        userMap.put("enabled", user.has("enabled") ? user.get("enabled").asBoolean() : false);
-                        results.add(userMap);
+            if (usersResponse.has("data")) {
+                JsonNode data = usersResponse.get("data");
+                if (data != null && data.has("content")) {
+                    JsonNode users = data.get("content");
+                    if (users.isArray()) {
+                        for (JsonNode user : users) {
+                            String role = user.has("role") ? user.get("role").asText() : "";
+                            
+                            // Include both AGENT and ADMIN roles
+                            if ("agent".equalsIgnoreCase(role) || "admin".equalsIgnoreCase(role)) {
+                                Map<String, Object> userMap = new HashMap<>();
+                                userMap.put("userId", user.has("id") ? user.get("id").asText() : "");
+                                userMap.put("name", (user.has("firstName") ? user.get("firstName").asText() : "") + " " +
+                                                  (user.has("lastName") ? user.get("lastName").asText() : ""));
+                                userMap.put("email", user.has("email") ? user.get("email").asText() : "");
+                                userMap.put("role", role.toUpperCase());
+                                userMap.put("status", user.has("status") ? user.get("status").asText() : "");
+                                results.add(userMap);
+                            }
+                        }
                     }
                 }
             }
