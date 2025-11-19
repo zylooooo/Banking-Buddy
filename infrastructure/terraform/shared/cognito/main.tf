@@ -12,8 +12,10 @@ resource "aws_cognito_user_pool" "main" {
   }
 
   # CRITICAL: Prevent destruction of user pool (contains all users!)
+  # NOTE: Set to false when you need to destroy infrastructure
+  # Set back to true after recreating for production protection
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
     ignore_changes = [
       # Ignore schema changes to prevent recreation
       schema,
@@ -114,8 +116,10 @@ resource "aws_cognito_user_pool_domain" "main" {
   user_pool_id = aws_cognito_user_pool.main.id
 
   # CRITICAL: Prevent destruction to avoid user pool recreation
+  # NOTE: Set to false when you need to destroy infrastructure
+  # Set back to true after recreating for production protection
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -129,8 +133,10 @@ resource "aws_cognito_user_pool_client" "main" {
   generate_secret = false
 
   # CRITICAL: Prevent destruction of app client (would break all authentication!)
+  # NOTE: Set to false when you need to destroy infrastructure
+  # Set back to true after recreating for production protection
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 
   # Token validity
@@ -198,8 +204,10 @@ resource "aws_cognito_user_pool_ui_customization" "main" {
   css = file("${path.module}/hosted-ui.css")
 
   # CRITICAL: Prevent destruction
+  # NOTE: Set to false when you need to destroy infrastructure
+  # Set back to true after recreating for production protection
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 
   depends_on = [aws_cognito_user_pool_domain.main]

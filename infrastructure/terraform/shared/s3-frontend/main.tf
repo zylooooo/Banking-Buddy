@@ -2,6 +2,10 @@
 resource "aws_s3_bucket" "frontend" {
   bucket = "${var.name_prefix}-frontend-${random_string.bucket_suffix.result}"
 
+  # Allow Terraform to delete bucket even if it contains objects
+  # This prevents "BucketNotEmpty" errors during terraform destroy
+  force_destroy = true
+
   tags = var.common_tags
 }
 

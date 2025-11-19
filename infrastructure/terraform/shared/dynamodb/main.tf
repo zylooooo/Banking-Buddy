@@ -57,8 +57,10 @@ resource "aws_dynamodb_table" "audit_logs" {
   }
 
   # CRITICAL: Prevent accidental deletion of audit logs
+  # NOTE: Set to false when you need to destroy infrastructure
+  # Set back to true after recreating for production protection
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 
   tags = var.common_tags
